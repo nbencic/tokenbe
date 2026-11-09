@@ -133,3 +133,33 @@ Context: `PopoverEmptyStateUITests` on the owner's Mac. With about 20 status ite
 Options: A) The test clicks the status item up to twice until the popover's element appears, and reads static-text strings from the accessibility value (macOS leaves the label empty). Settings reach the app as launch arguments (`-tb.log.level debug`, the arguments domain): the UI-test runner is sandboxed, so its own `UserDefaults` writes land in its container, never in the app's suite. B) Ask the owner to move TokenBe's item (⌘-drag) or edit the system's menu-bar layout (`com.apple.MenuBar`). C) A Debug-only hook that opens the popover without a click.
 Chosen for now: A. The test still proves that a click on the glyph opens the popover, works on any menu bar, and doesn't touch the owner's system settings. C would skip the click the test exists to check.
 Blocking: no
+
+## Q-020 Dashboard window details 14/08 leave open            (2026-11-09)
+Context: Stage 1.2 app code and `DashboardShellUITests`.
+Options: A)
+- **Frame:** `tb.ui.dashboardFrame` is the only frame memory. The `Window` scene uses `.restorationBehavior(.disabled)` and `.defaultLaunchBehavior(.suppressed)`, so SwiftUI neither restores the frame nor reopens the window at launch. A small `NSViewRepresentable` (`WindowFrameKeeper`) reads and sets the frame of the window SwiftUI created. 04 forbids AppKit *windows*; none is created.
+- **Frame rules** (Core `WindowFrame`, unit-tested): `NSStringFromRect`'s format with integral points; the saved frame is grown to 920×600 and restored only if at least 40 pt of it each way lies on a connected screen. Otherwise the system places the window.
+- **Saving:** on move or resize, debounced 500 ms (Core `Debouncer`, clock injected); also on close, so a quick move-then-close isn't lost.
+- **Window title:** the scene is named `Dashboard`; the title bar shows the sidebar selection (`Overview`), as `NavigationSplitView` does. Tests find the window by its scene id `dashboard`.
+- **Opening:** the popover's `Open dashboard` button (⌘D) and ⌥-click both call `openWindow(id: "dashboard")`, activate the app and dismiss the popover. ⌥-click reads `NSEvent.modifierFlags` as the popover appears (O-15). It works on macOS 27, so the O-15 fallback isn't needed.
+- **UI-test settings reset:** Debug-only `TOKENBE_TEST_RESET_SETTINGS=1`, honoured only with `TOKENBE_TEST_ROOT`, clears the UI-test suite before `Settings` loads. `SettingsSuite.resetUITests` refuses every suite except `dev.bathyon.tokenbe.uitests`, so the owner's settings can never be cleared this way.
+- **AppKit's own window state:** `NavigationSplitView` autosaves its split widths (`NSSplitView Subview Frames dashboard, …`) into the app's standard defaults domain, which is the owner's real `dev.bathyon.tokenbe`, even under `TOKENBE_TEST_ROOT`. It is AppKit UI state, not a TokenBe setting. Verification therefore guards the real domain's `tb.*` keys (unchanged from start to end) rather than the file. The one key written on 2026-11-09 was left in place (the real domain is never modified by the agent).
+- **14's Verify** reads `dev.bathyon.tokenbe tb.ui.dashboardRange`. Under Q-014 the test writes the UI-test suite, so the check reads `dev.bathyon.tokenbe.uitests`, and also checks that the real settings plist wasn't modified during verification.
+
+B) Let SwiftUI's own window restoration keep the frame (no `tb.ui.dashboardFrame`).
+Chosen for now: A. 09 defines the setting and 14 asks for it, and a single source of truth keeps `Reset all settings…` (9.5) meaningful for the window too.
+Blocking: no
+
+## Q-021 Stage 1.2 "Adds" lists a right-click context menu            (2026-11-09)
+Context: `14 § Stage 1.2` "Adds" says "right-click context menu with `Open dashboard` and `Quit TokenBe`"; step 4 of the same stage, `08` and D-context-menu say there is none.
+Options: A) No context menu (13 overrides everything, 12 R1). B) Build it.
+Chosen for now: A. The "Adds" line is a leftover from before D-context-menu. It is corrected in 14 so the next reader doesn't trip on it.
+Blocking: no
+
+## Q-022 Stage checks read the test result file, not console text            (2026-11-09)
+Context: about once in 100–150 full `swift test` runs, SwiftPM's console relay loses the tail of Swift Testing's output while the run exits 0. On such a run the xunit result (`--xunit-output`) still lists all tests passed. The stage checks grepped the console text for `Suite X passed`, so they could fail spuriously.
+Options:
+- A) `run.sh test` writes `build/results/test-swift-testing.xml`. A `suite_passed` helper in `verify-stage.sh` requires that file to be newer than the run's start, to contain the suite, and to report `failures="0"`.
+- B) Retry verify on a missing summary.
+Chosen for now: A. The structured result is authoritative, and a retry would hide real problems. The `swift test` exit code still gates as before; CI is unaffected, because it relies on the exit code only.
+Blocking: no

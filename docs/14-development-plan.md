@@ -260,7 +260,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Stage DoD:** D1–D3, D6, D8–D12.
 
 ### Stage 1.2 — Dashboard window shell
-**Goal:** the Dashboard window with sidebar `Overview`, range picker, frame persistence, and Overview empty state. **Depends on:** 1.1. **Adds:** popover footer `Open dashboard` (⌘D), ⌥-click on the glyph opens it, right-click context menu with `Open dashboard` and `Quit TokenBe`. **Size:** S.
+**Goal:** the Dashboard window with sidebar `Overview`, range picker, frame persistence, and Overview empty state. **Depends on:** 1.1. **Adds:** popover footer `Open dashboard` (⌘D), ⌥-click on the glyph opens it. No right-click context menu (D-context-menu; Q-021). **Size:** S.
 
 **Steps**
 1. `Window("Dashboard", id: "dashboard")` scene, `min 920×600`, frame saved to `tb.ui.dashboardFrame` on move/resize (debounced 500 ms) and restored.
@@ -270,7 +270,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 **Inventory** — Files: `Dashboard/{DashboardView,SidebarView,OverviewView}.swift`, `Components/RangePicker.swift`. Settings: `tb.ui.dashboardFrame`, `tb.ui.dashboardRange`. Events: none new.
 **Tests:** `TokenBeUITests/DashboardShellUITests` (⌘D opens; range persists across relaunch).
-**Verify:** UI test; `defaults read dev.bathyon.tokenbe tb.ui.dashboardRange` after test equals the selected value.
+**Verify:** UI test; `defaults read dev.bathyon.tokenbe.uitests tb.ui.dashboardRange` after test equals the selected value (the UI-test suite, Q-014/Q-020).
 **Stage DoD:** D1–D4, D6, D8–D12.
 
 ### Stage 1.3 — Settings window: General, Privacy (static), Advanced (logging)
