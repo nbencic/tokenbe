@@ -16,7 +16,13 @@ case "$task" in
   build-release) cmd=(swift build -c release -Xswiftc -warnings-as-errors); timeout=900 ;;
   test)          cmd=(swift test);                                          timeout=900 ;;
   lint)          cmd=(swiftlint --strict);                                  timeout=300 ;;
-  *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint" >&2; exit 2 ;;
+  build-app)     cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
+                      -derivedDataPath build/DerivedData build);                timeout=900 ;;
+  build-app-release) cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Release
+                      -derivedDataPath build/DerivedData build CODE_SIGNING_ALLOWED=NO); timeout=900 ;;
+  uitest)        cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
+                      -derivedDataPath build/DerivedData test);                 timeout=1800 ;;
+  *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint build-app build-app-release uitest" >&2; exit 2 ;;
 esac
 
 state="build/run"; logs="build/logs"
