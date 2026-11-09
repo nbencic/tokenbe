@@ -15,7 +15,7 @@ Date: 2026-11-09 · Branch: s0.3-settings-core · PR: #3 · Planned size: S · C
   - `resetAll()`, which keeps `tb.ui.onboardingDone` and logs `app.settings_reset`;
   - the `tb.log.level` binding.
 
-65 tests pass, and passed 10 of 10 repeated runs. TokenBeCore line coverage is 93.2%. DoD D1–D4, D9 and D11 are met; for D4, consumers and controls arrive in the stages listed in 14 § 13.2. D12 has no CI yet (Q-005); D13 is met by this file. 09 § Definition of done is met. No human gate.
+65 tests pass, and passed 10 of 10 repeated runs. TokenBeCore coverage: 93.2% as first reported here was *function* coverage, read from the wrong `llvm-cov` column; line coverage was above it (94.3% at Stage 0.5, measured by `coverage-gate.sh`). Corrected in Stage 0.5. DoD D1–D4, D9 and D11 are met; for D4, consumers and controls arrive in the stages listed in 14 § 13.2. D12 has no CI yet (Q-005); D13 is met by this file. 09 § Definition of done is met. No human gate.
 
 ## What went as planned
 - Generating `SettingsKey` and the accessors from the 09 tables worked first time: 53 keys, and every range in 09 mapped to a rule without exception. `0.3.sh` now diffs 09 against the enum in both directions.

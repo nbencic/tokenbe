@@ -37,6 +37,6 @@ Date: 2026-11-09 · Branch: s0.1-repo-skeleton · PR: #1 · Planned size: S · C
 - Q-005 empty root commit as the PR base; merge 0.1–0.4 on `STAGE <id> OK` without CI.
 
 ## Carry-forward actions
-- PM-0.1-1 · agent · 0.5 · First CI run on `macos-15` with Xcode 16.x: confirm `Package.swift` (incl. `enableUpcomingFeature("StrictConcurrency")`) and the Swift Testing smoke test build warning-free on Swift 6.0/6.1; if not, record the fix and close Q-001. Status: open.
-- PM-0.1-2 · agent · 0.5 · CI runs the same commands as `run.sh` (`build-release`, `test`, `lint`), so local verify and CI cannot drift. Status: open.
+- PM-0.1-1 · agent · 0.5 · First CI run on `macos-15` with Xcode 16.x: confirm `Package.swift` (incl. `enableUpcomingFeature("StrictConcurrency")`) and the Swift Testing smoke test build warning-free on Swift 6.0/6.1; if not, record the fix and close Q-001. Status: closed in Stage 0.5 (Xcode 16.4 / Swift 6.1.2; one fix: `nonisolated` statics in `Settings`; Q-001 resolved).
+- PM-0.1-2 · agent · 0.5 · CI runs the same commands as `run.sh` (`build-release`, `test`, `lint`), so local verify and CI cannot drift. Status: closed in Stage 0.5 (`ci.yml` uses the same commands and flags as `build-release`, `test`, `lint`, `build-app-release`).
 - PM-0.1-3 · Nikola · 0.4 · No code-signing identity on the Mac: sign in with your Apple ID in Xcode → Settings → Accounts before H1, so a Team can be chosen. Status: re-targeted → 11.5 (H1 retired by D-xcodeproj-agent; a Team is now needed only for the Developer ID signing of H4).
