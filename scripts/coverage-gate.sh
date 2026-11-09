@@ -9,6 +9,9 @@ cd "$(dirname "$0")/.."
 minimum="${1:-85}"
 json="$(swift test --show-codecov-path 2>/dev/null)"
 [[ -s "$json" ]] || { echo "coverage-gate: no coverage data at '$json'; run swift test --enable-code-coverage first"; exit 2; }
+# Stale data would measure old code: refuse coverage older than any Core source or test file.
+newer="$(find Sources/TokenBeCore Tests/TokenBeCoreTests -name '*.swift' -newer "$json" | head -n 1)"
+[[ -z "$newer" ]] || { echo "coverage-gate: coverage data is older than $newer; run swift test --enable-code-coverage first"; exit 2; }
 
 read -r covered count < <(jq -r '[.data[0].files[] | select(.filename | test("/Sources/TokenBeCore/")) | .summary.lines]
   | "\(map(.covered) | add // 0) \(map(.count) | add // 0)"' "$json")
