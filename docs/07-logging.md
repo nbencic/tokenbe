@@ -19,7 +19,8 @@ Rule: **every** `catch`, every `else` branch that represents an unexpected state
 - `lvl` ∈ `debug` `info` `notice` `warn` `error` `fault`.
 - `cat` ∈ `app` `sched` `poll.<provider>` `normalize` `price` `ledger` `ingest` `keychain` `db` `ui` `update` `crash`.
 - `evt` is a stable dotted identifier (table below). New events MUST be added to this table in the same PR.
-- `ctx` is a flat object of primitives; never nested more than one level; max 2 KiB after redaction (truncate strings to 512 chars with `…`).
+- `ctx` is a flat object of primitives; never nested more than one level; max 2 KiB after redaction (truncate strings to 512 chars with `…`). Keys are written in sorted order; if the cap is still exceeded, the remaining keys are dropped and `ctx_truncated: true` is added (Q-007). Exception: `crash.signal` carries its breadcrumbs as one string and is exempt from the cap (Q-008).
+- Top-level `acct`, `job`, `attempt`, `err` and `dur_ms` are omitted when they do not apply; `ts`, `lvl`, `cat`, `evt`, `msg`, `ctx`, `pid`, `thr`, `v` are always present (Q-007).
 - Durations in `dur_ms` as integers.
 
 ## Redaction (applied to EVERY string before it reaches any sink, including `os.Logger`)
@@ -27,11 +28,13 @@ Rule: **every** `catch`, every `else` branch that represents an unexpected state
 Regexes applied in order, replacement `«redacted:<kind>»`:
 1. `sk-[A-Za-z0-9_\-]{8,}` → `«redacted:key»`
 2. `sk-ant-[A-Za-z0-9_\-]{8,}` → `«redacted:key»`
-3. `(?i)(authorization|x-api-key|x-goog-api-key)\s*[:=]\s*\S+` → `$1: «redacted:header»`
-4. `(?i)bearer\s+[A-Za-z0-9._\-]{8,}` → `Bearer «redacted:token»`
+3. `(?i)(authorization|x-api-key|x-goog-api-key)(["']?)\s*[:=]\s*(["']?)(?:[A-Za-z]+\s+)?[^\s"',}]+` → `$1$2: $3«redacted:header»` (an optional auth-scheme word such as `Bearer`/`Basic` is consumed with the value, and JSON-quoted names and values are covered; Q-006)
+4. `(?i)bearer\s+[^\s"',}]{8,}` → `Bearer «redacted:token»` (token characters include `+ / =`; Q-006)
 5. `xai-[A-Za-z0-9]{8,}` → `«redacted:key»`
 6. `sk-or-v1-[A-Za-z0-9]{8,}` → `«redacted:key»`
-7. Any string equal to a value currently held in the in-memory key cache → `«redacted:key»` (exact match pass; covers unknown formats)
+7. Any occurrence of a value currently held in the in-memory key cache → `«redacted:key»` (exact substring pass, longest value first; covers unknown formats)
+
+Redaction runs before truncation, so a key cut by the 512-character limit cannot slip past patterns 1–6.
 A unit test feeds each pattern plus a real-shaped fake key and asserts no sink output contains more than the last 4 chars.
 
 ## Level policy
@@ -48,6 +51,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `app.launch` | info | version, build, macOS, lowPower, launchAtLogin |
 | `app.terminate` | info | reason |
 | `app.log_dropped` | warn | count |
+| `app.log_sink_failed` | error | op (`mkdir`,`open`,`write`,`rotate`,`retention`), path, err — emitted to os.Logger and breadcrumbs only, never back into the failing sink; once per failure streak |
 | `app.settings_changed` | info | key, old, new, clamped (bool), source (`user`,`system`) |
 | `app.settings_reset` | info | keys_removed |
 | `app.login_item_failed` | error | err (SMAppService) |
