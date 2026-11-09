@@ -73,3 +73,21 @@ Context: `Settings/UserDefaultsStore.swift`. The suite `dev.bathyon.tokenbe` (09
 Options: A) when they are equal, use the app's standard domain, which is the same `dev.bathyon.tokenbe` domain (so `defaults delete dev.bathyon.tokenbe` in D10 still clears it) B) rename the suite.
 Chosen for now: A — no behavior or name changes; tests use a throwaway suite.
 Blocking: no
+
+## Q-013 Build settings beyond the Stage 0.4 list            (2026-11-09)
+Context: `Config/*.xcconfig`, `TokenBe.xcodeproj` (D-xcodeproj-agent). With no settings in the project file, a few Xcode defaults have to live somewhere, and the UI-test target needs its own identity.
+Options: A) `Config/Project.xcconfig` (SDK, deployment target, Swift 6, Debug-only arch/testability/debug-info settings) for the project level; `Config/UITests.xcconfig` for the UI-test bundle (`dev.bathyon.tokenbe.uitests`); `Base.xcconfig` adds `CODE_SIGN_STYLE = Automatic`, `CODE_SIGN_IDENTITY = -` (sign to run locally until H4), `COMBINE_HIDPI_IMAGES`, `LD_RUNPATH_SEARCH_PATHS`, `SWIFT_EMIT_LOC_STRINGS`; `ENABLE_PREVIEWS` is NOT set B) settings in the project file.
+Chosen for now: A — D-xcconfig stays literally true. `ENABLE_PREVIEWS = YES` silently turns hardened runtime off for Debug, so it is left out (the app has no previews). Xcode still signs Debug builds without the runtime flag when signing to run locally; Release builds carry `flags=0x10002(adhoc,runtime)`.
+Blocking: no
+
+## Q-014 Keeping UI tests and verification away from the owner's data            (2026-11-09)
+Context: `Sources/TokenBeApp/Startup.swift`, `Tests/TokenBeUITests`, `scripts/stages/0.4.sh`, 14 D10. `XCUIApplication.terminate()` kills the app (leaving `.running`, so the next real launch would log a false `crash.previous_launch`), and D10 told the agent to `rm -rf` the owner's real data folders.
+Options: A) Debug builds only: the environment variable `TOKENBE_TEST_ROOT` moves logs, support folder and sentinel under that root and settings to the suite `dev.bathyon.tokenbe.uitests`; UI tests and `0.4.sh` (`open --env`) always set it; Release ignores it B) wipe the real folders before each check.
+Chosen for now: A — no data loss, no hidden setting (it is not a `tb.*` key and does not exist in Release), and D10 is rewritten to use it.
+Blocking: no
+
+## Q-015 Startup and asset details 14/07/08 leave open            (2026-11-09)
+Context: Stage 0.4.
+Options: A) `app.launch` is logged once with the 07 context and once per startup step (`startup_step`, 14 step 6); a failing step logs `app.launch` at `error` with `err` and stops; a sentinel that cannot be removed logs `app.terminate` at `error`; `crash.previous_launch` reports `signal_or_exception: "unknown"` and `breadcrumbs_attached: false` (the crash line itself, with signal and breadcrumbs, is already in the previous log file); colour sets for every 08 token with an asset name (`secondary`/`tertiary` use the system styles, as 08 says); the menu-bar ring is a template `NSImage`, because menu-bar labels render images, not SwiftUI shapes B) new events for each case.
+Chosen for now: A — no new events, every failure still logged.
+Blocking: no
