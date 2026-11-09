@@ -21,7 +21,7 @@ check "09 templated keys present (snooze)" grep -q 'tb.alerts.snoozedUntil"' Sou
 
 check "swift test" scripts/run.sh test
 for suite in SettingsTests; do
-  check "suite $suite passed" grep -q "Suite $suite passed" "$(ls -t build/logs/test-*.log | head -n 1)"
+  check "suite $suite passed" suite_passed "$suite"
 done
 
 no_userdefaults() { [[ "$(grep -R "UserDefaults" Sources/ | grep -v Settings/UserDefaultsStore.swift | wc -l | tr -d ' ')" == "0" ]]; }

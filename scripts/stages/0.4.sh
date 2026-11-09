@@ -76,7 +76,7 @@ check "kill -9 leaves the sentinel" test -e "$crash_root/Application Support/Tok
 check "relaunch after the kill" launch_cycle "$crash_root"
 check "crash.previous_launch logged once" test "$(count_evt "$crash_root" crash.previous_launch)" -eq 1
 
-check "StartupSequenceTests passed" grep -q "Suite StartupSequenceTests passed" "$(ls -t build/logs/test-*.log | head -n 1)"
+check "StartupSequenceTests passed" suite_passed StartupSequenceTests
 check "UI tests (LaunchSmokeTests)" scripts/run.sh uitest
 real_untouched() {
   local dir changed=""
@@ -86,3 +86,4 @@ real_untouched() {
   [[ -z "$changed" ]] || { echo "changed during verification: $changed"; return 1; }
 }
 check "owner's real TokenBe logs and support folder untouched by verification" real_untouched
+check "owner's real TokenBe settings (tb.*) unchanged by verification" real_tb_unchanged

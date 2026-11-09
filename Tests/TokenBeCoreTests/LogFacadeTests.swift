@@ -36,10 +36,7 @@ import Testing
     struct Broken: Error {}
     Log.reportSinkFailure(op: "write", path: "/x", error: Broken())
     await second.drain()
-    for _ in 0..<1000 {
-      if await replacement.records.count >= 2 { break }
-      await Task.yield()
-    }
+    await eventually("two records in the replacement sink") { await replacement.records.count >= 2 }
     #expect(Set(await replacement.events()) == [.appLaunch, .appLogSinkFailed])
     await second.shutdown()
   }

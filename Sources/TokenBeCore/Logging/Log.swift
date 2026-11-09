@@ -90,7 +90,8 @@ public final class LogPipeline: Sendable {
           try await clock.sleep(until: clock.now.advanced(by: LogPipeline.flushInterval), tolerance: nil)
           continuation.yield(.flush)
           if lastReport.duration(to: clock.now) >= LogPipeline.dropReportInterval {
-            continuation.yield(.reportDropped)
+            // Retries while the stream is full, so the report is never itself dropped (07: on the 60 s tick).
+            await reportDroppedNow()
             lastReport = clock.now
           }
         }

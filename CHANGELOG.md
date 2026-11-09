@@ -12,3 +12,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The app: a menu-bar glyph with a placeholder popover; launch, quit and crash are logged, and an unclean previous run is detected (Stage 0.4).
 - Continuous integration: build, tests, coverage gate, lint, event-table check, app build and a secret/URL guard on every pull request (Stage 0.5).
 - Popover: the empty state (`No accounts yet`) and a `Quit` button; shared formatting for money, runway, tokens and freshness (Stage 1.1).
+- Dashboard window: `Open dashboard` (⌘D) in the popover, or ⌥-click the menu-bar icon; empty Overview with the `Today | 7 d | 30 d | 90 d` range picker. The range and window position are remembered (Stage 1.2).

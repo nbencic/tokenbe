@@ -18,9 +18,8 @@ for evt in app.log_dropped crash.signal crash.previous_launch; do
 done
 
 check "swift test" scripts/run.sh test
-latest_test_log() { ls -t build/logs/test-*.log | head -n 1; }
 for suite in RedactorTests LogSinkTests CrashHandlerTests LogRecordTests; do
-  check "suite $suite passed" grep -q "Suite $suite passed" "$(latest_test_log)"
+  check "suite $suite passed" suite_passed "$suite"
 done
 
 no_print() { [[ "$(grep -R "print(" Sources/ | wc -l | tr -d ' ')" == "0" ]]; }
