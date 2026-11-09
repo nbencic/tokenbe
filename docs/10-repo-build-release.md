@@ -5,7 +5,7 @@
 ```
 tokenbe/
 ├── Package.swift                       # SwiftPM: TokenBeCore + tests (no app target here)
-├── TokenBe.xcodeproj/                  # App target only; created ONCE in the Xcode GUI (14 § H1); synchronized folders; never hand-edited
+├── TokenBe.xcodeproj/                  # App + UI-test targets, written by the agent (D-xcodeproj-agent); synchronized folders; no build settings
 ├── Config/                             # Base.xcconfig, Debug.xcconfig, Release.xcconfig — ALL build settings live here (D-xcconfig)
 ├── Sources/
 │   ├── TokenBeCore/

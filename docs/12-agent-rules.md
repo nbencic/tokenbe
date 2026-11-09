@@ -89,4 +89,4 @@ Check `13-decisions.md` → "Open items with defaults". If it is there, apply th
 - Replace GRDB with raw `sqlite3` or add another storage layer.
 - Add a provider to `Verified` without a `RECORDED` marker, or ship a Release build that offers an unverified provider.
 - Start a stage of `14` before `scripts/verify-stage.sh` passes for the previous one, or skip a stage.
-- Edit `TokenBe.xcodeproj/project.pbxproj` by hand (settings go in `Config/*.xcconfig`; the project was created once in the GUI).
+- Put a build setting in `TokenBe.xcodeproj/project.pbxproj`, or change that file beyond adding/removing targets, package references or build phases (settings go in `Config/*.xcconfig`; D-xcodeproj-agent).
