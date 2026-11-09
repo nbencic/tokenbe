@@ -67,6 +67,6 @@ Date: 2026-11-09 · Branch: s0.2-logging-core · PR: #2 · Planned size: M · Co
   - on `applicationWillTerminate`: `await Log.current?.shutdown()`, then `markClean()`
 
   Status: open.
-- PM-0.2-2 · agent · 0.3 · Connect `tb.log.level` to `Log.minimumLevel` and `tb.log.retentionDays` to `NDJSONSink.Limits.retentionDays`. Retention runs when a file opens; decide whether a change re-opens the sink or waits for the next file. Status: open.
+- PM-0.2-2 · agent · 0.3 · Connect `tb.log.level` to `Log.minimumLevel` and `tb.log.retentionDays` to `NDJSONSink.Limits.retentionDays`. Retention runs when a file opens; decide whether a change re-opens the sink or waits for the next file. Status: partly closed in 0.3 — `tb.log.level` is bound in `Settings`, and `NDJSONSink.setRetentionDays` applies a change at once; the remaining wiring (calling it on `tb.log.retentionDays` changes) needs the composition root → re-targeted to 0.4 as PM-0.3-1.
 - PM-0.2-3 · agent · 0.5 · CI runs `check-log-events.sh` (D3) and the coverage gate. `11` also mentions a `--from-tests` mode ("every event produced by a test"), which can only pass once events have producers; schedule it then and say where. Status: open.
 - Earlier actions targeting 0.2: none.
