@@ -1,0 +1,37 @@
+# docs/10-repo-build-release.md § SwiftLint rules, plus tokenbe_no_inline_text (14 § Stage 0.1).
+included:
+  - Sources
+  - Tests
+  - Package.swift
+excluded:
+  - .build
+  - build
+  - DerivedData
+
+disabled_rules: [line_length]
+
+custom_rules:
+  tokenbe_no_silent_catch:
+    regex: 'catch\s*\{\s*\}|try\?'
+    message: "Every error must be logged (07). Use `catch { Log.error(...) }`."
+    severity: error
+  tokenbe_no_userdefaults:
+    regex: 'UserDefaults\.'
+    excluded: 'Sources/TokenBeCore/Settings/Settings.swift'
+    severity: error
+  tokenbe_no_double_money:
+    regex: '(cents|amount|price|cost)\w*\s*:\s*Double'
+    severity: error
+  tokenbe_no_hex_in_views:
+    regex: 'Color\(red:|#[0-9A-Fa-f]{6}'
+    included: 'Sources/TokenBeApp'
+    severity: error
+  tokenbe_no_print:
+    regex: '^\s*print\('
+    severity: error
+  tokenbe_no_inline_text:
+    regex: 'Text\("[A-Za-z]'
+    message: "User-visible copy lives in Strings.swift (12 § R9)."
+    included: 'Sources/TokenBeApp'
+    excluded: 'Strings\.swift'
+    severity: error
