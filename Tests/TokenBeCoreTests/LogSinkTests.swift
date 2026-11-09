@@ -197,10 +197,7 @@ import Testing
     pipeline.startConsumer()
     struct DiskFull: Error {}
     pipeline.reportSinkFailure(op: "write", path: "/tmp/x", error: DiskFull())
-    for _ in 0..<1000 {
-      if await !capture.records.isEmpty { break }
-      await Task.yield()
-    }
+    await eventually("the sink-failure record") { await !capture.records.isEmpty }
     let reported = try #require(await capture.records.first)
     #expect(reported.evt == .appLogSinkFailed)
     #expect(reported.lvl == .error)
