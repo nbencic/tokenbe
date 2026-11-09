@@ -55,3 +55,21 @@ Context: 07 places the bounded `AsyncStream` in the NDJSON sink, but the `LogSin
 Options: A) one bounded stream (4 096) in `LogPipeline` feeding all sinks in order from a single consumer; the consumer reports `app.log_dropped`; "synchronous flush after error/fault" = the NDJSON sink writes to disk as soon as it processes such a record B) a stream per sink.
 Chosen for now: A — one ordering for all sinks, one drop counter, and the seam stays exactly as specified. Logging's own I/O failures get a new event, `app.log_sink_failed` (added to 07), routed to os.Logger and breadcrumbs only.
 Blocking: no
+
+## Q-010 Shape of the settings code generated from 09            (2026-11-09)
+Context: `Settings/SettingsKey.swift`, `Settings/Settings+Accessors.swift`, `Settings/SettingSpec.swift`. 09 says the table is the registration list ("generate it"). 09 also asks for a `Settings.didChange` notification, while 14 asks for `changes: AsyncStream<SettingsKey>`.
+Options: A) generate `SettingsKey` (53 keys with spec) and one typed property per key from 09; per-provider keys as a separate `TemplatedSettingsKey` (an enum case cannot carry a dynamic name); post `Settings.didChange` AND yield to `changes`, which returns a fresh stream per access so several subscribers work; `Settings(store:logPipeline:)` takes an optional pipeline for tests B) hand-written accessors and one shared stream.
+Chosen for now: A — one source of truth (`0.3.sh` diffs 09 against the enum), both announcement paths as both docs say, and tests that never touch the global logger.
+Blocking: no
+
+## Q-011 What "clamp" means for settings without a numeric range            (2026-11-09)
+Context: `SettingSpec.validate`; 09 gives ranges for numbers only.
+Options: A) a value of the wrong type, a string outside its allowed list, or a malformed pattern → the default, logged `clamped=true`; `manualOrder` drops unknown and duplicate provider ids; `ingest.folderPath` always holds its fixed value. Patterns: shortcut = `ctrl alt shift cmd` modifiers, each at most once, plus key `a–z 0–9 f1–f12 space` (empty = none); `NSStringFromRect` text or empty; `HH:mm`; absolute `https` URL; semver or empty. Threshold bounds implied by `critical < low < watch ≤ 365`: critical 0–363, low 1–364, watch 2–365. A writer clamps only the key it writes; at launch, an order broken in storage resets all three to their defaults B) reject invalid writes without storing.
+Chosen for now: A — 09 says "clamp + log" and never "reject"; resetting the three thresholds at launch is the least code.
+Blocking: no
+
+## Q-012 Settings suite equal to the app's bundle id            (2026-11-09)
+Context: `Settings/UserDefaultsStore.swift`. The suite `dev.bathyon.tokenbe` (09) is also the bundle id (10), and Foundation does not accept the main bundle id as a suite name.
+Options: A) when they are equal, use the app's standard domain, which is the same `dev.bathyon.tokenbe` domain (so `defaults delete dev.bathyon.tokenbe` in D10 still clears it) B) rename the suite.
+Chosen for now: A — no behavior or name changes; tests use a throwaway suite.
+Blocking: no
