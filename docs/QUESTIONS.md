@@ -99,3 +99,31 @@ Context: `scripts/check-no-secrets.sh`. 11 prescribes the fixture placeholder `s
 Options: A) match strings one by one and exempt exactly the placeholder and bare prefixes ending in `-`/`_`; apply the URL allowlist to Swift sources only, where outbound requests are written (R4); also fail on a tracked `.env`; prove the guard with a planted-secret self-test B) exclude whole directories (docs, tests, fixtures).
 Chosen for now: A — fixtures and tests stay scanned, as 14 asks, and nothing broader than two literal forms is exempt.
 Blocking: no
+
+## Q-017 Formatting details 08 and 05 leave open            (2026-11-09)
+Context: `Model/Formatters.swift`.
+Options: A)
+- **Money:** whole units rounded half up when cents are hidden; the locale's grouping and decimal separators apply to money too (`$1.234,56` in `de_DE`); negative amounts `-$5`, except remaining, which clamps to `$0`.
+- **Estimate band:** the same rounding, with no currency symbol (`≈ $42 ± 3`).
+- **Runway:** hours and days floored; when only the today pace exists, `5 h today`.
+- **Tokens:** three significant digits, rounded half up, `k/M/B/T` (`999 500` → `1.00M`, never `1000k`).
+- **Freshness:** older than yesterday shows `MMM d`.
+- **Dates:** English month abbreviations (O-9), computed in the calendar's time zone, without Foundation date styles (their output differs between macOS versions).
+- **Arithmetic:** integer only, overflow-safe.
+
+B) Foundation currency, number and date styles.
+Chosen for now: A — exact 08 strings on every macOS version (CI runs macOS 15, the owner's Mac macOS 27), and no `Double` for money or tokens (R7).
+Blocking: no
+
+## Q-018 Popover shell details            (2026-11-09)
+Context: Stage 1.1 app code.
+Options: A)
+- `ui.popover_open/close` come from the popover view's appear/disappear, through a Core `PopoverTracker` (unit-tested; repeat calls ignored; `dur_ms` from `ContinuousClock`). The UI test proves two opens and a close.
+- The `Formatters` texts (`just now`, `never`, …) live in Core next to the rules; view copy lives in `Strings.swift`.
+- `AppModel` lives in the app delegate and receives the environment after startup step 1, so `Settings` is never created before logging (04).
+- The provider glyph on cards is left out until artwork exists: cards are not rendered before Phase 3, and 08 names no asset for it.
+- `AppEnvironment.settings` is spelled `TokenBeCore.Settings`, because SwiftUI has its own `Settings` scene type.
+
+B) Open/close from window notifications (AppKit).
+Chosen for now: A — no AppKit window hooks (04), testable in Core.
+Blocking: no
