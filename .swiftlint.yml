@@ -10,6 +10,10 @@ excluded:
 
 disabled_rules: [line_length]
 
+# Short names fixed by the docs (07 record keys `ts`/`v`, categories `db`/`ui`) and Unix conventions (`fd`, `op`, `id`).
+identifier_name:
+  excluded: [id, ts, v, op, db, ui, fd]
+
 custom_rules:
   tokenbe_no_silent_catch:
     regex: 'catch\s*\{\s*\}|try\?'
