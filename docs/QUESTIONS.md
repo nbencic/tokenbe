@@ -7,6 +7,7 @@ Context: `14 § 0` executor line and `10 § CI` (macOS 15, Xcode 16.x, `macos-15
 Options: A) keep the documented targets (deployment target 15.0, `SWIFT_VERSION = 6.0`, CI on `macos-15` with Xcode 16.x) and treat CI as the compatibility gate, so local-only Swift 6.2 features fail in CI rather than shipping B) move CI and the docs to Xcode 26.
 Chosen for now: A — no doc change, and CI already blocks code that only compiles on the newer toolchain; revisit if the `macos-15` runner image or Xcode 16.x is unavailable when 0.5 runs.
 Blocking: no
+Resolved: Stage 0.5 — CI runs Xcode 16.4 / Swift 6.1.2 on `macos-15` and caught one Swift 6.2-only construct on its first run.
 
 ## Q-002 Environment variable names for H3 fixture recording            (2026-11-09)
 Context: `14 § 0.4` H3 and `scripts/record-fixtures.sh`; only `OPENAI_ADMIN_KEY` is named in the docs.
@@ -31,6 +32,7 @@ Context: `14 § 0` requires a stage branch, a PR and green CI (D12); the repo wa
 Options: A) an empty root commit on `main` as the PR base; merge 0.1–0.4 once `scripts/verify-stage.sh` prints `STAGE <id> OK`, with D12 read as "merged; no CI configured yet" B) skip PRs until 0.5.
 Chosen for now: A — keeps the one-PR-per-stage history from the first stage; `verify-stage.sh` runs the same build/test/lint steps that CI will.
 Blocking: no
+Resolved: Stage 0.5 — CI exists; from Stage 0.5 on, every PR merges only with CI green (D12).
 
 ## Q-006 Redaction patterns 3 and 4 leak the token after a scheme word            (2026-11-09)
 Context: `07 § Redaction`, `Logging/Redactor.swift`. Pattern 3 (`…\s*[:=]\s*\S+`) consumes only `Bearer` in `Authorization: Bearer <token>`, so pattern 4 can no longer match and the token stays visible (reproduced: a JWT survives in full). Pattern 3 also misses JSON-quoted names (`"x-api-key": "…"`), and pattern 4 stops at `+ / =`. This contradicts 07's own test ("never more than the last 4 chars").
@@ -90,4 +92,10 @@ Blocking: no
 Context: Stage 0.4.
 Options: A) `app.launch` is logged once with the 07 context and once per startup step (`startup_step`, 14 step 6); a failing step logs `app.launch` at `error` with `err` and stops; a sentinel that cannot be removed logs `app.terminate` at `error`; `crash.previous_launch` reports `signal_or_exception: "unknown"` and `breadcrumbs_attached: false` (the crash line itself, with signal and breadcrumbs, is already in the previous log file); colour sets for every 08 token with an asset name (`secondary`/`tertiary` use the system styles, as 08 says); the menu-bar ring is a template `NSImage`, because menu-bar labels render images, not SwiftUI shapes B) new events for each case.
 Chosen for now: A — no new events, every failure still logged.
+Blocking: no
+
+## Q-016 What the secret guard tolerates, and where URLs are checked            (2026-11-09)
+Context: `scripts/check-no-secrets.sh`. 11 prescribes the fixture placeholder `sk-FIXTURE-<provider>-<last4>`, which matches 07 pattern 1; 02 documents key formats as prefixes (`sk-ant-admin01-…`); docs, license and `Package.swift` contain URLs that are not app traffic.
+Options: A) match strings one by one and exempt exactly the placeholder and bare prefixes ending in `-`/`_`; apply the URL allowlist to Swift sources only, where outbound requests are written (R4); also fail on a tracked `.env`; prove the guard with a planted-secret self-test B) exclude whole directories (docs, tests, fixtures).
+Chosen for now: A — fixtures and tests stay scanned, as 14 asks, and nothing broader than two literal forms is exempt.
 Blocking: no
