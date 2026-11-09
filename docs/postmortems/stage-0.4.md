@@ -1,5 +1,5 @@
 # Postmortem — Stage 0.4 App project, build configuration, first launch
-Date: 2026-11-09 · Branch: s0.4-app-project · PR: #4 · Planned size: M · Commits: 7
+Date: 2026-11-09 · Branch: s0.4-app-project · PR: #4 · Planned size: M · Commits: 9
 
 ## Outcome
 TokenBe now builds from `xcodebuild`:
