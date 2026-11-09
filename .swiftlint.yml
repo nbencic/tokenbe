@@ -21,7 +21,7 @@ custom_rules:
     severity: error
   tokenbe_no_userdefaults:
     regex: 'UserDefaults\.'
-    excluded: 'Sources/TokenBeCore/Settings/Settings.swift'
+    excluded: 'Sources/TokenBeCore/Settings/UserDefaultsStore.swift'
     severity: error
   tokenbe_no_double_money:
     regex: '(cents|amount|price|cost)\w*\s*:\s*Double'
