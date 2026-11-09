@@ -16,3 +16,7 @@ build/
 
 # Claude Code per-user settings
 .claude/settings.local.json
+
+# Local secrets (owner only, 12 § R8). Never committed.
+.env
+.env.*
