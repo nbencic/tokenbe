@@ -78,4 +78,15 @@ public enum SettingsSuite {
   public static func store(named suiteName: String = name) -> any SettingsStore {
     UserDefaultsStore(suiteName: suiteName)
   }
+
+  /// The suite UI tests run against (Q-014): never the owner's real settings.
+  public static let uiTestsName = name + ".uitests"
+
+  /// Clears the UI-test suite so a test starts from 09's defaults (Q-020). Refuses every other suite: the
+  /// owner's real settings can never be cleared through this path.
+  public static func resetUITests(named suiteName: String) -> Bool {
+    guard suiteName == uiTestsName, let defaults = UserDefaults(suiteName: suiteName) else { return false }
+    defaults.removePersistentDomain(forName: suiteName)
+    return true
+  }
 }
