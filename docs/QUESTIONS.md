@@ -31,3 +31,27 @@ Context: `14 § 0` requires a stage branch, a PR and green CI (D12); the repo wa
 Options: A) an empty root commit on `main` as the PR base; merge 0.1–0.4 once `scripts/verify-stage.sh` prints `STAGE <id> OK`, with D12 read as "merged; no CI configured yet" B) skip PRs until 0.5.
 Chosen for now: A — keeps the one-PR-per-stage history from the first stage; `verify-stage.sh` runs the same build/test/lint steps that CI will.
 Blocking: no
+
+## Q-006 Redaction patterns 3 and 4 leak the token after a scheme word            (2026-11-09)
+Context: `07 § Redaction`, `Logging/Redactor.swift`. Pattern 3 (`…\s*[:=]\s*\S+`) consumes only `Bearer` in `Authorization: Bearer <token>`, so pattern 4 can no longer match and the token stays visible (reproduced: a JWT survives in full). Pattern 3 also misses JSON-quoted names (`"x-api-key": "…"`), and pattern 4 stops at `+ / =`. This contradicts 07's own test ("never more than the last 4 chars").
+Options: A) widen 3 to consume an optional scheme word and JSON quotes, widen 4's token class, make pass 7 a substring match, redact before truncating; update 07 B) keep the patterns verbatim.
+Chosen for now: A — strictly more redaction; every vector is pinned in `RedactorTests`. B would ship a known secret leak. Not blocking because the safe option is unambiguous.
+Blocking: no
+
+## Q-007 NDJSON serialization details 07 leaves open            (2026-11-09)
+Context: `Logging/LogRecord.swift`, `Logging/Log.swift`.
+Options: A) hand-written JSON writer; `acct/job/attempt/err/dur_ms` omitted when they do not apply; `ctx` always present with keys sorted; over the 2 KiB cap, the remaining keys are dropped and `ctx_truncated: true` is added; `thr` is `main` or `thread:<id>`, because the `Log` API in 14 has no thread/actor parameter B) `JSONEncoder` with `null` for absent fields.
+Chosen for now: A — fixed key order on every toolchain (`JSONEncoder` does not guarantee order) and smaller lines; 07 updated.
+Blocking: no
+
+## Q-008 crash.signal breadcrumbs in a flat ctx            (2026-11-09)
+Context: `07 § Crash handling` wants the last 50 breadcrumbs in `crash.signal`; `07 § Record shape` allows only flat primitives in a 2 KiB `ctx`.
+Options: A) breadcrumbs as ONE string (the 50 NDJSON lines joined by `\n`), each cut to 1 200 bytes; `crash.signal` exempt from the 2 KiB cap B) a nested array.
+Chosen for now: A — keeps ctx flat and the crash path allocation-free (64 KiB pre-allocated buffer); 07 updated. Consequence: records still in the NDJSON sink's buffer at crash time survive only as breadcrumbs.
+Blocking: no
+
+## Q-009 Where the bounded stream lives, and what "synchronous flush" means            (2026-11-09)
+Context: 07 places the bounded `AsyncStream` in the NDJSON sink, but the `LogSink` seam (`14 § 0.3`) is async while `Log.*` must be synchronous (it is called from every `catch`).
+Options: A) one bounded stream (4 096) in `LogPipeline` feeding all sinks in order from a single consumer; the consumer reports `app.log_dropped`; "synchronous flush after error/fault" = the NDJSON sink writes to disk as soon as it processes such a record B) a stream per sink.
+Chosen for now: A — one ordering for all sinks, one drop counter, and the seam stays exactly as specified. Logging's own I/O failures get a new event, `app.log_sink_failed` (added to 07), routed to os.Logger and breadcrumbs only.
+Blocking: no
