@@ -1,0 +1,18 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# Build products and run logs (scripts/run.sh)
+build/
+*.dmg
+
+# macOS
+.DS_Store
+
+# Claude Code per-user settings
+.claude/settings.local.json
