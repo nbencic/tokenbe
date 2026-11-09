@@ -36,6 +36,15 @@ check() {
   fi
 }
 
+# suite_passed <Suite>: the last `run.sh test` (its xunit result, newer than the run's start) ran the suite, no failures.
+# Reads the structured result, not console text, which SwiftPM's relay sometimes truncates (Q-022).
+suite_passed() {
+  local xml="build/results/test-swift-testing.xml" started="build/run/test.start"
+  [[ -s "$xml" && -e "$started" && "$xml" -nt "$started" ]] || { echo "no xunit result from the last run.sh test"; return 1; }
+  grep -q "<testcase classname=\"TokenBeCoreTests\.$1\"" "$xml" || { echo "suite $1 not in $xml"; return 1; }
+  grep -q '<testsuite [^>]*failures="0"' "$xml" || { echo "failures in $xml"; return 1; }
+}
+
 # headings_in_order <file> <heading…>: the required `## ` headings all appear, in this order.
 headings_in_order() {
   local file="$1"; shift

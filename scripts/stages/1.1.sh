@@ -17,7 +17,8 @@ for copy in "No accounts yet" "Add a provider key to start tracking." "No data y
   check "Strings has 08 copy: $copy" grep -qF "\"$copy\"" Sources/TokenBeApp/Strings.swift
 done
 # A control appears only with its action (D6): no later-stage controls in the popover yet.
-for later in "Add account" "Open dashboard" "Settings…" "Pause polling" "arrow.clockwise"; do
+# `Open dashboard` arrived in 1.2 with its action.
+for later in "Add account" "Settings…" "Pause polling" "arrow.clockwise"; do
   check "popover has no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/Popover Sources/TokenBeApp/Strings.swift"
 done
 for shape in "case solid" "case notched" "case dashed"; do
@@ -26,9 +27,8 @@ done
 check "PopoverTracker emits ui.popover_open" grep -q "uiPopoverOpen" Sources/TokenBeCore/Presentation/PopoverTracker.swift
 check "PopoverTracker emits ui.popover_close" grep -q "uiPopoverClose" Sources/TokenBeCore/Presentation/PopoverTracker.swift
 
-latest_test_log() { ls -t build/logs/test-*.log | head -n 1; }
 for suite in FormattersTests PopoverTrackerTests; do
-  check "suite $suite passed" grep -q "Suite $suite passed" "$(latest_test_log)"
+  check "suite $suite passed" suite_passed "$suite"
 done
 # 0.4's check runs the whole UI-test bundle; this asserts the 1.1 test was part of it and passed.
 check "PopoverEmptyStateUITests passed" grep -q "Test Suite 'PopoverEmptyStateUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"

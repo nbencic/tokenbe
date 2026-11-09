@@ -14,7 +14,9 @@ task="${1:-}"
 case "$task" in
   build)         cmd=(swift build);                                         timeout=900 ;;
   build-release) cmd=(swift build -c release -Xswiftc -warnings-as-errors); timeout=900 ;;
-  test)          cmd=(swift test);                                          timeout=900 ;;
+  # The structured result (build/results/test-swift-testing.xml) is what stage checks read: SwiftPM's console
+  # relay occasionally loses the tail of the output although every test ran (Q-022).
+  test)          cmd=(swift test --xunit-output build/results/test.xml);  timeout=900 ;;
   lint)          cmd=(swiftlint --strict);                                  timeout=300 ;;
   build-app)     cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
                       -derivedDataPath build/DerivedData build);                timeout=900 ;;
@@ -26,7 +28,7 @@ case "$task" in
 esac
 
 state="build/run"; logs="build/logs"
-mkdir -p "$state" "$logs"
+mkdir -p "$state" "$logs" build/results
 if [[ -f "$state/$task.pid" ]] && kill -0 "$(cat "$state/$task.pid")" 2>/dev/null && [[ ! -f "$state/$task.exit" ]]; then
   echo "run.sh: task '$task' is already running (pid $(cat "$state/$task.pid")); use scripts/wait.sh $task" >&2
   exit 3
