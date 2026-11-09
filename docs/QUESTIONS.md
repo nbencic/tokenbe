@@ -127,3 +127,9 @@ Options: A)
 B) Open/close from window notifications (AppKit).
 Chosen for now: A — no AppKit window hooks (04), testable in Core.
 Blocking: no
+
+## Q-019 UI tests on a crowded menu bar            (2026-11-09)
+Context: `PopoverEmptyStateUITests` on the owner's Mac. With about 20 status items and the notch, macOS keeps TokenBe's item behind the menu-bar overflow chevron (`«`). The item's accessibility frame is the chevron's, so the first click only reveals the item.
+Options: A) The test clicks the status item up to twice until the popover's element appears, and reads static-text strings from the accessibility value (macOS leaves the label empty). Settings reach the app as launch arguments (`-tb.log.level debug`, the arguments domain): the UI-test runner is sandboxed, so its own `UserDefaults` writes land in its container, never in the app's suite. B) Ask the owner to move TokenBe's item (⌘-drag) or edit the system's menu-bar layout (`com.apple.MenuBar`). C) A Debug-only hook that opens the popover without a click.
+Chosen for now: A. The test still proves that a click on the glyph opens the popover, works on any menu bar, and doesn't touch the owner's system settings. C would skip the click the test exists to check.
+Blocking: no
