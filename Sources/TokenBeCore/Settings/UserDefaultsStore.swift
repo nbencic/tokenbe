@@ -68,3 +68,14 @@ public final class UserDefaultsStore: SettingsStore {
     }
   }
 }
+
+/// The settings suite (09) for callers outside this file, which must not name the store type
+/// (09 DoD: no other file mentions it).
+public enum SettingsSuite {
+  public static let name = UserDefaultsStore.defaultSuiteName
+
+  /// The production store for `suiteName` (default `dev.bathyon.tokenbe`).
+  public static func store(named suiteName: String = name) -> any SettingsStore {
+    UserDefaultsStore(suiteName: suiteName)
+  }
+}
