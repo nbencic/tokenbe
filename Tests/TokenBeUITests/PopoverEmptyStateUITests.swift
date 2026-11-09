@@ -2,22 +2,15 @@ import XCTest
 
 /// 11 `PopoverEmptyStateUITests` (Stage 1.1): open the popover, assert identifiers and 08 copy, Quit terminates cleanly.
 final class PopoverEmptyStateUITests: XCTestCase {
-  /// The Debug-only settings suite used under `TOKENBE_TEST_ROOT` (Q-014).
-  static let suite = "dev.bathyon.tokenbe.uitests"
-
   private var root: URL!
 
   override func setUpWithError() throws {
     continueAfterFailure = false
     root = FileManager.default.temporaryDirectory.appendingPathComponent("tokenbe-uitests-\(UUID().uuidString)")
-    // Start from a clean suite, with debug logging so the popover's debug events reach the log file.
-    let defaults = try XCTUnwrap(UserDefaults(suiteName: Self.suite))
-    defaults.removePersistentDomain(forName: Self.suite)
-    defaults.set("debug", forKey: "tb.log.level")
   }
 
   override func tearDownWithError() throws {
-    UserDefaults(suiteName: Self.suite)?.removePersistentDomain(forName: Self.suite)
+    if FileManager.default.fileExists(atPath: root.path) { try FileManager.default.removeItem(at: root) }
   }
 
   private func logText() throws -> String {
@@ -31,20 +24,38 @@ final class PopoverEmptyStateUITests: XCTestCase {
     text.components(separatedBy: "\"evt\":\"\(evt)\"").count - 1
   }
 
+  /// A static text's string: macOS exposes it as the accessibility value; the label is usually empty.
+  private func text(_ element: XCUIElement) -> String {
+    (element.value as? String).flatMap { $0.isEmpty ? nil : $0 } ?? element.label
+  }
+
+  /// Clicks the status item until the popover shows. On a crowded menu bar macOS keeps the item behind its
+  /// overflow chevron, and the first click only reveals it; the second click then reaches the item (Q-019).
+  @MainActor
+  private func openPopover(_ item: XCUIElement, until element: XCUIElement) -> Bool {
+    for _ in 0..<2 {
+      item.click()
+      if element.waitForExistence(timeout: 5) { return true }
+    }
+    return false
+  }
+
   @MainActor
   func testEmptyStateAndQuit() throws {
     let app = XCUIApplication()
     app.launchEnvironment["TOKENBE_TEST_ROOT"] = root.path
+    // Debug logging, so the popover's debug-level events reach the log file. The runner is sandboxed: its own
+    // UserDefaults writes land in its container, so settings reach the app through the arguments domain (Q-019).
+    app.launchArguments += ["-tb.log.level", "debug"]
     app.launch()
     let item = app.statusItems.firstMatch
     XCTAssertTrue(item.waitForExistence(timeout: 10))
 
-    item.click()
     let headline = app.staticTexts["popover.empty.headline"]
-    XCTAssertTrue(headline.waitForExistence(timeout: 10), "Empty state shown")
-    XCTAssertEqual(headline.label, "No accounts yet")
-    XCTAssertEqual(app.staticTexts["popover.empty.body"].label, "Add a provider key to start tracking.")
-    XCTAssertEqual(app.staticTexts["popover.header.title"].label, "TokenBe")
+    XCTAssertTrue(openPopover(item, until: headline), "Empty state shown")
+    XCTAssertEqual(text(headline), "No accounts yet")
+    XCTAssertEqual(text(app.staticTexts["popover.empty.body"]), "Add a provider key to start tracking.")
+    XCTAssertEqual(text(app.staticTexts["popover.header.title"]), "TokenBe")
     XCTAssertTrue(app.buttons["popover.footer.quit"].exists)
     XCTAssertEqual(app.buttons["popover.footer.quit"].label, "Quit")
     XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label == %@", "Add account…")).firstMatch.exists,
@@ -53,8 +64,7 @@ final class PopoverEmptyStateUITests: XCTestCase {
     // Close and reopen: each opening is a popover session.
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(headline.waitForNonExistence(timeout: 5), "popover closed")
-    item.click()
-    XCTAssertTrue(headline.waitForExistence(timeout: 10), "popover reopened")
+    XCTAssertTrue(openPopover(item, until: headline), "popover reopened")
 
     app.buttons["popover.footer.quit"].click()
     XCTAssertTrue(app.wait(for: .notRunning, timeout: 15), "Quit terminates the app")
