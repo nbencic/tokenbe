@@ -11,10 +11,10 @@ public final class Settings {
   }
 
   /// Posted with `userInfo[Settings.changedKeyName]` = the key's full name (09).
-  public static let didChange = Notification.Name("dev.bathyon.tokenbe.Settings.didChange")
-  public static let changedKeyName = "key"
+  nonisolated public static let didChange = Notification.Name("dev.bathyon.tokenbe.Settings.didChange")
+  nonisolated public static let changedKeyName = "key"
   /// Lower to higher: `critical < low < watch` (09 § Alerts).
-  public static let thresholdKeys: [SettingsKey] = [.alertsCriticalDays, .alertsLowDays, .alertsWatchDays]
+  nonisolated public static let thresholdKeys: [SettingsKey] = [.alertsCriticalDays, .alertsLowDays, .alertsWatchDays]
 
   @ObservationIgnored private let store: any SettingsStore
   @ObservationIgnored private let pipeline: LogPipeline?
