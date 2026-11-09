@@ -1,0 +1,50 @@
+# 10 § CI, 14 § Stage 0.5. Every step must pass; any failure blocks the merge.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16.x
+        run: |
+          xcode="$(ls -d /Applications/Xcode_16*.app | sort -V | tail -n 1)"
+          echo "Using $xcode"
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
+          swift --version
+
+      - name: Install SwiftLint
+        run: command -v swiftlint || brew install swiftlint
+
+      - name: Build TokenBeCore (release, warnings as errors)
+        run: swift build -c release -Xswiftc -warnings-as-errors
+
+      - name: Test TokenBeCore
+        run: swift test --enable-code-coverage
+
+      - name: Coverage gate (≥ 85 % lines in TokenBeCore)
+        run: scripts/coverage-gate.sh 85
+
+      - name: SwiftLint
+        run: swiftlint --strict
+
+      - name: Log events ↔ 07
+        run: scripts/check-log-events.sh
+
+      - name: Build app (Release, unsigned)
+        run: xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Release -derivedDataPath build/DerivedData build CODE_SIGNING_ALLOWED=NO
+
+      - name: Secrets and URL allowlist (tree and build products)
+        run: scripts/check-no-secrets.sh
