@@ -19,7 +19,7 @@ final class Startup {
         return Paths(
           support: base.appendingPathComponent("Application Support/TokenBe", isDirectory: true),
           logs: base.appendingPathComponent("Logs/TokenBe", isDirectory: true),
-          settingsSuite: SettingsSuite.name + ".uitests"
+          settingsSuite: SettingsSuite.uiTestsName
         )
       }
       #endif
@@ -31,6 +31,8 @@ final class Startup {
   }
 
   nonisolated static let testRootVariable = "TOKENBE_TEST_ROOT"
+  /// Debug-only, with `TOKENBE_TEST_ROOT`: `1` clears the UI-test settings suite before `Settings` loads (Q-020).
+  nonisolated static let testResetSettingsVariable = "TOKENBE_TEST_RESET_SETTINGS"
 
   private let paths = Paths.current()
   private lazy var sentinel = RunningSentinel(directory: paths.support)
@@ -71,6 +73,11 @@ final class Startup {
       ])
     }
     try sentinel.markRunning()
+    #if DEBUG
+    if ProcessInfo.processInfo.environment[Self.testResetSettingsVariable] == "1" {
+      _ = SettingsSuite.resetUITests(named: paths.settingsSuite)
+    }
+    #endif
     let current = Settings(store: SettingsSuite.store(named: paths.settingsSuite))
     environment = AppEnvironment(settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog])
     await fileSink.setRetentionDays(current.logRetentionDays)

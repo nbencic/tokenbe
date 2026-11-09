@@ -12,7 +12,19 @@ enum Strings {
   static let modeSpendOnly = "spend"
 
   // Popover — footer (08 § Popover 4)
+  static let openDashboard = "Open dashboard"
   static let quit = "Quit"
+
+  // Dashboard window (08 § Dashboard window, 14 § Stage 1.2)
+  static let dashboardTitle = "Dashboard"
+  static let overview = "Overview"
+  static let spendByDay = "Spend by day"
+  static let noSpendInRange = "No spend in this range"
+  static let rangePicker = "Range"
+  static let rangeToday = "Today"
+  static let range7d = "7 d"
+  static let range30d = "30 d"
+  static let range90d = "90 d"
 
   /// VoiceOver label for a band dot (08 § Accessibility: colour is never the only carrier).
   static func bandLabel(_ word: String) -> String { "Band: \(word)" }

@@ -6,6 +6,8 @@ import TokenBeCore
 /// the Empty state or the card list, and the footer with `Quit`. Other controls arrive with their actions.
 struct PopoverView: View {
   let model: AppModel
+  @Environment(\.openWindow) private var openWindow
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -19,8 +21,18 @@ struct PopoverView: View {
     .frame(maxHeight: 560)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("popover.root")
-    .onAppear { model.popoverDidOpen() }
+    .onAppear {
+      model.popoverDidOpen()
+      // 08: ⌥-click on the glyph opens the Dashboard. The modifier is read as the popover appears (O-15).
+      if NSEvent.modifierFlags.contains(.option) { openDashboard() }
+    }
     .onDisappear { model.popoverDidClose() }
+  }
+
+  private func openDashboard() {
+    openWindow(id: DashboardView.windowID)
+    NSApp.activate()
+    dismiss()
   }
 
   private var header: some View {
@@ -52,6 +64,9 @@ struct PopoverView: View {
 
   private var footer: some View {
     HStack {
+      Button(Strings.openDashboard) { openDashboard() }
+        .keyboardShortcut("d")
+        .accessibilityIdentifier("popover.footer.openDashboard")
       Spacer()
       Button(Strings.quit) {
         NSApp.terminate(nil)
