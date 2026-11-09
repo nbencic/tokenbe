@@ -1,5 +1,5 @@
 # Postmortem — Stage 1.2 Dashboard window shell
-Date: 2026-11-09 · Branch: s1.2-dashboard-shell · PR: #7 · Planned size: S · Commits: 6
+Date: 2026-11-09 · Branch: s1.2-dashboard-shell · PR: #7 · Planned size: S · Commits: 7
 
 ## Outcome
 TokenBe now has its Dashboard window:
@@ -51,8 +51,9 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by PR #7's green CI; D13 is met
 - `build-app` run 1: item 5 (`deinit`). Run 2: green.
 - `uitest` run 1: item 1 (both Dashboard tests). Run 2: all 4 UI tests green.
 - `verify-stage.sh 1.2` run 2: `FAIL 0.4 UI tests` (item 8, the locked screen); every earlier check passed (148).
-- Run 3, after the unlock: {{VERIFY}}.
-- CI on PR #7: {{CI}}.
+- Run 3, after the unlock: all tests and UI tests green; `FAIL 1.2 owner's real TokenBe settings … real_tb_unchanged: command not found` (item 9).
+- Run 4: `STAGE 1.2 OK`, 248 checks.
+- CI on PR #7: run 42708352467 green on the first try (build-test 5 min 10 s); the postmortem commit re-ran it.
 
 ## Deviations from the docs
 - `14 § Stage 1.2` "Adds" listed a right-click context menu; its own step 4, 08 and D-context-menu say there is none. 13 wins. The line was corrected in 14 (Q-021).
@@ -76,6 +77,7 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by PR #7's green CI; D13 is met
 - PM-1.2-1 · agent · every stage with UI copy · Before verify, grep the source for every string the stage's D6 checks forbid; comments count. Name future controls generically in comments ("the refresh button"). Status: open (process).
 - PM-1.2-2 · agent · every stage with UI tests · Each UI test that needs clean settings resets them itself; a test whose state a stage check reads must run last or be the only one that writes that key. Status: open (process).
 - PM-1.2-4 · agent · 9.5 (reset, environment audits) · `Reset all settings…` should decide whether AppKit's window state in the standard domain (split widths) is reset too; Q-020 records that it lives there. Status: open.
+- PM-1.2-5 · agent · every stage that adds a stage check · Helpers or snapshots used by more than one stage script live in `verify-stage.sh`; stage scripts run in subshells. Keep the Mac awake during verify with `caffeinate -dims` bound to the verify process. Status: open (process).
 - PM-1.2-3 · agent · every stage that adds async tests · Before verify, loop the full parallel suite (≥ 50 runs, `swift test --skip-build`) and fix any flake. A new async test must wait on conditions with `eventually` or `TestClock.waitUntil`, never a fixed yield count. Status: open (process).
 - Earlier open actions, unchanged by this stage:
   - PM-1.1-1 (check the screen lock before UI tests; process);

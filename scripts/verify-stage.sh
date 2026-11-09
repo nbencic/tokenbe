@@ -45,6 +45,13 @@ suite_passed() {
   grep -q '<testsuite [^>]*failures="0"' "$xml" || { echo "failures in $xml"; return 1; }
 }
 
+# TokenBe's own keys (`tb.*`) in the owner's real settings domain, snapshotted before any stage runs. AppKit may write
+# its own window state there (split-view widths) during UI tests; TokenBe settings must never change (Q-014, Q-020).
+# Defined here, not in a stage script, because each stage runs in its own subshell.
+real_tb_keys() { defaults read dev.bathyon.tokenbe 2>/dev/null | grep -E '^ *"?tb\.' || true; }
+real_tb_before="$(real_tb_keys)"
+real_tb_unchanged() { [[ "$(real_tb_keys)" == "$real_tb_before" ]] || { echo "tb.* keys in dev.bathyon.tokenbe changed"; return 1; }; }
+
 # headings_in_order <file> <heading…>: the required `## ` headings all appear, in this order.
 headings_in_order() {
   local file="$1"; shift

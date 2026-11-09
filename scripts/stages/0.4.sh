@@ -3,10 +3,6 @@
 # settings are never read, written or deleted by verification.
 
 verify_started="$(mktemp)"
-# TokenBe's own keys (`tb.*`) in the owner's real settings domain, before anything runs. AppKit may write its own
-# window state there (split-view widths) during UI tests; TokenBe settings must never change (Q-014, Q-020).
-real_tb_keys() { defaults read dev.bathyon.tokenbe 2>/dev/null | grep -E '^ *"?tb\.' || true; }
-real_tb_before="$(real_tb_keys)"
 inventory=(
   Config/Base.xcconfig Config/Debug.xcconfig Config/Release.xcconfig Config/Project.xcconfig Config/UITests.xcconfig
   TokenBe.xcodeproj/project.pbxproj TokenBe.xcodeproj/xcshareddata/xcschemes/TokenBe.xcscheme
@@ -90,5 +86,4 @@ real_untouched() {
   [[ -z "$changed" ]] || { echo "changed during verification: $changed"; return 1; }
 }
 check "owner's real TokenBe logs and support folder untouched by verification" real_untouched
-real_tb_unchanged() { [[ "$(real_tb_keys)" == "$real_tb_before" ]]; }
 check "owner's real TokenBe settings (tb.*) unchanged by verification" real_tb_unchanged
