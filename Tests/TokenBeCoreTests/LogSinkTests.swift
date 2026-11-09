@@ -120,6 +120,18 @@ import Testing
                                 "tokenbe-2026-10-30.ndjson", "tokenbe-2026-11-09.ndjson"])
   }
 
+  @Test("setRetentionDays (tb.log.retentionDays) applies the new period at once")
+  func retentionChange() async throws {
+    let dir = try TempDirectory()
+    #expect(FileManager.default.createFile(atPath: dir.url.appendingPathComponent("tokenbe-2026-11-01.ndjson").path, contents: Data("x\n".utf8)))
+    let sink = NDJSONSink(directory: dir.url, now: { Self.date(2026, 11, 9) }, calendar: Self.calendar, onFailure: { _, _, _ in })
+    await sink.write(Self.record())
+    #expect(try dir.files().count == 2, "8 days old is within the default 14")
+    await sink.setRetentionDays(7)
+    #expect(try dir.files() == ["tokenbe-2026-11-09.ndjson"])
+    #expect(await sink.limits.retentionDays == 7)
+  }
+
   @Test("total cap deletes oldest files first and never the current one")
   func totalCap() async throws {
     let dir = try TempDirectory()

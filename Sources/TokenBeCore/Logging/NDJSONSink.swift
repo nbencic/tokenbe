@@ -38,7 +38,7 @@ public actor NDJSONSink: LogSink {
   }
 
   public let directory: URL
-  public let limits: Limits
+  public private(set) var limits: Limits
   private let now: @Sendable () -> Date
   private let calendar: Calendar
   private let crashTarget: Bool
@@ -85,6 +85,12 @@ public actor NDJSONSink: LogSink {
 
   public func flush() async {
     flushBuffer()
+  }
+
+  /// `tb.log.retentionDays` changed (09): applies the new period at once.
+  public func setRetentionDays(_ days: Int) {
+    limits.retentionDays = days
+    applyRetention()
   }
 
   /// The file currently written to, if one is open.
