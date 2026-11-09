@@ -1,0 +1,319 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1F9F69F20413E32736D60AD5 /* TokenBeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7F828916BE20658644DC0DFF /* TokenBeCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		474DBD8AF4FA4CEEF2DDE537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10DB7E7CE9AB83A7847501A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5B67847EB831A8B99417F13C;
+			remoteInfo = TokenBe;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A5D1604ED0247DC44C8F0C47 /* TokenBe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TokenBe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BD7499A7F3CF597B3B23D56 /* TokenBeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TokenBeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B77EC764C96259993CD41C39 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		5680B0734099A72A12AAC1E0 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		A6C15AD6867D146BB8E1D209 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		639BD46990B7A32438E6B730 /* Project.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Project.xcconfig; sourceTree = "<group>"; };
+		07309B23008947E8DE305D6B /* UITests.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = UITests.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D403F94E48CDB9C2272F7C67 /* TokenBeApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources/TokenBeApp;
+			sourceTree = "<group>";
+		};
+		2BE7655925B35C31D7168BA4 /* TokenBeUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests/TokenBeUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0A0BD7BA50308F8A1C571970 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1F9F69F20413E32736D60AD5 /* TokenBeCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C8CA3D53CA035D6678CDC153 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7957F7EA11A62A29A9390DA8 = {
+			isa = PBXGroup;
+			children = (
+				ADB26DA135CC78B141B5373A /* Config */,
+				D403F94E48CDB9C2272F7C67 /* TokenBeApp */,
+				2BE7655925B35C31D7168BA4 /* TokenBeUITests */,
+				DA1ED1AFD10789DD2FBC9149 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		ADB26DA135CC78B141B5373A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				639BD46990B7A32438E6B730 /* Project.xcconfig */,
+				B77EC764C96259993CD41C39 /* Base.xcconfig */,
+				5680B0734099A72A12AAC1E0 /* Debug.xcconfig */,
+				A6C15AD6867D146BB8E1D209 /* Release.xcconfig */,
+				07309B23008947E8DE305D6B /* UITests.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		DA1ED1AFD10789DD2FBC9149 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A5D1604ED0247DC44C8F0C47 /* TokenBe.app */,
+				9BD7499A7F3CF597B3B23D56 /* TokenBeUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5B67847EB831A8B99417F13C /* TokenBe */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E3F930C311D6D85AAB68E469 /* Build configuration list for PBXNativeTarget "TokenBe" */;
+			buildPhases = (
+				62CA8A879B9FCBB1C271A4D0 /* Sources */,
+				0A0BD7BA50308F8A1C571970 /* Frameworks */,
+				1F104271C55D836E7081DF04 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D403F94E48CDB9C2272F7C67 /* TokenBeApp */,
+			);
+			name = TokenBe;
+			packageProductDependencies = (
+				7F828916BE20658644DC0DFF /* TokenBeCore */,
+			);
+			productName = TokenBe;
+			productReference = A5D1604ED0247DC44C8F0C47 /* TokenBe.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7438C3ADA9139936B0CC68BB /* TokenBeUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 663B91196354C6564DDB9C2B /* Build configuration list for PBXNativeTarget "TokenBeUITests" */;
+			buildPhases = (
+				2BA74A6A1B20553E077C61BF /* Sources */,
+				C8CA3D53CA035D6678CDC153 /* Frameworks */,
+				0218AEC5F3CAF5F6E8C1BAF7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC49CDCFE20AF7805C60178C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				2BE7655925B35C31D7168BA4 /* TokenBeUITests */,
+			);
+			name = TokenBeUITests;
+			packageProductDependencies = (
+			);
+			productName = TokenBeUITests;
+			productReference = 9BD7499A7F3CF597B3B23D56 /* TokenBeUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10DB7E7CE9AB83A7847501A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					5B67847EB831A8B99417F13C = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					7438C3ADA9139936B0CC68BB = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 5B67847EB831A8B99417F13C;
+					};
+				};
+			};
+			buildConfigurationList = 9CCDA0E2D14EBAE0DF515395 /* Build configuration list for PBXProject "TokenBe" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 7957F7EA11A62A29A9390DA8;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				996A1C58112974FEFCAE090D /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DA1ED1AFD10789DD2FBC9149 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5B67847EB831A8B99417F13C /* TokenBe */,
+				7438C3ADA9139936B0CC68BB /* TokenBeUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1F104271C55D836E7081DF04 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0218AEC5F3CAF5F6E8C1BAF7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		62CA8A879B9FCBB1C271A4D0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2BA74A6A1B20553E077C61BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BC49CDCFE20AF7805C60178C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5B67847EB831A8B99417F13C /* TokenBe */;
+			targetProxy = 474DBD8AF4FA4CEEF2DDE537 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B9DD53FE1AFD4E10C7767CEC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 639BD46990B7A32438E6B730 /* Project.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		198D67F2F0EC3C11ECC2662F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 639BD46990B7A32438E6B730 /* Project.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		DDD4046EBBB025EDA753A790 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5680B0734099A72A12AAC1E0 /* Debug.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		25B90580BA4BAAADC4115F6F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A6C15AD6867D146BB8E1D209 /* Release.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		7FEFF8A01BCDFF613C3AC430 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 07309B23008947E8DE305D6B /* UITests.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		71F50574AD4586908BAA170F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 07309B23008947E8DE305D6B /* UITests.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9CCDA0E2D14EBAE0DF515395 /* Build configuration list for PBXProject "TokenBe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9DD53FE1AFD4E10C7767CEC /* Debug */,
+				198D67F2F0EC3C11ECC2662F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E3F930C311D6D85AAB68E469 /* Build configuration list for PBXNativeTarget "TokenBe" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDD4046EBBB025EDA753A790 /* Debug */,
+				25B90580BA4BAAADC4115F6F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		663B91196354C6564DDB9C2B /* Build configuration list for PBXNativeTarget "TokenBeUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7FEFF8A01BCDFF613C3AC430 /* Debug */,
+				71F50574AD4586908BAA170F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		996A1C58112974FEFCAE090D /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7F828916BE20658644DC0DFF /* TokenBeCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TokenBeCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A10DB7E7CE9AB83A7847501A /* Project object */;
+}

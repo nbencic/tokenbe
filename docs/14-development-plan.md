@@ -29,7 +29,7 @@ Status: AUTHORITATIVE build order for V1. Revised 2026-11-09 after two review pa
 | D7 | `StartupSequenceTests` still asserts the log order of `04 § Startup sequence` for the steps that exist so far. |
 | D8 | All user-visible copy is in `Strings.swift`; `swiftlint` custom rule `tokenbe_no_inline_text` (regex `Text\("[A-Za-z]`) passes. |
 | D9 | Any contract touched (schema, event table, settings key, copy, endpoint) is updated in its doc in the same PR; every judgment call is in `docs/QUESTIONS.md` (`12 § R3`). |
-| D10 | The app launches clean (after `rm -rf ~/Library/Application\ Support/TokenBe ~/Library/Logs/TokenBe && defaults delete dev.bathyon.tokenbe`) **and** on top of the previous stage's data directory, with zero `error`/`fault` log records in either case. |
+| D10 | The app launches clean **and** on top of the previous run's data directory, with zero `error`/`fault` log records in either case. Verification launches a Debug build with `TOKENBE_TEST_ROOT=<temp dir>` (Q-014) and never deletes or touches the owner's real `~/Library/Application Support/TokenBe`, `~/Library/Logs/TokenBe` or settings domain. |
 | D11 | `CHANGELOG.md § [Unreleased]` has one line for the stage. |
 | D12 | PR merged; `main` CI green. |
 | D13 | `docs/postmortems/stage-<id>.md` exists with every heading of the § 0.6 stage template; if the stage is the last of its phase (§ 0.5), `docs/postmortems/phase-<n>.md` exists with every heading of the phase template. D13 applies to **every** stage, even where its Stage DoD line does not list it. |
@@ -61,7 +61,7 @@ Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it 
 
 | Gate | What | Needed by | While waiting |
 |---|---|---|---|
-| H1 | Create `TokenBe.xcodeproj` in the Xcode GUI once (exact clicks in 0.4) and assign xcconfig files | 0.4 | Agent prepares Core, logging, settings (0.1–0.3) — no app target needed |
+| H1 | **Retired 2026-11-09** (D-xcodeproj-agent): the agent writes `TokenBe.xcodeproj`. Was: create the project in the Xcode GUI | — | — |
 | H2 | Run `scripts/record-fixtures.sh openai` with `OPENAI_ADMIN_KEY` | 3.6 (marks OpenAI verified) | Phases 4–5 proceed on synthetic fixtures |
 | H3 | Run `scripts/record-fixtures.sh deepseek` and/or `xai` with keys | 6.1/6.2 verification | Phase 7 proceeds |
 | H4 | Developer ID certificate + notarytool keychain profile `tokenbe-notary` on the Mac | 11.5 | Everything else |
@@ -205,7 +205,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 ### Stage 0.4 — App project, build configuration, first launch (H1)
 **Goal:** an app target that builds from `xcodebuild`, launches to a menu-bar glyph, and runs startup steps 1 and the crash/sentinel path. **Depends on:** 0.3. **Adds:** menu-bar glyph with a popover containing the word `TokenBe` (replaced in 1.1). **Size:** M.
 
-**H1 — Nikola, in Xcode (one time, ~10 min; exact):**
+**H1 — retired 2026-11-09 (D-xcodeproj-agent).** The agent writes `TokenBe.xcodeproj` with empty `buildSettings`, both targets on synchronized folders, the local package and a shared scheme. The original GUI steps are kept below for reference only:
 1. File → New → Project → macOS → **App**. Product Name `TokenBe`; Team: your Developer ID team; Organization Identifier `dev.bathyon`; Interface **SwiftUI**; Language **Swift**; Storage **None**; Testing System **XCTest**; untick "Create Git repository". Save **into the repo root** (`tokenbe/`).
 2. In Finder: move `tokenbe/TokenBe/` (the generated source folder) to `tokenbe/Sources/TokenBeApp/`; delete `tokenbe/TokenBeTests/`; move `tokenbe/TokenBeUITests/` to `tokenbe/Tests/TokenBeUITests/`. In Xcode: select each red (missing) synchronized group → File Inspector → Location folder icon → choose the moved folder. Delete the `TokenBeTests` target (keep `TokenBeUITests`).
 3. File → Add Package Dependencies… → **Add Local…** → choose the repo root (`Package.swift`) → add product **TokenBeCore** to target `TokenBe`.
@@ -782,3 +782,5 @@ Smoke 0.1 · Redactor/LogSink/CrashHandler/LogRecord 0.2 · Settings 0.3 · Star
 - **Postmortems** after every stage and phase → § 0.6, D13, `12 § R11/R12`, `00` map, `CLAUDE.md` (D-postmortems).
 - **Branching conflict:** `12 § R11` said one branch per milestone; § 0 says one branch per stage → `12` aligned to § 0 (D-stage-branches).
 - Stale references "§ 6" for the review log → "§ 14".
+- **H1 retired** (owner request): the agent writes the Xcode project (D-xcodeproj-agent).
+- **D10 no longer deletes the owner's data:** clean-launch checks run under `TOKENBE_TEST_ROOT` (Q-014).

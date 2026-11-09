@@ -1,0 +1,27 @@
+// All build settings of the TokenBe app target (D-xcconfig, 14 § Stage 0.4). project.pbxproj must not set any of them.
+PRODUCT_BUNDLE_IDENTIFIER = dev.bathyon.tokenbe
+PRODUCT_NAME = TokenBe
+MACOSX_DEPLOYMENT_TARGET = 15.0
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+ENABLE_HARDENED_RUNTIME = YES
+ENABLE_APP_SANDBOX = NO
+GENERATE_INFOPLIST_FILE = YES
+INFOPLIST_KEY_LSUIElement = YES
+INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.developer-tools
+INFOPLIST_KEY_CFBundleDisplayName = TokenBe
+INFOPLIST_KEY_NSHumanReadableCopyright = © 2026 Nikola Benčić. MIT License.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+CODE_SIGN_ENTITLEMENTS = Sources/TokenBeApp/TokenBe.entitlements
+DEAD_CODE_STRIPPING = YES
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+
+// Settings the Xcode App template would otherwise keep in project.pbxproj (Q-013).
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+COMBINE_HIDPI_IMAGES = YES
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks
+SWIFT_EMIT_LOC_STRINGS = YES

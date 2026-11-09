@@ -62,6 +62,6 @@ Date: 2026-11-09 · Branch: s0.3-settings-core · PR: #3 · Planned size: S · C
 - Q-012 suite name equal to the bundle id → the app's standard domain.
 
 ## Carry-forward actions
-- PM-0.3-1 · agent · 0.4 · In the composition root, call `NDJSONSink.setRetentionDays` when `tb.log.retentionDays` changes, and pass the stored value at sink creation. Replaces the open part of PM-0.2-2. Status: open.
+- PM-0.3-1 · agent · 0.4 · In the composition root, call `NDJSONSink.setRetentionDays` when `tb.log.retentionDays` changes, and pass the stored value at sink creation. Replaces the open part of PM-0.2-2. Status: closed in Stage 0.4 (`Startup.startLogging` applies the stored value and watches `changes`).
 - PM-0.3-2 · agent · every stage · Write multi-line collection literals and argument lists without trailing commas: SwiftLint's `trailing_comma` flagged them in 0.2 and 0.3, and Swift 6.0 on CI rejects trailing commas in argument lists anyway. Status: open (process).
 - Earlier actions targeting 0.3: PM-0.2-2 partly closed: `tb.log.level` bound, `setRetentionDays` added; the remainder moved to PM-0.3-1.
