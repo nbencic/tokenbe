@@ -34,8 +34,9 @@ final class Startup {
 
   private let paths = Paths.current()
   private lazy var sentinel = RunningSentinel(directory: paths.support)
-  private var settings: Settings?
   private var sink: NDJSONSink?
+  /// The composition root, available once the logging step has run.
+  private(set) var environment: AppEnvironment?
   private var retentionWatcher: Task<Void, Never>?
 
   func run() async {
@@ -51,7 +52,8 @@ final class Startup {
     let ring = CrashRing(version: version)
     let fileSink = NDJSONSink(directory: paths.logs, crashTarget: true)
     sink = fileSink
-    Log.configure(sinks: [fileSink, OSLogSink()], clock: ContinuousClock(), crashRing: ring, version: version)
+    let osLog = OSLogSink()
+    Log.configure(sinks: [fileSink, osLog], clock: ContinuousClock(), crashRing: ring, version: version)
     CrashHandler.install(ring: ring)
     let info = Bundle.main.infoDictionary
     Log.info(.appLaunch, cat: .app, msg: "launch", ctx: [
@@ -70,7 +72,7 @@ final class Startup {
     }
     try sentinel.markRunning()
     let current = Settings(store: SettingsSuite.store(named: paths.settingsSuite))
-    settings = current
+    environment = AppEnvironment(settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog])
     await fileSink.setRetentionDays(current.logRetentionDays)
     retentionWatcher = Task { [weak self] in
       for await key in current.changes where key == .logRetentionDays {

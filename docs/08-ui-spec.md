@@ -29,7 +29,7 @@ All text/background pairs must meet WCAG AA 4.5:1 (health colors above were adju
 
 ## Formatting rules (shared `Formatters` enum; tests in 11)
 - Money: whole units when `tb.ui.hideCents` (default true) → `$42`; else `$42.17`. Non-USD prefix `CN¥`. Estimates: `≈ $42 ± 3`. Negative remaining is clamped to `$0` and band `critical`.
-- Runway: see 05 formatting; two paces as `~12 d · 9 d today`.
+- Runway: see 05 formatting; two paces as `~12 d · ~9 d today` (each pace formatted by 05's rule; aligned to 05 in Stage 1.1, 12 § R1).
 - Tokens: `1.53M`, `212k`, `842`. Thousands separators per locale.
 - Freshness: `just now` (<60 s), `2 min ago`, `1 h ago`, `yesterday`; stale → `stale · 3 h ago` in `HealthLow`.
 - Dates: local calendar, `MMM d`.
@@ -46,7 +46,7 @@ Order top→bottom:
 3. **Account cards** (nodes `A-0`,`10-0`,`1N-0`,`2A-0`), sorted by `tb.popover.sort` ∈ `runway | remaining | name | manual` (default `runway` ascending; `unknown` sorts last). Each card:
    - Row 1: provider glyph + account label (`OpenAI`) + mode chip (`direct` none; `anchored` → `≈`; `spend_only` → `spend`) ; right: band dot 8 pt.
    - Row 2: **remaining** (`N-0` etc.) 20 pt semibold mono; `± M` 13 pt secondary beside it when anchored.
-   - Row 3: **runway** (`K-0` etc.) caption: `~12 d · 9 d today` ; `spend_only` shows `today $3.10 · 30 d $84`.
+   - Row 3: **runway** (`K-0` etc.) caption: `~12 d · ~9 d today` ; `spend_only` shows `today $3.10 · 30 d $84`.
    - Row 4 (collapsed by default, chevron toggles, remembered per account `tb.popover.expanded.<provider>`): top 3 apps by today's spend as `weather-collector $1.20 · harness $0.40 · other $0.10`.
    - Stale overlay: card opacity 0.6, freshness in `HealthLow`.
    - Click → Dashboard account detail.

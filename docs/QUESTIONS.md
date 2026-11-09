@@ -99,3 +99,37 @@ Context: `scripts/check-no-secrets.sh`. 11 prescribes the fixture placeholder `s
 Options: A) match strings one by one and exempt exactly the placeholder and bare prefixes ending in `-`/`_`; apply the URL allowlist to Swift sources only, where outbound requests are written (R4); also fail on a tracked `.env`; prove the guard with a planted-secret self-test B) exclude whole directories (docs, tests, fixtures).
 Chosen for now: A — fixtures and tests stay scanned, as 14 asks, and nothing broader than two literal forms is exempt.
 Blocking: no
+
+## Q-017 Formatting details 08 and 05 leave open            (2026-11-09)
+Context: `Model/Formatters.swift`.
+Options: A)
+- **Money:** whole units rounded half up when cents are hidden; the locale's grouping and decimal separators apply to money too (`$1.234,56` in `de_DE`); negative amounts `-$5`, except remaining, which clamps to `$0`.
+- **Estimate band:** the same rounding, with no currency symbol (`≈ $42 ± 3`).
+- **Runway:** hours and days floored; when only the today pace exists, `5 h today`.
+- **Tokens:** three significant digits, rounded half up, `k/M/B/T` (`999 500` → `1.00M`, never `1000k`).
+- **Freshness:** older than yesterday shows `MMM d`.
+- **Dates:** English month abbreviations (O-9), computed in the calendar's time zone, without Foundation date styles (their output differs between macOS versions).
+- **Arithmetic:** integer only, overflow-safe.
+
+B) Foundation currency, number and date styles.
+Chosen for now: A — exact 08 strings on every macOS version (CI runs macOS 15, the owner's Mac macOS 27), and no `Double` for money or tokens (R7).
+Blocking: no
+
+## Q-018 Popover shell details            (2026-11-09)
+Context: Stage 1.1 app code.
+Options: A)
+- `ui.popover_open/close` come from the popover view's appear/disappear, through a Core `PopoverTracker` (unit-tested; repeat calls ignored; `dur_ms` from `ContinuousClock`). The UI test proves two opens and a close.
+- The `Formatters` texts (`just now`, `never`, …) live in Core next to the rules; view copy lives in `Strings.swift`.
+- `AppModel` lives in the app delegate and receives the environment after startup step 1, so `Settings` is never created before logging (04).
+- The provider glyph on cards is left out until artwork exists: cards are not rendered before Phase 3, and 08 names no asset for it.
+- `AppEnvironment.settings` is spelled `TokenBeCore.Settings`, because SwiftUI has its own `Settings` scene type.
+
+B) Open/close from window notifications (AppKit).
+Chosen for now: A — no AppKit window hooks (04), testable in Core.
+Blocking: no
+
+## Q-019 UI tests on a crowded menu bar            (2026-11-09)
+Context: `PopoverEmptyStateUITests` on the owner's Mac. With about 20 status items and the notch, macOS keeps TokenBe's item behind the menu-bar overflow chevron (`«`). The item's accessibility frame is the chevron's, so the first click only reveals the item.
+Options: A) The test clicks the status item up to twice until the popover's element appears, and reads static-text strings from the accessibility value (macOS leaves the label empty). Settings reach the app as launch arguments (`-tb.log.level debug`, the arguments domain): the UI-test runner is sandboxed, so its own `UserDefaults` writes land in its container, never in the app's suite. B) Ask the owner to move TokenBe's item (⌘-drag) or edit the system's menu-bar layout (`com.apple.MenuBar`). C) A Debug-only hook that opens the popover without a click.
+Chosen for now: A. The test still proves that a click on the glyph opens the popover, works on any menu bar, and doesn't touch the owner's system settings. C would skip the click the test exists to check.
+Blocking: no
