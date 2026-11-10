@@ -28,12 +28,12 @@ done
 for suite in DashboardRangeTests WindowFrameTests DebouncerTests SettingsSuiteResetTests; do
   check "suite $suite passed" suite_passed "$suite"
 done
-check "DashboardShellUITests passed" grep -q "Test Suite 'DashboardShellUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
+ui_check "DashboardShellUITests passed" grep -q "Test Suite 'DashboardShellUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 
 # 14 Verify, on the UI-test suite (Q-014): the range the test picked persisted, and the frame was saved.
 suite_value() { defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>/dev/null; }
 range_is_30d() { [[ "$(suite_value tb.ui.dashboardRange)" == "30d" ]]; }
 frame_saved() { [[ "$(suite_value tb.ui.dashboardFrame)" =~ ^\{\{-?[0-9.]+,\ -?[0-9.]+\},\ \{[0-9.]+,\ [0-9.]+\}\}$ ]]; }
-check "tb.ui.dashboardRange = 30d in the UI-test suite after the test" range_is_30d
-check "tb.ui.dashboardFrame saved in the UI-test suite" frame_saved
+ui_check "tb.ui.dashboardRange = 30d in the UI-test suite after the test" range_is_30d
+ui_check "tb.ui.dashboardFrame saved in the UI-test suite" frame_saved
 check "owner's real TokenBe settings (tb.*) unchanged after the Dashboard UI tests" real_tb_unchanged

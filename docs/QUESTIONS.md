@@ -340,3 +340,14 @@ Decisions:
 - **Sidebar rows.** Account rows show the glyph, label and an `unknown` band dot. They cannot be selected until the account detail exists (5.x), so no row leads nowhere (D6).
 - **Crowded menu bar (PM-1.1-3).** First-run guidance would add copy and a screen that 08 does not list (R9). Re-targeted to the release review (11.2), with Q-019's overflow handling unchanged.
 Blocking: no
+
+## Q-031 UI tests: run at stage end only when the stage touches the app, always at phase end            (2026-11-10)
+Context: `scripts/verify-stage.sh`, the UI-test checks of `scripts/stages/{0.4,1.1,1.2,1.3,2.2,3.5}.sh`. The owner chose the "middle ground" on 2026-11-10.
+Problem: every stage's verify ran the full XCUITest suite: about 10–12 minutes, an unlocked screen, and an occasional flake. Core-only stages such as 3.4 paid that for code the UI cannot reach.
+Options: A) UI tests at every stage end (the old rule); B) only at phase end; C) at phase end, and at stage end when the branch changes app or UI-test code.
+Chosen: C, by the owner.
+- `verify-stage.sh <id>` turns UI tests on when `<id>` is the last stage of its phase (§ 0.5), or when the branch's diff from `origin/main` (committed, uncommitted or untracked) touches `Sources/TokenBeApp/`, `Tests/TokenBeUITests/`, `TokenBe.xcodeproj/` or `Config/`. Otherwise they are off. `TB_UI_TESTS=1|0` overrides. The first line of a run states the mode and why.
+- Off, each UI-dependent check (`ui_check`) prints `skip <stage> <name>`. These are the UI suite run and every check that reads its log or the UI-test settings suite. Everything else still runs: unit tests, lint, the guards, D10's launches and D13.
+- CI is unchanged; it never ran UI tests.
+- Consequence: a UI regression from a Core-only stage surfaces at the next app-touching stage or at phase end, and is fixed there. The postmortem names the stage that introduced it.
+Blocking: no (decided by the owner)

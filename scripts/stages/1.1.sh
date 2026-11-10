@@ -31,4 +31,4 @@ for suite in FormattersTests PopoverTrackerTests; do
   check "suite $suite passed" suite_passed "$suite"
 done
 # 0.4's check runs the whole UI-test bundle; this asserts the 1.1 test was part of it and passed.
-check "PopoverEmptyStateUITests passed" grep -q "Test Suite 'PopoverEmptyStateUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
+ui_check "PopoverEmptyStateUITests passed" grep -q "Test Suite 'PopoverEmptyStateUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
