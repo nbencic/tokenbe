@@ -284,7 +284,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 5. Settings changes propagate through `Settings.changes` to `AppModel` (appearance, metric, sort) — subscription wired here.
 
 **Inventory** — Files: `SettingsUI/{SettingsView,GeneralTab,PrivacyTab,AdvancedTab}.swift`, `HotKey/HotKeyCenter.swift`, `Components/HotKeyRecorder.swift`. Settings: `tb.general.launchAtLogin`, `tb.menubar.glyphStyle`, `tb.menubar.metric`, `tb.popover.pinnedMetric`, `tb.popover.sort`, `tb.popover.manualOrder` (read in 5.3 sort), `tb.ui.currencyDisplay`, `tb.ui.hideCents`, `tb.ui.appearance`, `tb.ui.useSystemAccent`, `tb.ui.shortcut`, `tb.log.level`, `tb.log.retentionDays`. Events: `app.login_item_failed`, `ui.hotkey_failed`, `app.settings_changed`.
-**Tests:** `TokenBeUITests/SettingsGeneralUITests` (toggle each control → `defaults` value; appearance flips; shortcut opens popover).
+**Tests:** `TokenBeUITests/SettingsGeneralUITests` (toggle each control → `defaults` value; appearance flips; shortcut toggles the Dashboard, Q-023).
 **Verify:** UI test; `check-log-events.sh`.
 **Stage DoD:** D1–D4, D6, D8–D12.
 

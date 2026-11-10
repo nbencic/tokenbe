@@ -3,10 +3,12 @@ import SwiftUI
 import TokenBeCore
 
 /// The popover (08 § Popover; width 360 pt, max height 560 pt, scrolls). Stage 1.1: header title, the banner slot,
-/// the Empty state or the card list, and the footer with `Quit`. Other controls arrive with their actions.
+/// the Empty state or the card list, and the footer with `Open dashboard`, `Settings…` and `Quit`. Other controls
+/// arrive with their actions.
 struct PopoverView: View {
   let model: AppModel
   @Environment(\.openWindow) private var openWindow
+  @Environment(\.openSettings) private var openSettings
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {
@@ -35,6 +37,13 @@ struct PopoverView: View {
     dismiss()
   }
 
+  /// A menu-bar app is not active when its popover is clicked, so the Settings window is brought forward.
+  private func showSettings() {
+    openSettings()
+    NSApp.activate()
+    dismiss()
+  }
+
   private var header: some View {
     HStack {
       Text(Strings.appName)
@@ -52,7 +61,7 @@ struct PopoverView: View {
     } else {
       ScrollView {
         LazyVStack(spacing: 8) {
-          ForEach(model.accounts) { summary in
+          ForEach(model.sortedAccounts) { summary in
             AccountCardView(summary: summary)
           }
         }
@@ -67,6 +76,9 @@ struct PopoverView: View {
       Button(Strings.openDashboard) { openDashboard() }
         .keyboardShortcut("d")
         .accessibilityIdentifier("popover.footer.openDashboard")
+      Button(Strings.settingsEllipsis) { showSettings() }
+        .keyboardShortcut(",")
+        .accessibilityIdentifier("popover.footer.settings")
       Spacer()
       Button(Strings.quit) {
         NSApp.terminate(nil)

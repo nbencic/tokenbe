@@ -56,6 +56,14 @@ public struct SettingSpec: Sendable {
       .appendingPathComponent("Library/Application Support/TokenBe/ingest", isDirectory: true).path
   }
 
+  /// The allowed range of an `Int` setting, for steppers (09 is the only source of bounds).
+  public var intBounds: ClosedRange<Int>? {
+    switch rule {
+    case .intRange(let range), .threshold(let range): range
+    default: nil
+    }
+  }
+
   /// The value to store and whether it had to be changed ("clamped", 09). Wrong types fall back to the default.
   public func validate(_ value: SettingValue) -> (value: SettingValue, clamped: Bool) {
     guard let typed = coerced(value) else { return (defaultValue, true) }

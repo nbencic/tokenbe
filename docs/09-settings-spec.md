@@ -20,7 +20,7 @@ Legend: **Effect** says exactly what consumes the value. "Restart" means the cha
 | `tb.ui.hideCents` | Bool | `true` | — | `Formatters.money` whole units vs 2 decimals. |
 | `tb.ui.appearance` | String | `system` | `system`,`light`,`dark` | `preferredColorScheme` on all scenes. |
 | `tb.ui.useSystemAccent` | Bool | `true` | — | When true, `AccentColor` resolves to `Color.accentColor`; else token #0A66FF. |
-| `tb.ui.shortcut` | String | `ctrl+alt+t` | `modifier(+modifier)*+key`; empty = none | Global hotkey toggles the popover. Implement with Carbon `RegisterEventHotKey` (works without Accessibility permission). `NSEvent.addGlobalMonitorForEvents` is NOT allowed (needs Accessibility, cannot consume the event). |
+| `tb.ui.shortcut` | String | `ctrl+alt+t` | `modifier(+modifier)*+key`; empty = none | Global hotkey toggles the Dashboard window (opens and activates it; closes it when it is the front window). `MenuBarExtra` cannot be opened from code on macOS 26+, so it cannot toggle the popover (Q-023). Implement with Carbon `RegisterEventHotKey` (works without Accessibility permission). `NSEvent.addGlobalMonitorForEvents` is NOT allowed (needs Accessibility, cannot consume the event). |
 | `tb.ui.dashboardFrame` | String | `""` | `NSStringFromRect` | Window frame restore. |
 | `tb.ui.dashboardRange` | String | `7d` | `today`,`7d`,`30d`,`90d` | Dashboard range picker. |
 | `tb.ui.onboardingDone` | Bool | `false` | — | Show onboarding at launch when false AND no accounts. |

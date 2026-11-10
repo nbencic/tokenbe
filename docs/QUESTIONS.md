@@ -163,3 +163,29 @@ Options:
 - B) Retry verify on a missing summary.
 Chosen for now: A. The structured result is authoritative, and a retry would hide real problems. The `swift test` exit code still gates as before; CI is unaffected, because it relies on the exit code only.
 Blocking: no
+
+## Q-023 Settings window: what the global shortcut can open, login item and appearance            (2026-11-10)
+Context: Stage 1.3. `09 tb.ui.shortcut` says the global hotkey "toggles the popover". `04` and `08` require `MenuBarExtra(.window)`, and `08` says "`NSStatusItem` fallback is NOT allowed". 13 D-hotkey-carbon fixes the shortcut itself.
+Evidence (macOS 27.0.1, Xcode 26.3; the hotkey fired every time, logged in-process):
+- `NSStatusBarButton.performClick` does nothing: SwiftUI's status button has no action and no target.
+- A synthetic mouse-down/up pair sent to the status window (`sendEvent` + `postEvent`) is ignored.
+- The button has no gesture recognizers, and `accessibilityPerformPress()` returns false.
+- Ordering SwiftUI's own popover window (`MenuBarExtraWindow`) to the front shows it, but SwiftUI still treats the popover as closed: `onAppear` doesn't fire (no `ui.popover_open`), Escape doesn't close it, and `dismiss()` does nothing.
+- Only a real click, routed by the system, opens a `MenuBarExtra` on macOS 26+.
+
+Options:
+- A) The shortcut toggles the Dashboard. It opens and activates the Dashboard; pressed again while the Dashboard is the front window, it closes it. `openWindow` is captured from the menu-bar label, the only SwiftUI view alive from launch.
+- B) Drive SwiftUI's private popover window and patch the open/close events, Escape and dismissal by hand.
+- C) Replace `MenuBarExtra` with `NSStatusItem` + `NSPopover`. Forbidden by 04, 08 and 13 D-context-menu's rationale (12 R1: lower doc number and 13 win over 09).
+- D) Drop the shortcut. Contradicts 13 D-hotkey-carbon.
+
+Chosen for now: A. It is the only option inside 04/08 that keeps the 13 decision and uses public API only. It follows the precedent of O-15 and D-context-menu, where a `MenuBarExtra` limit downgraded a feature. 09's row and 14's Stage 1.3 test line are corrected in the same PR (12 R1.2).
+
+Also decided in this stage:
+- **Login item in tests:** `SMAppService` sits behind a Core `LoginItemService` protocol. Under Debug `TOKENBE_TEST_ROOT`, the app uses a marker file in the test root instead, so UI tests never register or unregister the owner's real login item. The launch mirror and the failure path (`app.login_item_failed`, toggle back to the actual status) are unit-tested in Core.
+- **Appearance:** applied app-wide through `NSApp.appearance` (`nil`/`aqua`/`darkAqua`), which every scene, the popover included, inherits. 09 names `preferredColorScheme` per scene, but `.preferredColorScheme(nil)` is widely reported not to revert a window to the system appearance on macOS, and a single app-wide switch can't miss a scene.
+- **Accent:** `.tint(nil)` (system accent) or `.tint(Color(.accent))` (the asset's fixed #0A66FF / dark #3B82F6) on every scene.
+- **Sort:** the 09 rule for `tb.popover.sort`, including `manual` with `tb.popover.manualOrder`, is implemented now in Core `AccountOrder` (14 says the manual order is "read in 5.3"). It's small and fully specified in 09, so 5.3 reuses it.
+- **Pinned metric:** card row 2 shows the pinned metric (`runwayPair`, remaining, or today's spend) or `No data yet`.
+- **Copy 08 doesn't fix:** option labels (`Shortest runway`, `Lowest remaining`, `Today’s spend`, `Warning`), Privacy statements, and the recorder's `Type shortcut…` hint, all in `Strings.swift`.
+Blocking: no

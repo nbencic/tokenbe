@@ -11,6 +11,8 @@ final class Startup {
     let support: URL
     let logs: URL
     let settingsSuite: String
+    /// Debug-only `TOKENBE_TEST_ROOT`; nil in normal runs.
+    let testRoot: URL?
 
     static func current() -> Paths {
       #if DEBUG
@@ -19,13 +21,13 @@ final class Startup {
         return Paths(
           support: base.appendingPathComponent("Application Support/TokenBe", isDirectory: true),
           logs: base.appendingPathComponent("Logs/TokenBe", isDirectory: true),
-          settingsSuite: SettingsSuite.uiTestsName
+          settingsSuite: SettingsSuite.uiTestsName, testRoot: base
         )
       }
       #endif
       return Paths(
         support: RunningSentinel.defaultDirectory, logs: NDJSONSink.defaultDirectory,
-        settingsSuite: SettingsSuite.name
+        settingsSuite: SettingsSuite.name, testRoot: nil
       )
     }
   }
@@ -40,10 +42,12 @@ final class Startup {
   /// The composition root, available once the logging step has run.
   private(set) var environment: AppEnvironment?
   private var retentionWatcher: Task<Void, Never>?
+  private var loginItem: LoginItemController?
 
   func run() async {
     let sequence = StartupSequence(steps: [
-      StartupStep("logging") { [self] in try await startLogging() }
+      StartupStep("logging") { [self] in try await startLogging() },
+      StartupStep("login item") { [self] in startLoginItem() }
     ])
     await sequence.run()
   }
@@ -79,7 +83,9 @@ final class Startup {
     }
     #endif
     let current = Settings(store: SettingsSuite.store(named: paths.settingsSuite))
-    environment = AppEnvironment(settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog])
+    environment = AppEnvironment(
+      settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog], logsDirectory: paths.logs
+    )
     await fileSink.setRetentionDays(current.logRetentionDays)
     retentionWatcher = Task { [weak self] in
       for await key in current.changes where key == .logRetentionDays {
@@ -88,10 +94,30 @@ final class Startup {
     }
   }
 
+  /// 09 `tb.general.launchAtLogin`: the setting mirrors the system's login item, then drives it. UI tests get a
+  /// marker file in the test root instead of the owner's real login item (Q-023).
+  private func startLoginItem() {
+    guard let settings = environment?.settings else { return }
+    let service: any LoginItemService
+    #if DEBUG
+    if let root = paths.testRoot {
+      service = TestLoginItem(root: root)
+    } else {
+      service = SystemLoginItem()
+    }
+    #else
+    service = SystemLoginItem()
+    #endif
+    let controller = LoginItemController(settings: settings, service: service)
+    controller.start()
+    loginItem = controller
+  }
+
   /// `app.terminate {reason}`, sentinel removed, then the log drained (07).
   func terminate(reason: String) async {
     Log.info(.appTerminate, cat: .app, msg: "terminate", ctx: ["reason": .string(reason)])
     retentionWatcher?.cancel()
+    loginItem?.stop()
     do {
       try sentinel.markClean()
     } catch {

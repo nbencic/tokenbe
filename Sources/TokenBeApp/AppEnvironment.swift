@@ -8,6 +8,8 @@ struct AppEnvironment {
   let settings: TokenBeCore.Settings
   let clock: ContinuousClock
   let logSinks: [any LogSink]
+  /// Where the NDJSON log lives (07; a test root's `Logs/TokenBe` in UI tests), for `Open log folder`.
+  let logsDirectory: URL
 }
 
 extension EnvironmentValues {
