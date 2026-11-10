@@ -3,7 +3,7 @@ import XCTest
 /// 14 § Stage 2.2 Tests: Settings → Advanced → `Run integrity check now` reports `ok`; `Back up now` writes
 /// `tokenbe.sqlite.bak` and reports its size, time and path. Everything happens under a throwaway
 /// `TOKENBE_TEST_ROOT` (Q-014, Q-025), never in the owner's support folder. Settings are not reset, so the values
-/// earlier stages' checks read survive (PM-1.2-2); `scripts/stages/2.2.sh` reads `tb.db.*` from the UI-test suite.
+/// earlier stages' checks read survive (PM-1.2-2); the `tb.db.*` writes are asserted from the app's log (Q-025).
 final class AdvancedMaintenanceUITests: XCTestCase {
   private var root: URL!
 
@@ -57,6 +57,12 @@ final class AdvancedMaintenanceUITests: XCTestCase {
     XCTAssertTrue(log.contains { $0.contains("\"evt\":\"db.integrity_check\"") && $0.contains("\"result\":\"ok\"") },
                   "db.integrity_check ok is logged")
     XCTAssertTrue(log.contains { $0.contains("\"evt\":\"db.backup\"") }, "db.backup is logged")
+    // 09 keys: the runner cannot read the app's settings suite (Q-019), and a later suite resets it (Q-020), so the
+    // writes are asserted from the app's own `app.settings_changed` records (Q-025).
+    for key in ["tb.db.lastIntegrityCheckAt", "tb.db.lastBackupAt"] {
+      XCTAssertTrue(log.contains { $0.contains("\"evt\":\"app.settings_changed\"") && $0.contains("\"key\":\"\(key)\"") },
+                    "\(key) is written")
+    }
     let failures = log.filter { $0.contains("\"lvl\":\"error\"") || $0.contains("\"lvl\":\"fault\"") }
     XCTAssertEqual(failures, [], "no error or fault records")
   }

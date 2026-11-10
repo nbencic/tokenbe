@@ -37,15 +37,11 @@ for suite in ObservationTests AccountSummaryBuilderTests RepositoryAccountTests 
 done
 check "AdvancedMaintenanceUITests passed" grep -q "Test Suite 'AdvancedMaintenanceUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 
-# 14 Verify, under the UI test's TOKENBE_TEST_ROOT (Q-025): the test itself asserts tokenbe.sqlite.bak in its root;
-# here, both 09 keys were written by the last UI-test run, and the owner's real support folder has no new file.
-written_by_last_uitest() {
-  local value started
-  value="$(defaults read dev.bathyon.tokenbe.uitests "$1" 2>/dev/null | cut -d. -f1)"
-  started="$(cat build/run/uitest.start 2>/dev/null)"
-  [[ -n "$value" && -n "$started" && "$value" -ge "$started" ]] || { echo "$1 = '$value', last uitest started $started"; return 1; }
-}
-check "UI-test suite: tb.db.lastBackupAt set by the last UI-test run" written_by_last_uitest tb.db.lastBackupAt
-check "UI-test suite: tb.db.lastIntegrityCheckAt set by the last UI-test run" written_by_last_uitest tb.db.lastIntegrityCheckAt
+# 14 Verify, under the UI test's TOKENBE_TEST_ROOT (Q-025): the test asserts tokenbe.sqlite.bak in its root and the
+# app.settings_changed records for both tb.db.* keys (DashboardShellUITests resets the UI-test suite afterwards, Q-020).
+for key in tb.db.lastIntegrityCheckAt tb.db.lastBackupAt; do
+  check "AdvancedMaintenanceUITests asserts the $key write" grep -qF "\"$key\"" Tests/TokenBeUITests/AdvancedMaintenanceUITests.swift
+done
+check "AdvancedMaintenanceUITests asserts tokenbe.sqlite.bak in its test root" grep -qF 'appendingPathComponent("tokenbe.sqlite.bak")' Tests/TokenBeUITests/AdvancedMaintenanceUITests.swift
 check "owner's real support folder untouched (no tokenbe.sqlite.bak there)" real_support_unchanged
 check "owner's real TokenBe settings (tb.*) unchanged" real_tb_unchanged

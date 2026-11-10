@@ -319,7 +319,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 **Inventory** — Files: `Store/Observation.swift`, `Ledger/AccountSummaryBuilder.swift`, `SettingsUI/AdvancedTab.swift` (rows). Settings: `tb.db.lastBackupAt`, `tb.db.lastIntegrityCheckAt`. Events: reuse 2.1.
 **Tests:** `ObservationTests` (insert account in temp DB → stream yields), `TokenBeUITests/AdvancedMaintenanceUITests` (click backup → `.bak` exists).
-**Verify:** tests; after the UI test, `tokenbe.sqlite.bak` exists in the test's own `TOKENBE_TEST_ROOT` (asserted by the test) and both `tb.db.*` keys were written by that run; the owner's real support folder is unchanged (D10, Q-014, Q-025).
+**Verify:** tests; after the UI test, `tokenbe.sqlite.bak` exists in the test's own `TOKENBE_TEST_ROOT` and both `tb.db.*` keys were written (both asserted by the test from its root and log); the owner's real support folder is unchanged (D10, Q-014, Q-025).
 **Stage DoD:** D1–D6, D8–D12.
 
 ---
