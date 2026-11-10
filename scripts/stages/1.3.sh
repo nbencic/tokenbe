@@ -31,7 +31,8 @@ check "check-log-events.sh (14 Verify)" scripts/check-log-events.sh
 for later in "Accounts" "Sources" "Alerts"; do
   check "SettingsView has no '$later' tab yet" bash -c "! grep -qF 'tab$later' Sources/TokenBeApp/SettingsUI/SettingsView.swift"
 done
-for later in "Export" "integrity" "Back up" "Reset all" "Import" "Last daily run" "Check for updates"; do
+# "integrity" and "Back up" arrived in 2.2.
+for later in "Export" "Reset all" "Import" "Last daily run" "Check for updates"; do
   check "Settings tabs have no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/SettingsUI"
 done
 

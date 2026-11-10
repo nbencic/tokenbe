@@ -1,11 +1,13 @@
 import SwiftUI
 import TokenBeCore
 
-/// Advanced tab (08 § Settings, Paper `1WN-0`, `22Q-0`): log level (live, 07), log retention, `Open log folder`.
-/// Diagnostics, maintenance and data rows arrive in 2.2 and 9.x.
+/// Advanced tab (08 § Settings, Paper `1WN-0`, `22Q-0`): log level (live, 07), log retention, `Open log folder`;
+/// `Run integrity check now` and `Back up now` (14 § Stage 2.2). Diagnostics and data rows arrive in 9.x.
 struct AdvancedTab: View {
   @Bindable var settings: TokenBeCore.Settings
   let logsDirectory: URL
+  /// Nil only when startup step 2 failed, and then the app quits (03 § Migrations).
+  let repository: (any Repository)?
 
   var body: some View {
     Form {
@@ -24,7 +26,108 @@ struct AdvancedTab: View {
         OpenLogFolderButton(logsDirectory: logsDirectory)
           .accessibilityIdentifier("settings.advanced.openLogFolder")
       }
+      if let repository {
+        Section {
+          DatabaseMaintenanceRows(settings: settings, repository: repository)
+        }
+      }
     }
     .formStyle(.grouped)
+  }
+}
+
+/// What a maintenance button reports in its sheet.
+struct MaintenanceReport: Identifiable {
+  let id = UUID()
+  let title: String
+  let lines: [String]
+}
+
+/// 14 § Stage 2.2 step 2, in 08's order. Each button runs its `Repository` call (which logs its `db.*` event),
+/// records the time in its 09 key, and shows the outcome in a sheet.
+struct DatabaseMaintenanceRows: View {
+  let settings: TokenBeCore.Settings
+  let repository: any Repository
+  @State private var running = false
+  @State private var report: MaintenanceReport?
+
+  var body: some View {
+    Button(Strings.runIntegrityCheckNow) { run(integrityCheck) }
+      .disabled(running)
+      .accessibilityIdentifier("settings.advanced.integrityCheck")
+    Button(Strings.backUpNow) { run(backUp) }
+      .disabled(running)
+      .accessibilityIdentifier("settings.advanced.backUp")
+      .sheet(item: $report) { report in
+        MaintenanceReportSheet(report: report) { self.report = nil }
+      }
+  }
+
+  private func run(_ action: @escaping @MainActor () async -> MaintenanceReport) {
+    running = true
+    Task {
+      report = await action()
+      running = false
+    }
+  }
+
+  /// `db.integrity_check`; sets `tb.db.lastIntegrityCheckAt`; shows `ok` or the first error line and, on failure,
+  /// where the copy of the database went (Q-024).
+  private func integrityCheck() async -> MaintenanceReport {
+    do {
+      let result = try await repository.integrityCheck()
+      settings.dbLastIntegrityCheckAt = Date().timeIntervalSince1970
+      var lines = [Strings.integrityResult(result.result)]
+      if let copy = result.corruptCopy { lines.append(Strings.corruptCopy(copy.path)) }
+      return MaintenanceReport(title: Strings.integrityCheckTitle, lines: lines)
+    } catch {
+      Log.error(.uiError, cat: .ui, msg: "integrity check failed to run", err: error, ctx: [
+        "view": "settings.advanced"
+      ])
+      return MaintenanceReport(title: Strings.integrityCheckFailedTitle, lines: [error.localizedDescription])
+    }
+  }
+
+  /// `db.backup`; sets `tb.db.lastBackupAt`; shows the backup's size, time and path.
+  private func backUp() async -> MaintenanceReport {
+    do {
+      let result = try await repository.backup()
+      settings.dbLastBackupAt = Date().timeIntervalSince1970
+      let size = Int64(result.bytes).formatted(.byteCount(style: .file))
+      let time = Date(timeIntervalSince1970: settings.dbLastBackupAt).formatted(date: .abbreviated, time: .standard)
+      return MaintenanceReport(title: Strings.backupTitle,
+                               lines: [Strings.backupDetail(size: size, time: time), result.url.path])
+    } catch {
+      Log.error(.uiError, cat: .ui, msg: "backup failed", err: error, ctx: ["view": "settings.advanced"])
+      return MaintenanceReport(title: Strings.backupFailedTitle, lines: [error.localizedDescription])
+    }
+  }
+}
+
+struct MaintenanceReportSheet: View {
+  let report: MaintenanceReport
+  let dismiss: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text(report.title)
+        .font(.headline)
+        .accessibilityIdentifier("settings.advanced.report.title")
+      ForEach(Array(report.lines.enumerated()), id: \.offset) { index, line in
+        Text(line)
+          .monospacedDigit()
+          .textSelection(.enabled)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("settings.advanced.report.line\(index)")
+      }
+      HStack {
+        Spacer()
+        Button(Strings.okButton, action: dismiss)
+          .keyboardShortcut(.defaultAction)
+          .accessibilityIdentifier("settings.advanced.report.ok")
+      }
+    }
+    .padding(20)
+    .frame(width: 420)
   }
 }

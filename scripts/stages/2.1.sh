@@ -30,7 +30,8 @@ check "schema_v1.sqlite passes integrity_check" test "$(sqlite3 -readonly Tests/
 # 04: the app never imports GRDB; no stubs for later aggregates (14 step 5).
 check "TokenBeApp never imports GRDB (04)" bash -c "! grep -rqE '^import GRDB' Sources/TokenBeApp"
 check "no stubs in Store" bash -c "! grep -rqE 'fatalError|notImplemented|not implemented' $store"
-check "Repository declares only 2.1's aggregates" grep -qx 'public typealias Repository = AccountRepository & MaintenanceRepository' $store/Repository.swift
+# 2.2 adds ObservationRepository (14 § Stage 2.2 step 1); later aggregates join with their stages.
+check "Repository declares only the aggregates built so far" grep -qx 'public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository' $store/Repository.swift
 for evt in dbOpen dbMigrate dbMigrateFailed dbQuickCheck dbIntegrityCheck dbIntegrityFailed dbCorrupt dbRestore dbBackup \
            dbBackupFailed dbVacuum dbBusy; do
   check "event .$evt emitted by Store" grep -rqF ".$evt" $store

@@ -70,6 +70,17 @@ enum Strings {
   static let logLevelError = "Error"
   static let logRetention = "Log retention"
   static func days(_ count: Int) -> String { count == 1 ? "1 day" : "\(count) days" }
+  static let runIntegrityCheckNow = "Run integrity check now"
+  static let backUpNow = "Back up now"
+
+  // Result sheets of the two maintenance buttons (14 § Stage 2.2). 08 names only the buttons (Q-025).
+  static let integrityCheckTitle = "Integrity check"
+  static func integrityResult(_ result: String) -> String { "Result: \(result)" }
+  static func corruptCopy(_ path: String) -> String { "A copy of the database was saved to \(path)" }
+  static let backupTitle = "Backup saved"
+  static func backupDetail(size: String, time: String) -> String { "\(size), \(time)" }
+  static let backupFailedTitle = "Backup failed"
+  static let integrityCheckFailedTitle = "Integrity check could not run"
 
   /// VoiceOver label for a band dot (08 § Accessibility: colour is never the only carrier).
   static func bandLabel(_ word: String) -> String { "Band: \(word)" }
