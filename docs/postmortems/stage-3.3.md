@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.3 Provider seam & registry
-Date: 2026-11-10 · Branch: s3.3-provider-seam · PR: #13 · Planned size: M · Commits: 2
+Date: 2026-11-10 · Branch: s3.3-provider-seam · PR: #13 · Planned size: M · Commits: 3
 
 ## Outcome
 The provider layer now has its shape. Nothing is visible to the user yet.
@@ -31,7 +31,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 4. **Three lint findings:** an enum case named `ok`, renamed `plausible`, and two tuple tables, which became structs.
 
 ## Verify and CI failures
-- Verify run 1: see the PR.
+- Verify run 1: `STAGE 3.3 OK`, 520 checks across stages 0.1–3.3 and D13, the UI suites included. It passed on the first run. The Debug app's build products also passed `check-no-secrets.sh` with the run-time-joined prefixes.
 - CI: see the PR.
 
 ## Deviations from the docs
