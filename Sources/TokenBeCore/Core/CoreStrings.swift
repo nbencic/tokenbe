@@ -10,6 +10,9 @@ public enum CoreStrings {
       "This Admin key is missing a permission TokenBe needs. Check its permissions at platform.openai.com → Settings → Organization → Admin keys."
   }
 
+  /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
+  public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
+
   // The rest is authored (Q-029): 02 § Errors gives no copy for these classes.
 
   /// 429.

@@ -40,6 +40,18 @@ public final class KeychainKeyStore: KeyStore {
     return secret
   }
 
+  /// Asks for the item's attributes only, so no secret leaves the keychain and no ACL prompt is needed.
+  public func contains(_ ref: String) async throws(KeyStoreError) -> Bool {
+    var request = query(ref)
+    request[kSecReturnAttributes as String] = true
+    request[kSecMatchLimit as String] = kSecMatchLimitOne
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(request as CFDictionary, &result)
+    if status == errSecItemNotFound { return false }
+    try check(status, .read, ref)
+    return true
+  }
+
   public func set(_ ref: String, secret: String) async throws(KeyStoreError) {
     let data = Data(secret.utf8)
     let updated = SecItemUpdate(query(ref) as CFDictionary, [kSecValueData as String: data] as CFDictionary)

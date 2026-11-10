@@ -57,12 +57,18 @@ struct PopoverView: View {
 
   @ViewBuilder private var content: some View {
     if model.accounts.isEmpty {
-      EmptyStateView()
+      EmptyStateView {
+        dismiss()
+        model.showOnboarding()
+      }
     } else {
       ScrollView {
         LazyVStack(spacing: 8) {
           ForEach(model.sortedAccounts) { summary in
-            AccountCardView(summary: summary)
+            AccountCardView(summary: summary) {
+              model.settingsTab = .accounts
+              showSettings()
+            }
           }
         }
         .padding(12)

@@ -22,9 +22,40 @@ final class AppModel {
   private(set) var menuBarMetric = "minRunway"
   private(set) var sort = "runway"
 
+  /// The `account` rows behind `accounts`, for the Accounts tab's edits (label, paused, remove).
+  private(set) var records: [AccountRecord] = []
+  /// Keychain refs with no item (04 startup step 3); cleared for an account once its key is replaced.
+  var missingKeys: Set<String> = [] {
+    didSet { rebuild() }
+  }
+  /// The Settings tab to show; `Key missing · Fix…` selects Accounts (08).
+  var settingsTab = SettingsTab.general
+  @ObservationIgnored private var lastInputs = SummaryInputs(accounts: [])
+
   /// Opens the Dashboard window. Captured from the menu-bar label's environment, the only SwiftUI view that exists
   /// from launch, so the global shortcut can open a scene (Q-023).
   @ObservationIgnored var openDashboard: (@MainActor () -> Void)?
+  /// Opens the onboarding window, captured the same way (Q-030).
+  @ObservationIgnored var openOnboarding: (@MainActor () -> Void)? {
+    didSet {
+      if onboardingPending, let openOnboarding {
+        onboardingPending = false
+        openOnboarding()
+      }
+    }
+  }
+  @ObservationIgnored private var onboardingPending = false
+
+  /// 09 `tb.ui.onboardingDone`: at launch, onboarding opens when it is false and there is no account. Also
+  /// `Add account…` in the Empty state (08).
+  func showOnboarding() {
+    guard let openOnboarding else {
+      onboardingPending = true
+      return
+    }
+    NSApp.activate()
+    openOnboarding()
+  }
 
   @ObservationIgnored private let popover = PopoverTracker()
   @ObservationIgnored private var settingsWatcher: Task<Void, Never>?
@@ -62,12 +93,18 @@ final class AppModel {
     summaryWatcher?.cancel()
     summaryWatcher = Task { [weak self] in
       for await next in inputs {
-        self?.accounts = AccountSummaryBuilder.summaries(from: next) { record, invalid in
-          Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
-            "view": "accounts"
-          ])
-        }
+        self?.lastInputs = next
+        self?.rebuild()
       }
+    }
+  }
+
+  private func rebuild() {
+    records = lastInputs.accounts
+    accounts = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys) { record, invalid in
+      Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
+        "view": "accounts"
+      ])
     }
   }
 
@@ -91,6 +128,11 @@ final class AppModel {
     popoverIsOpen = false
     popover.closed()
   }
+}
+
+/// The Settings window's tabs, in Paper's order (08 § Settings).
+enum SettingsTab: Hashable {
+  case general, accounts, privacy, advanced
 }
 
 /// `tb.ui.appearance` (09).

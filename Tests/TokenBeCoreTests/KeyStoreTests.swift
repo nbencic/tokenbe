@@ -89,8 +89,10 @@ struct KeychainKeyStoreIntegrationTests {
     defer { SecItemDelete(store.query(ref) as CFDictionary) }
 
     #expect(try await store.get(ref) == nil)
+    #expect(try await !store.contains(ref))
     try await store.set(ref, secret: "integration secret one")
     #expect(try await store.get(ref) == "integration secret one")
+    #expect(try await store.contains(ref), "contains reads attributes only (04 startup step 3)")
     try await store.set(ref, secret: "integration secret two")
     #expect(try await store.get(ref) == "integration secret two")
 
@@ -105,6 +107,7 @@ struct KeychainKeyStoreIntegrationTests {
 
     try await store.delete(ref)
     #expect(try await store.get(ref) == nil)
+    #expect(try await !store.contains(ref))
     try await store.delete(ref)
     await pipeline.drain()
     #expect(await sink.records.isEmpty, "no failure events on the happy path")

@@ -18,8 +18,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.bind(settings)
         watchShortcut(settings)
       }
+      model.missingKeys = startup.missingKeys
       if let repository = startup.environment?.repository {
         model.observe(repository)
+      }
+      if let settings = startup.environment?.settings, !settings.uiOnboardingDone, startup.accountCount == 0 {
+        model.showOnboarding()
       }
     }
   }

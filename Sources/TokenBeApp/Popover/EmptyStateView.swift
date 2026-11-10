@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// 08 § Popover states — Empty (Paper `45-0`): no illustration, headline and body.
-/// The add-account button arrives with onboarding in Stage 3.5 (a control appears with its action).
+/// 08 § Popover states — Empty (Paper `45-0`): no illustration, headline, body and `Add account…` (onboarding).
 struct EmptyStateView: View {
+  let addAccount: () -> Void
+
   var body: some View {
     VStack(spacing: 6) {
       Text(Strings.emptyHeadline)
@@ -13,6 +14,10 @@ struct EmptyStateView: View {
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
         .accessibilityIdentifier("popover.empty.body")
+      Button(Strings.addAccount, action: addAccount)
+        .buttonStyle(.borderedProminent)
+        .padding(.top, 8)
+        .accessibilityIdentifier("popover.empty.addAccount")
     }
     .frame(maxWidth: .infinity)
     .padding(.vertical, 32)

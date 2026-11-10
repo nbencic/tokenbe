@@ -15,8 +15,19 @@ struct AppEnvironment {
   let transport: any HTTPTransport
   /// The adapters this build has (PM-3.3-2); onboarding (3.5) offers `registry.availableForOnboarding`.
   let registry: ProviderRegistry
+  /// Where API keys live: the login keychain, or a DEBUG file store inside `TOKENBE_TEST_ROOT` (PM-3.2-1, Q-030).
+  let keyStore: any KeyStore
   /// The store (03), set by startup step 2; nil only if that step failed, in which case the app quits.
   var repository: (any Repository)?
+  /// Runs adapter jobs (3.4); onboarding's `Done` asks it for the first `keys` and `usage` polls. Set with the store.
+  var poller: Poller?
+
+  /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.
+  var lifecycle: AccountLifecycle? {
+    repository.map {
+      AccountLifecycle(repository: $0, keyStore: keyStore, registry: registry, transport: transport)
+    }
+  }
 }
 
 extension EnvironmentValues {

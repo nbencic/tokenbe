@@ -9,6 +9,9 @@ import Foundation
 public protocol KeyStore: Sendable {
   /// Nil when no item exists for `ref`.
   func get(_ ref: String) async throws(KeyStoreError) -> String?
+  /// Whether an item exists for `ref`, without reading the secret (04 startup step 3; R8: the secret is read only
+  /// inside the request that needs it).
+  func contains(_ ref: String) async throws(KeyStoreError) -> Bool
   /// Creates or replaces the item for `ref`.
   func set(_ ref: String, secret: String) async throws(KeyStoreError)
   /// Deleting an item that does not exist succeeds.
