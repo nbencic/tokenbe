@@ -24,7 +24,9 @@ for suite in KeyStoreTests KeychainKeyStoreIntegrationTests; do
   check "suite $suite passed" suite_passed "$suite"
 done
 # The integration suite ran rather than being skipped (it is skipped only when the keychain is locked).
-ran_integration() { grep -q 'classname="TokenBeCoreTests.KeychainKeyStoreIntegrationTests" name="roundTrip()"' build/results/test-swift-testing.xml && ! grep -A2 'name="roundTrip()"' build/results/test-swift-testing.xml | grep -q '<skipped'; }
+# A self-closing <testcase … /> has no <skipped/> or <failure> child; the old `grep -A2` read the NEXT test case's
+# <skipped/> (FixtureDBTests.regenerate) once parallel order put it there (PM-3.4-6).
+ran_integration() { grep -qE '<testcase classname="TokenBeCoreTests\.KeychainKeyStoreIntegrationTests" name="roundTrip\(\)"[^>]*/>' build/results/test-swift-testing.xml; }
 check "KeychainKeyStoreIntegrationTests ran (not skipped)" ran_integration
 leftover_test_items() { ! security find-generic-password -s dev.bathyon.tokenbe.test >/dev/null 2>&1; }
 check "no item left under dev.bathyon.tokenbe.test" leftover_test_items
