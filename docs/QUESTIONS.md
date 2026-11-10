@@ -234,3 +234,22 @@ Decisions:
 - **`app.network_changed` values.** `online` is `path.status == .satisfied`. `interface` is the first available interface: `wifi`, `wired`, `cellular`, `loopback` or `other`, and `none` when no interface is available. The first status after start is a baseline, not a transition, so it is not logged. A change of interface while staying online is logged.
 - **11's suite-wide guard** ("a URLProtocol stub asserts zero real requests"). In 3.1 every test sends through `StubURLProtocol` or `StubTransport`. The one production `URLSessionTransport` built in a test sends nothing. A suite-wide guard that would catch a future mistake is carried forward to 3.4, where adapters first send (PM-3.1-1).
 Blocking: no
+
+## Q-027 Keychain: login keychain instead of the data-protection keychain            (2026-11-10)
+Context: Stage 3.2, `Keychain/KeychainKeyStore.swift`. 14 step 2 required `kSecUseDataProtectionKeychain = true`.
+Finding: a spike showed that an ad-hoc-signed binary (`CODE_SIGN_IDENTITY = -`, no team) gets `-34018` (`errSecMissingEntitlement`) from `SecItemAdd` and `SecItemDelete` on the data-protection keychain. The same calls on the login keychain succeed. Every TokenBe build before H4 (Debug, CI, unsigned Release) is ad-hoc signed, so as written no build could store a key until 11.5. The data-protection keychain needs a `keychain-access-groups` / application-identifier entitlement backed by a provisioning profile.
+Options: A) the login keychain; B) keep the data-protection keychain and sign with a team and a provisioning profile now (PM-0.1-3 pulled forward); C) a hybrid, using the data-protection keychain when entitled and the login keychain otherwise.
+Chosen: A, by the owner (asked as `Blocking: yes`, because it changes how keys are protected).
+Consequences:
+- Items are still written `WhenUnlockedThisDeviceOnly` and not synchronizable, under service `dev.bathyon.tokenbe`. The login keychain never syncs to iCloud. It does not enforce "this device only", though: a Migration Assistant transfer can carry the item over.
+- Access is controlled by the item's ACL, bound to the app's code signature. An ad-hoc Debug build may ask for the login password. A Developer ID build has a stable designated requirement across updates.
+- The login keychain does not return `kSecAttrAccessible`. SEC-2 asserts class, service, account, and that no synchronizable copy exists. 11 SEC-2, 13 D-keychain-only and 14 step 2 are updated.
+- Tests use `dev.bathyon.tokenbe.test` only. `3.2.sh` checks that no test builds a store on the production service, and that no test item is left behind.
+Also decided in 3.2, not blocking:
+- `KeyStore` methods are `async throws(KeyStoreError)` with `failed(op, status)` and `accessDenied(op, status)`.
+- An item that is not UTF-8 is a read failure with `errSecDecode`.
+- `errSecUserCanceled` (the user refused a prompt) is an ordinary failure at `error`, not `access_denied` at `fault`.
+- `set` updates the item, or adds it when it is missing. `delete` of a missing item succeeds.
+- `keychain.*` records carry `acct` = the keychain ref (the provider, per SEC-2) and `osstatus`, never the secret.
+- `InMemoryKeyStore` lives in `Tests/TokenBeCoreTests/Support/`, the SwiftPM test target, like Q-024's path fix.
+Blocking: yes (answered by the owner 2026-11-10: A)

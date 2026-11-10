@@ -28,7 +28,7 @@ Closed decisions are final for V1. Reopening one requires a new entry below with
 | D-retention-tiers | Hourly 90 d → daily forever → monthly roll-up; harness raw events 90 d. | <250 MB after 5 years with real headroom. | 2026-11-09 |
 | D-log-ndjson | NDJSON file sink + os.Logger, 14-day retention, 50 MiB rotation, mandatory event table. | Debuggability requirement from the owner: every error, edge case, race logged. | 2026-11-09 |
 | D-no-telemetry | No outbound traffic other than provider APIs, LiteLLM feed, GitHub releases. | Trust; the app sees billing data. | 2026-11-09 |
-| D-keychain-only | Keys in Keychain `WhenUnlockedThisDeviceOnly`, non-synchronizable. | Device-bound secrets; no iCloud spread. | 2026-11-09 |
+| D-keychain-only | Keys in Keychain `WhenUnlockedThisDeviceOnly`, non-synchronizable. The login keychain, not the data-protection keychain (owner, 2026-11-10, Q-027). | Device-bound secrets; no iCloud spread. | 2026-11-09 |
 | D-one-key-per-provider | V1: one account per provider (UNIQUE provider). Multiple orgs per provider is V2. | Scope. | 2026-11-09 |
 | D-inter-standin | Paper uses Inter because SF Pro is not installed on the design machine; app uses system SF via `.system(design:)`. | Fidelity in app, pragmatism in design file. | 2026-11-09 |
 | D-paper-nodes | Paper node ids listed in 08 are the reference for reconciliation at Milestone 4; this doc set wins on conflict. | Single source of truth. | 2026-11-09 |

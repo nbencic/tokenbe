@@ -81,7 +81,7 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 | PERF-2 | Same with popover held open 2 min; then dashboard open 2 min | ≤ 75 MB / ≤ 90 MB. |
 | PERF-3 | Energy: `powermetrics` not required; instead count wakeups via `sched.tick` log: ≤ 2 wakeups/min idle with 4 accounts. | |
 | SEC-1 | `scripts/check-no-secrets.sh`: run E2E-2 and E2E-7 with keys set to `sk-FIXTURE-…`, then grep `tokenbe.sqlite`, all logs, diagnostics zip (unzipped), export JSON, and the `.app` bundle for `sk-FIXTURE` and `FIXTURE` | zero matches outside Keychain. |
-| SEC-2 | Keychain item attributes | `kSecAttrAccessible = WhenUnlockedThisDeviceOnly`, `kSecAttrSynchronizable = false`, service `dev.bathyon.tokenbe`, account `<provider>`. |
+| SEC-2 | Keychain item attributes | Login keychain (Q-027): written with `kSecAttrAccessible = WhenUnlockedThisDeviceOnly` and `kSecAttrSynchronizable = false`, service `dev.bathyon.tokenbe`, account `<provider>`. The login keychain does not report `kSecAttrAccessible` back, so the test asserts class, service and account, and that no synchronizable copy exists. |
 | SOAK-1 | 14 days on maintainer machine, real keys, log level info | zero `fault`; every `error` event has a matching entry in `docs/QUESTIONS.md` or a fix commit. |
 
 ## Test doubles (names fixed)
