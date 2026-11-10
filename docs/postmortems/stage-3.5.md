@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.5 Onboarding, Accounts tab, first account
-Date: 2026-11-10 · Branch: s3.5-onboarding · PR: #15 · Planned size: L · Commits: 5
+Date: 2026-11-10 · Branch: s3.5-onboarding · PR: #15 · Planned size: L · Commits: 6
 
 ## Outcome
 A user can add an OpenAI account and manage it. This is the first stage with a visible product flow.
@@ -60,7 +60,7 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file. 238 Core tests pass,
   - All three checks now assert the order or the substring.
   - Stages 2.1–3.5 were then dry-run without the UI suites, reusing run 2's results; no app code had changed since. An earlier dry-run attempt had run 2.1's launches before 1.3's check and tripped 1.3 on the reset settings, which was an artifact of the ordering.
 - Verify run 3: `STAGE 3.5 OK`, 678 checks across stages 0.1–3.5 and D13, the UI suites included.
-- CI: RESULT_CI.
+- CI: PR #15 `build-test` passed on the first run (head 522961d): build, 238 tests, coverage gate, lint, event-table check, app build and the secret guard over the Release products. This file's final update re-runs CI before the merge.
 
 ## Deviations from the docs
 - 08 asks for a 520×440 sheet. It is a fixed-size window, since a menu-bar app has no window to carry a sheet (Q-030). `Replace key…` is a real sheet on the Settings window.
