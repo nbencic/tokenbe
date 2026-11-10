@@ -1,5 +1,5 @@
 # Postmortem — Stage 2.1 Database, migration 001, Repository
-Date: 2026-11-10 · Branch: s2.1-database · PR: #9 · Planned size: L · Commits: 6
+Date: 2026-11-10 · Branch: s2.1-database · PR: #9 · Planned size: L · Commits: 7
 
 ## Outcome
 TokenBe now keeps its data in `~/Library/Application Support/TokenBe/tokenbe.sqlite` (03).
@@ -46,7 +46,7 @@ DoD D1–D3, D5 (per Q-024), D7 and D9–D11 are met. D12 is met by the PR's gre
 
 ## Verify and CI failures
 - Verify run 1 and run 2: every 2.1 check and every Core check passed (148 checks). Both runs then stopped at 0.4's `LaunchSmokeTests`: `Timed out while enabling automation mode`. `automationmodetool` reports "This device requires user authentication to enable Automation Mode". Unattended, the macOS password prompt cannot be answered; the earlier stages' UI runs had been authorized interactively. This is an environment fault, not a code one. PM-1.1-2 (`sudo automationmodetool enable-automationmode-without-authentication`) is now needed rather than optional.
-- Verify run 3: (after the owner enables Automation Mode)
+- Verify run 3, after the owner enabled Automation Mode: `STAGE 2.1 OK`, with 376 checks across stages 0.1–2.1 and D13, the UI suites included.
 - Full Core suite looped 50 times (PM-1.2-3), after the `db.busy` test was narrowed to the waiting write: 50 of 50 passed.
 - CI: PR #9 `build-test` passed on the first run (6 m 56 s): build, tests, coverage gate, lint, event-table check, app build, and the secret guard.
 
@@ -78,5 +78,5 @@ All are in Q-024:
 - PM-2.1-1 · agent · process · A helper that defaults to `#filePath` or `#file` resolves at the caller. Read it inside the function when the helper's own location matters.
 - PM-2.1-2 · agent · process · Tests never log through the process-wide `Log`. Every Core API that logs takes a `logPipeline:`, and tests pass one.
 - PM-2.1-3 · agent · 2.2 · Declare `observeSummaryInputs` with `SummaryInputs`; `AppModel` reads the repository from `AppEnvironment.repository`.
-- PM-2.1-5 · owner · now · Run `sudo automationmodetool enable-automationmode-without-authentication` once (replaces the optional PM-1.1-2). Unattended UI tests cannot start without it.
+- PM-2.1-5 · owner · done 2026-11-10 · Run `sudo automationmodetool enable-automationmode-without-authentication` once (replaces the optional PM-1.1-2). Unattended UI tests cannot start without it.
 - PM-2.1-4 · agent · 9.x · The weekly `integrity_check` decides whether a failure forces a restore on the next launch (Q-024). Closing the pool at quit, and the idle `wal_checkpoint(TRUNCATE)` / `optimize` of 03, are still open.
