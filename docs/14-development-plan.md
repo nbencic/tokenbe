@@ -332,13 +332,13 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Steps**
 1. `Network/HTTPTransport.swift`: `HTTPRequest {method, url, headers, body}`, `HTTPResponse {status, headers, body}`, protocol `send(_:) async throws(TransportError)`.
 2. `Network/URLSessionTransport.swift`: ephemeral configuration, `timeoutIntervalForRequest 15`, `ForResource 30`, `waitsForConnectivity false`, `httpShouldSetCookies false`, `urlCache nil`, `User-Agent: TokenBe/<version> (+https://github.com/nbencic/tokenbe)`; response body capped at 20 MiB (`TransportError.tooLarge`).
-3. `Network/PollError.swift` (04) + `PollError.from(status:body:urlError:)` mapping (401/403 → auth; 429 → rateLimited with `Retry-After` parsed as seconds or HTTP-date; 5xx → server; URLError → transport).
+3. `Network/PollError.swift` (04) + `PollError.from(_ response: HTTPResponse, now:)` and `PollError.from(_ error: TransportError)` mapping (401/403 → auth; 429 → rateLimited with `Retry-After` parsed as seconds or HTTP-date; 5xx → server; other non-2xx → providerRule, no retry; URLError → transport; Q-026).
 4. `Network/RetryPolicy.swift`: pure `nextDelay(attempt:error:) -> Duration?` implementing `04 § Retry policy` with injected RNG (`SeededRNG` in tests), caps (`Retry-After` ≤ 300 s, backoff ≤ 15 min).
-5. `Network/FixtureTransport.swift` (DEBUG only): routes `(method, host+path)` → `Tests/Fixtures/providers/<p>/<endpoint>.<case>.json` chosen by `tb.debug.fixtureMode` scenario name; `StubTransport` in the test target records calls and asserts order.
+5. `Network/FixtureTransport.swift` (DEBUG only, used when the Bool `tb.debug.fixtureMode` of 09 is on): routes `(method, host+path)` → `Tests/Fixtures/providers/<p>/<endpoint>.<case>.{recorded,synthetic}.json`, case `ok` unless a per-endpoint case is given; each file is the envelope of 11 § Fixtures (Q-026); `StubTransport` in the test target records calls and asserts order.
 6. `Network/NetworkMonitor.swift` protocol + `NWPathMonitorAdapter` (`Network.framework`); logs `app.network_changed {online}` on transition.
 
-**Inventory** — Files: `Network/{HTTPTransport,URLSessionTransport,PollError,RetryPolicy,FixtureTransport,NetworkMonitor}.swift`, `Tests/Support/{StubTransport,SeededRNG}.swift`. Settings: `tb.debug.fixtureMode` (DEBUG). Events: `app.network_changed`.
-**Tests:** `PollErrorMappingTests`, `RetryPolicyTests` (table of attempt/error → delay incl. jitter bounds and caps), `URLSessionTransportTests` (headers via a local `URLProtocol` stub; size cap).
+**Inventory** — Files: `Network/{HTTPTransport,URLSessionTransport,PollError,RetryPolicy,FixtureTransport,NetworkMonitor}.swift`, `Tests/TokenBeCoreTests/Support/{StubTransport,SeededRNG}.swift`. Settings: `tb.debug.fixtureMode` (DEBUG). Events: `app.network_changed`.
+**Tests:** `PollErrorMappingTests`, `RetryPolicyTests` (table of attempt/error → delay incl. jitter bounds and caps), `URLSessionTransportTests` (headers via a local `URLProtocol` stub; size cap), `FixtureTransportTests` (envelope, routing, `StubTransport`), `NetworkMonitorTests` (transitions → `app.network_changed`).
 **Verify:** tests; `check-no-secrets.sh` URL allowlist passes.
 **Stage DoD:** D1–D3, D9, D11–D12.
 
