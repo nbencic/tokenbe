@@ -1,5 +1,5 @@
 # Postmortem — Stage 2.1 Database, migration 001, Repository
-Date: 2026-11-10 · Branch: s2.1-database · PR: #9 · Planned size: L · Commits: 1
+Date: 2026-11-10 · Branch: s2.1-database · PR: #9 · Planned size: L · Commits: 6
 
 ## Outcome
 TokenBe now keeps its data in `~/Library/Application Support/TokenBe/tokenbe.sqlite` (03).
@@ -48,7 +48,7 @@ DoD D1–D3, D5 (per Q-024), D7 and D9–D11 are met. D12 is met by the PR's gre
 - Verify run 1 and run 2: every 2.1 check and every Core check passed (148 checks). Both runs then stopped at 0.4's `LaunchSmokeTests`: `Timed out while enabling automation mode`. `automationmodetool` reports "This device requires user authentication to enable Automation Mode". Unattended, the macOS password prompt cannot be answered; the earlier stages' UI runs had been authorized interactively. This is an environment fault, not a code one. PM-1.1-2 (`sudo automationmodetool enable-automationmode-without-authentication`) is now needed rather than optional.
 - Verify run 3: (after the owner enables Automation Mode)
 - Full Core suite looped 50 times (PM-1.2-3), after the `db.busy` test was narrowed to the waiting write: 50 of 50 passed.
-- CI: (filled in after the run)
+- CI: PR #9 `build-test` passed on the first run (6 m 56 s): build, tests, coverage gate, lint, event-table check, app build, and the secret guard.
 
 ## Deviations from the docs
 - 03 "migration 001 runs [auto_vacuum] first" → set by the writer connection before GRDB's WAL setup. 03's comment is corrected (Q-024).
