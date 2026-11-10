@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.2 Keychain seam
-Date: 2026-11-10 · Branch: s3.2-keychain · PR: #12 · Planned size: S · Commits: 2
+Date: 2026-11-10 · Branch: s3.2-keychain · PR: #12 · Planned size: S · Commits: 3
 
 ## Outcome
 API keys now have a place to live. Nothing is visible to the user yet.
@@ -25,7 +25,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 2. **Two SwiftLint `large_tuple` violations**, from a four-member tuple binding in `report(_:_:)` and a tuple-typed test table. They became separate `switch` expressions and a small struct. Lint ran standalone before verify (PM-1.3-5), so no verify run was lost.
 
 ## Verify and CI failures
-- Verify run 1: see the PR.
+- Verify run 1: `STAGE 3.2 OK`, 477 checks across stages 0.1–3.2 and D13, the UI suites included. It passed on the first run, under `caffeinate -i -d` (PM-3.1-5).
 - CI: see the PR.
 
 ## Deviations from the docs
