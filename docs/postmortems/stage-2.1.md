@@ -31,7 +31,7 @@ DoD D1–D3, D5 (per Q-024), D7 and D9–D11 are met. D12 is met by the PR's gre
 ## What went as planned
 - The DDL went into 001 by extraction from 03, not by retyping, and `2.1.sh` re-diffs it on every verify. All 14 record types were generated from that same DDL, so no column could be missed or misspelled.
 - The bundled `Migrations` resource ships inside the Xcode-built app without any project change. The first launch's `db.migrate from=0 to=1` proves it.
-- Running the static checks standalone before the full verify (PM-1.3-5) and checking the screen lock first (PM-1.1-1) were followed.
+- These carry-forwards were followed: static checks run standalone before the full verify (PM-1.3-5), the screen lock checked first (PM-1.1-1), and the ≥ 50-run loop (PM-1.2-3).
 
 ## What went wrong
 1. **The fixture builder wrote to the wrong folder on the first run.** `sourceDirectory(file: String = #filePath)` evaluates `#filePath` at the *call site*, MigrationTests.swift, one folder up from where the helper lives. It produced `/Fixtures/db` at the repo root. Fixed by reading `#filePath` inside the function.
@@ -40,10 +40,14 @@ DoD D1–D3, D5 (per Q-024), D7 and D9–D11 are met. D12 is met by the PR's gre
    - GRDB gives pool readers a 10 s busy timeout, where 03 says 5000 ms everywhere.
    - `ISO8601FormatStyle` truncates the binary fraction, so `.123` printed as `.122`: a read-then-write drift. Both are fixed in the source, not the test (Q-024).
 4. **The first `DatabaseOpenError` in the app log read "error 1".** `LogError` uses `localizedDescription`. The type is now a `LocalizedError`, and a test asserts the logged description names the migration.
-5. **The fatal alert could not be screenshotted** (no screen-capture permission in this session). Its path was exercised by hand: the failing step logged `app.launch` at error with the `database` step, and the app stayed up showing a modal. Its appearance is not machine-verified.
+5. **The repair alert first ran inside startup step 2,** where its modal would have held up the later steps and any automated launch that hit recovery. It now shows after the sequence has finished.
+6. **The `db.busy` test asserted that only one write waited.** Under parallel load the holding write can wait more than 100 ms too, so the test now asserts only the waiting write's record.
+7. **The fatal alert could not be screenshotted** (no screen-capture permission in this session). Its path was exercised by hand: the failing step logged `app.launch` at error with the `database` step, and the app stayed up showing a modal. Its appearance is not machine-verified.
 
 ## Verify and CI failures
-- Verify: (filled in after the run)
+- Verify run 1 and run 2: every 2.1 check and every Core check passed (148 checks). Both runs then stopped at 0.4's `LaunchSmokeTests`: `Timed out while enabling automation mode`. `automationmodetool` reports "This device requires user authentication to enable Automation Mode". Unattended, the macOS password prompt cannot be answered; the earlier stages' UI runs had been authorized interactively. This is an environment fault, not a code one. PM-1.1-2 (`sudo automationmodetool enable-automationmode-without-authentication`) is now needed rather than optional.
+- Verify run 3: (after the owner enables Automation Mode)
+- Full Core suite looped 50 times (PM-1.2-3), after the `db.busy` test was narrowed to the waiting write: 50 of 50 passed.
 - CI: (filled in after the run)
 
 ## Deviations from the docs
@@ -51,6 +55,11 @@ DoD D1–D3, D5 (per Q-024), D7 and D9–D11 are met. D12 is met by the PR's gre
 - 14 step 5: only the account and maintenance methods implemented now are declared; `observeSummaryInputs` moves to 2.2. 14 is reworded (Q-024).
 - 14 inventory `Tests/Support/FixtureDBBuilder.swift` → `Tests/TokenBeCoreTests/Support/`, the SwiftPM test target. 14 is corrected.
 - 08 has no copy for the fatal and repair alerts; the strings are logged in Q-024.
+- Changed outside the inventory, all required by its steps:
+  - `Package.swift`: GRDB added to the test target, for the fixture builder and the record tests.
+  - `scripts/verify-stage.sh`: the snapshot of the owner's real support folder, shared like `real_tb_unchanged`.
+  - `Startup.swift`, `AppDelegate.swift`, `AppEnvironment.swift` and `Strings.swift`: step 7's wiring and D8's copy.
+  - `StartupSequenceTests`: D7's step list.
 
 ## Judgment calls
 All are in Q-024:
@@ -69,4 +78,5 @@ All are in Q-024:
 - PM-2.1-1 · agent · process · A helper that defaults to `#filePath` or `#file` resolves at the caller. Read it inside the function when the helper's own location matters.
 - PM-2.1-2 · agent · process · Tests never log through the process-wide `Log`. Every Core API that logs takes a `logPipeline:`, and tests pass one.
 - PM-2.1-3 · agent · 2.2 · Declare `observeSummaryInputs` with `SummaryInputs`; `AppModel` reads the repository from `AppEnvironment.repository`.
+- PM-2.1-5 · owner · now · Run `sudo automationmodetool enable-automationmode-without-authentication` once (replaces the optional PM-1.1-2). Unattended UI tests cannot start without it.
 - PM-2.1-4 · agent · 9.x · The weekly `integrity_check` decides whether a failure forces a restore on the next launch (Q-024). Closing the pool at quit, and the idle `wal_checkpoint(TRUNCATE)` / `optimize` of 03, are still open.
