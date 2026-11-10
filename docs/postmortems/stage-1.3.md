@@ -1,5 +1,5 @@
 # Postmortem — Stage 1.3 Settings window: General, Privacy (static), Advanced (logging)
-Date: 2026-11-10 · Branch: s1.3-settings-window · PR: #8 · Planned size: M · Commits: {{COMMITS}}
+Date: 2026-11-10 · Branch: s1.3-settings-window · PR: #8 · Planned size: M · Commits: 4
 
 ## Outcome
 TokenBe now has its Settings window:
@@ -72,8 +72,8 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by the PR's green CI; D13 is me
   - run 10: green with the live log-level check.
 - `lint` run 1: item 4 (3 violations). Run 2: clean.
 - Full-suite loop 1: 1 of 60 failed (item 5). Loop 2: 0 of 60.
-- `verify-stage.sh 1.3` run 1: 267 checks passed, then `FAIL 1.3 no global event monitor (09)` (item 6). Run 2: {{VERIFY}}.
-- CI on the PR: {{CI}}.
+- `verify-stage.sh 1.3` run 1: 267 checks passed, then `FAIL 1.3 no global event monitor (09)` (item 6). Run 2: `STAGE 1.3 OK`, 307 checks.
+- CI on PR #8: green on every push (first run 42728122388, build-test 5 min 56 s); the postmortem commit re-ran it.
 
 ## Deviations from the docs
 - **09 `tb.ui.shortcut`:** the hotkey toggles the Dashboard, not the popover (Q-023). 09's row and 14's Stage 1.3 test line were corrected in this PR (12 R1.2).
