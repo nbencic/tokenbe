@@ -39,6 +39,7 @@ Date: 2026-11-10 · Stages: 2.1 (#9), 2.2 (#10)
 ## Open carry-forward actions
 - PM-2.2-1 · agent · process · UI tests leave AppKit/SwiftUI state as they found it, or set it explicitly.
 - PM-2.2-2 · agent · process · Assert UI-test writes inside the test, from the app's log in its root.
+- PM-2.2-4 · agent · process · Check 08 § Formatting rules before formatting any user-visible value.
 - PM-2.2-3 · agent · 4.1–5.3 · Grow `SummaryInputs` per stage, with an observation test per added table.
 - PM-2.1-1, PM-2.1-2 · agent · process · `#filePath` defaults resolve at the caller; tests never log through the process-wide `Log`.
 - PM-2.1-4 · agent · 9.x · Weekly integrity restore policy; closing the pool at quit; idle checkpoint and `optimize`.
