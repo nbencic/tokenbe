@@ -2,7 +2,7 @@
 
 Framework: Swift Testing (`import Testing`) for Core; XCTest/XCUITest for the `TokenBeUITests` target. **No pixel snapshots** (D-no-pixel-snapshots): UI state is asserted through accessibility identifiers and texts. All tests run offline; the network is never touched in `swift test` (a `URLProtocol` stub asserts zero real requests and fails the suite otherwise).
 
-Fixture naming: `<endpoint>.<case>.recorded.json` = captured from the live API by `scripts/record-fixtures.sh` (redacted); `<endpoint>.<case>.synthetic.json` = authored from `02` field lists for development and for error cases that cannot be recorded (429, 5xx). A provider is **verified** only when `Tests/Fixtures/providers/<p>/RECORDED` exists (`VerifiedProvidersTests`).
+Fixture naming: `<endpoint>.<case>.recorded.json` = captured from the live API by `scripts/record-fixtures.sh` (redacted); `<endpoint>.<case>.synthetic.json` = authored from `02` field lists for development and for error cases that cannot be recorded (429, 5xx). A provider is **verified** only when `Tests/Fixtures/providers/<p>/RECORDED` exists (`VerifiedProvidersTests`); the marker's first line is the recording date, `YYYY-MM-DD`.
 
 ## Fixtures (`Tests/Fixtures/`)
 

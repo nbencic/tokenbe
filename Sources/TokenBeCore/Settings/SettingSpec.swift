@@ -1,10 +1,5 @@
 import Foundation
 
-/// Provider identifiers (03 `account.provider` CHECK). Declared here for templated keys; adapters arrive in Phase 3.
-public enum ProviderID: String, CaseIterable, Sendable {
-  case openai, anthropic, openrouter, deepseek, xai
-}
-
 /// Type, default, validation rule and tab of one setting (09).
 public struct SettingSpec: Sendable {
   public enum Tab: String, Sendable {

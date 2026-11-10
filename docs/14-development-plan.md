@@ -359,15 +359,15 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Goal:** `ProviderAdapter`, `Capabilities`, probe result model, verified-provider gating. **Depends on:** 3.2. **Adds:** nothing visible. **Size:** M.
 
 **Steps**
-1. `Providers/ProviderID.swift` (moved from 0.3 if needed; 5 cases; display name, glyph name, key prefix regexes from `02`, onboarding caption strings keys).
+1. `Providers/ProviderID.swift` (moved from 0.3; 5 cases; display name, key prefixes from `02` — OpenAI and Anthropic only, 02 names none for the others; the glyph and the onboarding captions join the UI that draws them, 3.5/4.2; Q-028).
 2. `Providers/Capabilities.swift` (`usage, cost, balance, perKeyUsage, keyNames, balanceModeDefault, usageLag: Duration, currencyHint`), `Codable` (stored as `account.capabilities` JSON).
 3. `Providers/ProviderAdapter.swift`: `probe(key) async -> ProbeResult`, `pollUsage(ctx) async throws -> UsagePage…`, `pollCost`, `pollBalance`, `pollKeys`; `PollContext {accountID, key, cursor, window, transport, clock}`. `ProbeResult {capabilities, humanMessage?, discoveredKeys, orgID?, orgName?, currency, rawBodiesRedacted}`.
 4. `Providers/ProviderRegistry.swift`: `adapters: [ProviderID: any ProviderAdapter]`, `verified: Set<ProviderID>` read from `Providers/Verified.swift` (`static let verified: Set<ProviderID> = []` initially), `availableForOnboarding` = `verified` in Release, all in DEBUG.
 5. `VerifiedProvidersTests`: for every member of `verified`, `Tests/Fixtures/providers/<p>/RECORDED` must exist and contain a date; for every provider with a `RECORDED` marker, it must be in `verified` (both directions).
-6. `scripts/record-fixtures.sh <provider>`: curls each endpoint of `02` for that provider with the env key, redacts with the 7 patterns + `org_fixture`/`proj_fixture` substitutions, writes `*.recorded.json`, writes `RECORDED` with the date, and runs `--verify-redacted` (greps the output for key patterns). Human-run only.
+6. `scripts/record-fixtures.sh <provider>`: curls each endpoint of `02` for that provider with the env key (sent to curl on stdin, never argv), redacts as 11 § Fixtures says (keys → `sk-FIXTURE-<provider>-<last4>`, 07's header patterns, `org_fixture`/`proj_fixture`), writes `*.recorded.json` in 11's envelope keeping only `Content-Type` and `Retry-After`, writes `RECORDED` with the date (`YYYY-MM-DD`), and runs `--verify-redacted` (`check-no-secrets.sh --root`). Human-run only (Q-028).
 
 **Inventory** — Files: `Providers/{ProviderID,Capabilities,ProviderAdapter,ProviderRegistry,Verified}.swift`, `scripts/record-fixtures.sh`. Events: none new.
-**Tests:** `VerifiedProvidersTests`, `ProviderIDTests` (prefix validation table from `02`).
+**Tests:** `VerifiedProvidersTests`, `ProviderIDTests` (prefix validation table from `02`), `CapabilitiesTests` (pinned JSON shape), `ProviderRegistryTests` (onboarding availability).
 **Verify:** tests; `scripts/record-fixtures.sh --self-test` (runs the redactor over a canned body with fake keys).
 **Stage DoD:** D1–D3, D9, D11–D12.
 

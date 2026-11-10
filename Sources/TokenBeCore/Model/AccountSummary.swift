@@ -1,7 +1,7 @@
 import Foundation
 
 /// How an account's remaining amount is known (03 `account.balance_mode`).
-public enum BalanceMode: String, CaseIterable, Sendable {
+public enum BalanceMode: String, CaseIterable, Sendable, Codable {
   case direct
   case anchored
   case spendOnly = "spend_only"

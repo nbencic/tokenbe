@@ -253,3 +253,23 @@ Also decided in 3.2, not blocking:
 - `keychain.*` records carry `acct` = the keychain ref (the provider, per SEC-2) and `osstatus`, never the secret.
 - `InMemoryKeyStore` lives in `Tests/TokenBeCoreTests/Support/`, the SwiftPM test target, like Q-024's path fix.
 Blocking: yes (answered by the owner 2026-11-10: A)
+
+## Q-028 Provider seam: key prefixes, glyphs, Capabilities JSON, onboarding set, the recorder            (2026-11-10)
+Context: Stage 3.3 (`Sources/TokenBeCore/Providers/*`, `scripts/record-fixtures.sh`).
+Decisions:
+- **Key prefixes.** 02 names a key prefix for OpenAI (`sk-admin-`) and Anthropic (`sk-ant-admin01-`) only. OpenRouter's Management key, DeepSeek's and xAI's standard keys have none in 02. 07's redaction patterns are not a validation spec (R2), so for these the probe is the only check. `checkKey` trims whitespace and newlines from the paste, then returns `plausible`, `empty` or `wrongPrefix(expected:)`. The UI turns these into 08's copy in 3.5.
+- **Prefixes joined at run time.** As literals, Swift stores these short strings inline in the instructions, side by side, and the build-product scan of `check-no-secrets.sh` then reads `sk-admin…sk-ant-a…` as one key-shaped run. The prefixes are built with `joined(separator: "-")` instead of weakening the guard.
+- **Glyph and captions.** 14 step 1 listed a "glyph name" and "onboarding caption strings keys". 08 names no glyph assets, and Paper owns the visuals. The glyph is added with the first view that draws it (3.5/4.2), from Paper, and the captions with onboarding (3.5). Nothing inert is added now. 14 is reworded.
+- **`Capabilities` JSON** (stored in `account.capabilities`, 03): `CodingKeys` pin snake_case names (`per_key_usage`, `key_names`, `balance_mode_default`, `usage_lag_s`, `currency_hint`). `usageLag` is stored as whole seconds; `Duration`'s own `Codable` writes an opaque two-integer array. Keys are sorted, so equal values store equal text. Decoding is strict: a missing field or an unknown mode fails. The 2.1 fixture DB stored a placeholder `{"usage",…,"keys"}` shape. It was regenerated with the real one (OpenAI's 02 row), and `corrupt.sqlite` is still its first 4 KiB.
+- **Onboarding availability.** `available(isDebug:verified:adapters:)` keeps only providers with a registered adapter in both configurations. DEBUG's "all" would otherwise offer inert tiles (D6). Release keeps only `verified` (R13), in 08's tile order.
+- **Unsupported polls.** `ProviderAdapter` gives default `pollUsage`/`pollCost`/`pollBalance`/`pollKeys` that throw `providerRule("<provider>_no_<job>_api")`, matching 07's `poll.provider_rule` examples (`deepseek_no_usage_api`). The scheduler runs only the jobs `Capabilities` allows. Result types wrap 2.1's record types, plus `DiscoveredKey`, because a probe has no `account_id` yet.
+- **The recorder.**
+  - Redaction follows 11 (`sk-FIXTURE-<provider>-<last4>`, `org_fixture`, `proj_fixture`). 14 said "the 7 patterns", but `check-no-secrets.sh` accepts exactly 11's form. 07's header patterns and the exact live key are applied too.
+  - Only `Content-Type` and `Retry-After` are kept from the response headers. Raw headers carry cookies and org ids.
+  - The key is read from the environment only, never from `.env`, and goes to curl on stdin (`--config -`), so it never shows in `ps`.
+  - Each call writes `<endpoint>.ok.recorded.json` for 2xx, else `<endpoint>.<status>.recorded.json`. Only the first page is recorded.
+  - Endpoint names follow 11 where 11 names them. Anthropic's `/v1/organizations/me` is `organization`, and its workspaces call is `workspaces`.
+  - Key variables: `OPENAI_ADMIN_KEY`, `ANTHROPIC_ADMIN_KEY`, `OPENROUTER_MANAGEMENT_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY` (extends Q-002's names).
+  - `--verify-redacted` delegates to `check-no-secrets.sh --root`, so there is one regex source. `--self-test` is offline. It redacts a canned body with random fake keys, checks the envelope, and checks that the guard still catches the unredacted body.
+- **3.1's fixture check.** `3.1.sh` asserted that no `Tests/Fixtures/providers` file is committed, a rule premised on the recorder not existing. Now the recorder exists, so the check is `record-fixtures.sh --verify-redacted` over `Tests/Fixtures`. 3.4's synthetic fixtures need this.
+Blocking: no
