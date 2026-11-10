@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.1 Network seam, error taxonomy, retry policy
-Date: 2026-11-10 · Branch: s3.1-network · PR: #11 · Planned size: M · Commits: 2
+Date: 2026-11-10 · Branch: s3.1-network · PR: #11 · Planned size: M · Commits: 3
 
 ## Outcome
 Every HTTP request of TokenBe now has one way out, and every failure has one name. Nothing is visible to the user yet.
@@ -45,11 +45,11 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
    - One short identifier.
 
    Lint ran standalone before verify (PM-1.3-5), so it cost no verify run.
-3. **Verify run 1 stopped at 0.4's UI tests: `Timed out while enabling automation mode`.** The screen had locked during the run (`IOConsoleLocked` was `true` at the failure). It was unlocked when the run started. Every 3.1 check passed when run standalone. The full verify was re-run once the console was unlocked.
+3. **Verify run 1 stopped at 0.4's UI tests: `Timed out while enabling automation mode`.** The screen had locked during the run (`IOConsoleLocked` was `true` at the failure). It was unlocked when the run started. Every 3.1 check passed when run standalone. The full verify was re-run once the console was unlocked. A run that keeps only the system awake (`caffeinate -i`) does not stop the display from sleeping and the screen from locking. Verify now uses `caffeinate -d` too (PM-3.1-5).
 
 ## Verify and CI failures
 - Verify run 1: 148 checks passed through stage 0.4's builds. Then `UI tests (LaunchSmokeTests)` failed: the runner could not enable automation mode because the screen was locked (item 3). The 3.1 checks run standalone (static checks and the five suites) all passed.
-- Verify run 2, after unlock: see the PR.
+- Verify run 2, after the owner unlocked the screen (about 8 min later; a watcher started the run on unlock and kept the display awake with `caffeinate -d`): `STAGE 3.1 OK`, 454 checks across stages 0.1–3.1 and D13, the UI suites included.
 - CI: see the PR.
 
 ## Deviations from the docs
@@ -76,4 +76,5 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - PM-3.1-2 · agent · 3.6 · `scripts/record-fixtures.sh` writes each response in the `{status, headers, body}` envelope of 11 § Fixtures (Q-026), so recorded files load through `FixtureEnvelope`.
 - PM-3.1-3 · agent · 3.3/3.4 · Wire `Transports.make(fixtureMode: settings.debugFixtureMode, version:)` into `AppEnvironment` with the first adapter, and add each adapter's routes to `FixtureTransport.knownRoutes`.
 - PM-3.1-4 · agent · 4.1 · `ManualNetworkMonitor` and the `NWPathMonitorAdapter` wiring, with `sched.skip reason=offline`.
+- PM-3.1-5 · agent · process · Run verify under `caffeinate -i -d`, keeping the display awake as well. `-i` alone let the screen lock mid-run and cost one verify run.
 - Earlier actions targeting 3.1: none. Phase 2's risk notes are addressed: the host allowlist passes, and no provider is called during `swift test`. The second is guarded per test now; the suite-wide guard is PM-3.1-1.
