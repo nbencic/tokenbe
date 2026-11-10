@@ -36,8 +36,8 @@ final class PopoverEmptyStateUITests: XCTestCase {
     XCTAssertEqual(text(app.staticTexts["popover.header.title"]), "TokenBe")
     XCTAssertTrue(app.buttons["popover.footer.quit"].exists)
     XCTAssertEqual(app.buttons["popover.footer.quit"].label, "Quit")
-    XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label == %@", "Add account…")).firstMatch.exists,
-                   "Add account… arrives with onboarding in 3.5")
+    XCTAssertEqual(app.buttons["popover.empty.addAccount"].label, "Add account\u{2026}",
+                   "Add account… opens onboarding (3.5; covered by OnboardingUITests)")
 
     // Close and reopen: each opening is a popover session.
     app.typeKey(.escape, modifierFlags: [])

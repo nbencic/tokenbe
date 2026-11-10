@@ -58,9 +58,10 @@ final class OnboardingUITests: XCTestCase {
   @MainActor
   private func onboard(_ app: XCUIApplication) throws {
     XCTAssertTrue(control(app, "onboarding.root").waitForExistence(timeout: 15), "onboarding opens at launch")
-    let tile = control(app, "onboarding.provider.openai")
-    XCTAssertTrue(tile.label.contains("Admin key required"), "08's caption: \(tile.label)")
-    tile.click()
+    // Fresh queries for each use: the tiles redraw once the account list arrives at launch.
+    let caption = control(app, "onboarding.provider.openai").label
+    XCTAssertTrue(caption.contains("Admin key required"), "08's caption: \(caption)")
+    control(app, "onboarding.provider.openai").click()
     control(app, "onboarding.continue").click()
     let field = control(app, "onboarding.key")
     XCTAssertTrue(field.waitForExistence(timeout: 5), "step 2 shows the key field")

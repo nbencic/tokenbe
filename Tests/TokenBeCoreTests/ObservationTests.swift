@@ -91,6 +91,27 @@ actor StreamRecorder<Value: Sendable> {
     await recorder.cancel()
   }
 
+  @Test("a poll_state success alone yields new inputs with that job's last_success_at (3.5, PM-2.2-3)")
+  func pollStateFreshness() async throws {
+    let harness = try StoreHarness()
+    let database = try await harness.open().database
+    let repository = GRDBRepository(database: database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("four never-polled jobs") {
+      await recorder.last?.pollStates.map(\.job) == ["balance", "cost", "keys", "usage"]
+    }
+    #expect(await recorder.last?.pollStates.allSatisfy { $0.lastSuccessAt == nil } == true)
+    try await repository.recordPollSuccess(accountID: openai.id, job: .usage,
+                                           at: Date(timeIntervalSince1970: 1_794_312_000), lastRaw: nil)
+    await eventually("the usage success") {
+      await recorder.last?.pollStates.first { $0.job == "usage" }?.lastSuccessAt == "2026-11-10T12:00:00.000Z"
+    }
+    #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
+    await recorder.cancel()
+  }
+
   @Test("a read failure logs ui.error and ends the stream; cancelling logs nothing")
   func failureAndCancel() async throws {
     let harness = try StoreHarness()
