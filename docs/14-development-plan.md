@@ -347,11 +347,11 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 **Steps**
 1. `Keychain/KeyStore.swift` protocol: `get(ref) throws -> String?`, `set(ref, secret) throws`, `delete(ref) throws`.
-2. `Keychain/KeychainKeyStore.swift`: `kSecClassGenericPassword`, service `dev.bathyon.tokenbe`, account = `keychain_ref`, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, `kSecAttrSynchronizable = false`, `kSecUseDataProtectionKeychain = true`; every `OSStatus ≠ errSecSuccess/errSecItemNotFound` → `keychain.read_failed` / `write_failed` / `delete_failed`; `errSecInteractionNotAllowed`/`errSecAuthFailed` → `keychain.access_denied` (fault).
+2. `Keychain/KeychainKeyStore.swift`: `kSecClassGenericPassword`, service `dev.bathyon.tokenbe`, account = `keychain_ref`, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, `kSecAttrSynchronizable = false`, on the login keychain (`kSecUseDataProtectionKeychain = false`: the data-protection keychain needs a provisioning-profile entitlement that ad-hoc-signed builds cannot have; owner's decision, Q-027); every `OSStatus ≠ errSecSuccess/errSecItemNotFound` → `keychain.read_failed` / `write_failed` / `delete_failed`; `errSecInteractionNotAllowed`/`errSecAuthFailed` → `keychain.access_denied` (fault).
 3. Usage contract: callers `register` the secret with `Redactor` for the duration of the request and `unregister` after (`defer`).
 
-**Inventory** — Files: `Keychain/{KeyStore,KeychainKeyStore}.swift`, `Tests/Support/InMemoryKeyStore.swift`. Events: `keychain.read_failed`, `keychain.write_failed`, `keychain.delete_failed`, `keychain.access_denied`, `keychain.missing` (emitted by 3.5 startup step 3).
-**Tests:** `KeyStoreTests` — unit tests on `InMemoryKeyStore`; one integration test `KeychainKeyStoreIntegrationTests` tagged `.keychainIntegration` using service `dev.bathyon.tokenbe.test` (write/read/overwrite/delete; attribute assertions via `SecItemCopyMatching` with `kSecReturnAttributes`), skipped when the keychain is locked (`errSecInteractionNotAllowed`).
+**Inventory** — Files: `Keychain/{KeyStore,KeychainKeyStore}.swift`, `Tests/TokenBeCoreTests/Support/InMemoryKeyStore.swift`. Events: `keychain.read_failed`, `keychain.write_failed`, `keychain.delete_failed`, `keychain.access_denied`, `keychain.missing` (emitted by 3.5 startup step 3).
+**Tests:** `KeyStoreTests` — unit tests on `InMemoryKeyStore`; one integration test `KeychainKeyStoreIntegrationTests` tagged `.keychainIntegration` using service `dev.bathyon.tokenbe.test` (write/read/overwrite/delete; attribute assertions via `SecItemCopyMatching` with `kSecReturnAttributes`: class, service, account, and no synchronizable copy, as far as the login keychain reports them, Q-027), skipped when the keychain cannot be written without interaction (locked or headless).
 **Verify:** tests.
 **Stage DoD:** D1–D3, D9, D11–D12.
 
