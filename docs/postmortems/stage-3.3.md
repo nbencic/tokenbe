@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.3 Provider seam & registry
-Date: 2026-11-10 · Branch: s3.3-provider-seam · PR: #13 · Planned size: M · Commits: 3
+Date: 2026-11-10 · Branch: s3.3-provider-seam · PR: #13 · Planned size: M · Commits: 4
 
 ## Outcome
 The provider layer now has its shape. Nothing is visible to the user yet.
@@ -32,7 +32,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 
 ## Verify and CI failures
 - Verify run 1: `STAGE 3.3 OK`, 520 checks across stages 0.1–3.3 and D13, the UI suites included. It passed on the first run. The Debug app's build products also passed `check-no-secrets.sh` with the run-time-joined prefixes.
-- CI: see the PR.
+- CI: PR #13 `build-test` passed on the first run (7 m 7 s): build, tests, coverage gate, lint, event-table check, app build and the secret guard over the Release products.
 
 ## Deviations from the docs
 - 14 § Stage 3.3 step 1: no glyph name and no caption keys yet. 08 names no glyph assets, Paper owns the visuals, and both arrive with the UI that uses them (Q-028). 14 is reworded.
