@@ -36,7 +36,8 @@ for evt in dbOpen dbMigrate dbMigrateFailed dbQuickCheck dbIntegrityCheck dbInte
   check "event .$evt emitted by Store" grep -rqF ".$evt" $store
 done
 check "check-log-events.sh" scripts/check-log-events.sh
-check "startup step 2 is the database, before the login item" grep -qzE 'StartupStep\("logging"\)[^\n]*\n[^\n]*StartupStep\("database"\)' Sources/TokenBeApp/Startup.swift
+declared_steps() { grep -oE 'StartupStep\("[a-z ]+"\)' Sources/TokenBeApp/Startup.swift | cut -d'"' -f2 | paste -sd, -; }
+check "startup step 2 is the database (04), then the login item" test "$(declared_steps)" = "logging,database,login item"
 check "fatal alert on database failure, then terminate" grep -qF 'FatalErrorAlert.show(databaseFailure)' Sources/TokenBeApp/Startup.swift
 
 for suite in MigrationTests DurabilityTests FixtureDBTests RepositoryAccountTests RecordRoundTripTests StartupSequenceTests; do
