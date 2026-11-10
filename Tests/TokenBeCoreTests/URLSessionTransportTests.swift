@@ -174,23 +174,31 @@ final class StubURLProtocol: URLProtocol {
     #expect(production.session.configuration.protocolClasses?.contains { $0 == StubURLProtocol.self } != true)
   }
 
-  @Test("in a test process the app's transport cannot reach the network (11, R13; PM-3.1-1)")
+  @Test("in a test process the app's transport cannot reach the network (11, R13; PM-3.1-1, PM-3.4-9)")
   func noRealRequests() async throws {
-    #expect(NoNetworkInTests.isActive)
+    // Stop before sending if the guard is off, and never aim at a provider: `.invalid` cannot resolve (RFC 2606).
+    try #require(NoNetworkInTests.isActive, "the guard must be on in every test process")
+    let url = try #require(URL(string: "https://guard.invalid/v1/organization/projects"))
     let before = NoNetworkInTests.blocked
     let transport = URLSessionTransport(version: "test")
-    let url = try #require(URL(string: "https://api.openai.com/v1/organization/projects"))
     do {
       _ = try await transport.send(HTTPRequest(url: url))
-      Issue.record("a real request went through")
+      Issue.record("a request went through")
     } catch {
       guard case .urlError(let urlError) = error else { Issue.record("unexpected \(error)"); return }
       #expect(urlError.code == .notConnectedToInternet)
     }
+    // Counted by the guard: a DNS failure for `.invalid` would not be.
     #expect(NoNetworkInTests.blocked == before + 1)
-    // The factory's network transport is guarded the same way.
     let made = Transports.make(fixtureMode: false, version: "test")
     await #expect(throws: TransportError.self) { try await made.send(HTTPRequest(url: url)) }
     #expect(NoNetworkInTests.blocked == before + 2)
+  }
+
+  @Test("the guard keys on the main bundle: on in a tool, off in an .app")
+  func guardDetection() {
+    #expect(NoNetworkInTests.isTestProcess(mainBundle: URL(fileURLWithPath: "/usr/bin/swiftpm-testing-helper")))
+    #expect(NoNetworkInTests.isTestProcess(mainBundle: URL(fileURLWithPath: "/tmp/TokenBePackageTests.xctest")))
+    #expect(!NoNetworkInTests.isTestProcess(mainBundle: URL(fileURLWithPath: "/Applications/TokenBe.app")))
   }
 }

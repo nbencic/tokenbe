@@ -12,14 +12,22 @@ final class NoNetworkInTests: URLProtocol {
   /// Requests refused so far in this process.
   static var blocked: Int { count.load(ordering: .relaxed) }
 
-  /// True in a DEBUG build running under XCTest or Swift Testing (both load XCTest on macOS); never in the app.
+  /// True in a DEBUG build whose main bundle is not an `.app`: `swift test` runs inside a tool
+  /// (`swiftpm-testing-helper` or `xctest`), never inside `TokenBe.app`. The runner is not detected by name or by
+  /// XCTest being loaded: CI's Swift Testing runner does not load XCTest, and a guard that keyed on it let two
+  /// requests reach the network there (PM-3.4-9). The DEBUG app, under UI tests too, keeps the network.
+  /// Release builds never block.
   static let isActive: Bool = {
     #if DEBUG
-    return NSClassFromString("XCTestCase") != nil
+    return isTestProcess(mainBundle: Bundle.main.bundleURL)
     #else
     return false
     #endif
   }()
+
+  static func isTestProcess(mainBundle: URL) -> Bool {
+    mainBundle.pathExtension != "app"
+  }
 
   override static func canInit(with request: URLRequest) -> Bool { true }
 

@@ -75,6 +75,8 @@ check "Repository includes providerKeys, usage, cost and poll" grep -qxF '  & Pr
 
 # PM-3.1-1: no real request leaves a test process. PM-3.3-2: adapter, routes and transport wired into the app.
 check "URLSessionTransport installs the test guard" grep -qF 'NoNetworkInTests.isActive' Sources/TokenBeCore/Network/URLSessionTransport.swift
+check "the guard keys on the main bundle, not on XCTest (PM-3.4-9)" grep -qF 'isTestProcess(mainBundle: Bundle.main.bundleURL)' Sources/TokenBeCore/Network/NoNetworkInTests.swift
+check "the guard test never aims at a provider host (PM-3.4-9)" bash -c "grep -A6 'func noRealRequests' Tests/TokenBeCoreTests/URLSessionTransportTests.swift | grep -qF 'https://guard.invalid/' && ! grep -A25 'func noRealRequests' Tests/TokenBeCoreTests/URLSessionTransportTests.swift | grep -qE 'api\.(openai|anthropic)\.com'"
 check "the guard is DEBUG-only" bash -c "grep -A3 'static let isActive' Sources/TokenBeCore/Network/NoNetworkInTests.swift | grep -qF '#if DEBUG'"
 check "FixtureTransport routes OpenAI" grep -qF 'knownRoutes: [Route] = OpenAIAdapter.fixtureRoutes' Sources/TokenBeCore/Network/FixtureTransport.swift
 check "AppEnvironment gets Transports.make(fixtureMode: settings)" grep -qF 'fixtureMode: current.debugFixtureMode' Sources/TokenBeApp/Startup.swift

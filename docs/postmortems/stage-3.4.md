@@ -25,7 +25,7 @@ Every OpenAI endpoint in 02 is decoded, normalized and written to the database. 
   - `AppEnvironment` holds `Transports.make(fixtureMode: settings.debugFixtureMode, …)` and a `ProviderRegistry` with the OpenAI adapter.
   - `FixtureTransport` serves the OpenAI routes, with `page=<cursor>` selecting a later page.
 - **No real network in tests (PM-3.1-1).** In a test process, a `URLSessionTransport` built without stub protocols fails every request at once. A test proves this on the production initializer.
-- **Verification.** 222 Core tests in 43 suites pass, 42 tests more than 3.3. New suites: OpenAITests, OpenAIProbeTests, NormalizerTests, PollStateTests and PollerTests. Core line coverage is 93.7 %.
+- **Verification.** 223 Core tests in 43 suites pass, 43 tests more than 3.3. New suites: OpenAITests, OpenAIProbeTests, NormalizerTests, PollStateTests and PollerTests. Core line coverage is 93.7 %.
 
 DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 
@@ -52,8 +52,9 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
    - one-letter test names.
 
    The fixes: top-level DTO types, `CircuitRule` and `Poller.Run` parameter structs, the response type inferred from the call site, a `CostGroup` struct, and the probe split into `OpenAIProbe` with a `scope` helper. Cost: one rebuild and one re-lint. Lint had not run on any slice before the tests were written, which is why the findings piled up.
-3. **Mixed failure classes could open the circuit.** `consecutive_failures` counted every class, so `500, 500, 401` opened the 24 h circuit, but 04 requires 3 consecutive **auth** failures. The final review before merge caught it; no test or check did, because `PollStateTests.circuit` only covered all-server and all-auth runs. Fix: a change of class restarts the streak at 1 (Q-029). A table test covers `500,500,401`, `401,500,401,401`, `401,401,401` and `500,401,401,401`. Cost: one fix, plus a re-verify and a re-run of CI.
-4. **Redundant protocol conformances.** The four new repository extensions declared their protocol again, which `Repository` already includes. The build rejected them, as in 2.2. Cost: one rebuild.
+3. **The no-network guard was off on CI, and two requests reached `api.openai.com`.** The guard was keyed on a property of the local runner, and the guard test aimed at a real provider URL. Either choice alone would have been harmless; together, a guard failure became a real request. See CI run 2 under Verify and CI failures, and PM-3.4-9.
+4. **Mixed failure classes could open the circuit.** `consecutive_failures` counted every class, so `500, 500, 401` opened the 24 h circuit, but 04 requires 3 consecutive **auth** failures. The final review before merge caught it; no test or check did, because `PollStateTests.circuit` only covered all-server and all-auth runs. Fix: a change of class restarts the streak at 1 (Q-029). A table test covers `500,500,401`, `401,500,401,401`, `401,401,401` and `500,401,401,401`. Cost: one fix, plus a re-verify and a re-run of CI.
+5. **Redundant protocol conformances.** The four new repository extensions declared their protocol again, which `Repository` already includes. The build rejected them, as in 2.2. Cost: one rebuild.
 
 ## Verify and CI failures
 - Verify run 1: FAIL at `3.2 KeychainKeyStoreIntegrationTests ran (not skipped)`, after 460 checks. The suite had run. `3.2.sh` looked for `<skipped` in the two lines after the test case, and this run's parallel order put `FixtureDBTests.regenerate()` there, which is skipped by design. The check now asserts that the test case's element is self-closing, so it has no `<skipped/>` or `<failure>` child (PM-3.4-6). No product code changed.
@@ -63,8 +64,17 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
   - `DashboardShellUITests` passed, including its own relaunch check that `30 d` persisted. Afterwards, though, the UI-test suite held `7d`. No UI test clicks `7 d` after that test.
   - The UI test order and steps matched runs 1 and 2, which passed this check. This stage changed no Dashboard or Settings code, so a later test's Dashboard toggle (`SettingsGeneralUITests`, ⌃⌥K/⌃⌥T) most likely races the range binding now and then.
   - Re-run unchanged; carried as PM-3.4-8.
-- Verify run 4: RESULT_VERIFY3.
-- CI run 2: RESULT_CI2.
+- Verify run 4 (on ad6f9ad): stopped before the end, when CI run 2 failed. The verify runs before it never reached a real host: locally, `swift test` loads XCTest, so the guard was on.
+- CI run 2 (PR #14, head ad6f9ad): `build-test` failed in `Test TokenBeCore`. **On the CI runner the no-network guard was off.** That runner does not load XCTest, and `isActive` keyed on `XCTestCase`. The guard's own test then sent two real requests to `https://api.openai.com/v1/organization/projects`, one from the production initializer and one from `Transports.make(fixtureMode: false)`, and both got HTTP 401.
+  - No key was involved: the request had no `Authorization` header, and no secret exists in CI. Still, it broke R13 ("never call a provider API during `swift test`").
+  - Fixes:
+    - the guard is on in every DEBUG process whose main bundle is not an `.app` (`isTestProcess`, with its own test);
+    - the guard test stops at `#require(isActive)` before sending;
+    - it aims at `https://guard.invalid/…`, so a failed guard can never reach a provider again;
+    - it checks the guard's counter, which a DNS failure would not move.
+  - `3.4.sh` checks that the guard test aims at `.invalid` (PM-3.4-9).
+- Verify run 5: RESULT_VERIFY5.
+- CI run 3: RESULT_CI3.
 
 ## Deviations from the docs
 - 14 step 1, 11 § Fixtures: the error fixtures are `projects.401`, `costs.403`, `usage_completions.429` and `usage_completions.500`, not `auth.401` and the rest. Page 2 is `usage_completions.page2`. `FixtureTransport` can only serve `<endpoint>.<case>` names (Q-029). 14 and 11 are reworded.
@@ -106,6 +116,7 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - PM-3.4-5 · agent · process · Run `swiftlint --strict` after each implementation slice, not only before verify.
 - PM-3.4-7 · agent · process · Generic helpers that cross actor or task boundaries get `Sendable` constraints from the start. Swift 6.1, CI's gate, is stricter than the local toolchain here. After pushing, read CI's Release-build step first.
 - PM-3.4-8 · agent · 4.2 (next Dashboard stage) · Find out what wrote `tb.ui.dashboardRange = 7d` after `DashboardShellUITests` in verify run 3. Suspects: the Dashboard that `SettingsGeneralUITests` opens with the shortcut, or the segmented picker taking keyboard input. Then make `1.2.sh`'s check independent of later suites, for example by having the Dashboard test write its own marker.
+- PM-3.4-9 · agent · process · A test that proves a guard must never send to a real provider host, even when the guard fails: use `.invalid` hosts and `#require` the precondition before acting. Runner-dependent detection (XCTest loaded, process names) must be tested on CI's runner, not only locally. Closed here for the network guard.
 - PM-3.4-6 · agent · process · Checks on xunit results look at one `<testcase>` element, never at "the next N lines". Swift Testing's order is parallel, so neighbours change from run to run. Closed in this stage for `3.2.sh`; follow the rule in new stage scripts.
 - Earlier actions targeting 3.4:
   - PM-3.1-1: closed (5c141ad).
