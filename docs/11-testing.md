@@ -30,6 +30,8 @@ Fixtures/
     ├── pricing.csv                     # provider,model,classes…,expected_cents,unpriced
     └── ledger.csv                      # remaining_cents,burn7d,burnToday,floor,expected_runway_min_s,expected_band
 ```
+Every `providers/` file is one response in an envelope (Q-026): `{"status": 429, "headers": {"Retry-After": "12"}, "body": <the provider's JSON>}`. `headers` may be omitted. "Field names strictly from `02`" applies to `body`. `FixtureTransport` and `StubTransport` read files through the same loader (`FixtureEnvelope`), and `scripts/record-fixtures.sh` writes the same shape.
+
 Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; org/project ids replaced with `org_fixture`, `proj_fixture`; amounts kept real.
 
 ## Unit tests (one file per module; names fixed)
