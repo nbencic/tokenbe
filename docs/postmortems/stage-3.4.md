@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.4 OpenAI adapter (on synthetic fixtures)
-Date: 2026-11-10 · Branch: s3.4-openai-adapter · PR: #14 · Planned size: L · Commits: 5
+Date: 2026-11-10 · Branch: s3.4-openai-adapter · PR: #14 · Planned size: L · Commits: 8
 
 ## Outcome
 Every OpenAI endpoint in 02 is decoded, normalized and written to the database. Nothing is visible to the user yet: no screen creates an account until 3.5.
@@ -73,8 +73,8 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
     - it aims at `https://guard.invalid/…`, so a failed guard can never reach a provider again;
     - it checks the guard's counter, which a DNS failure would not move.
   - `3.4.sh` checks that the guard test aims at `.invalid` (PM-3.4-9).
-- Verify run 5: RESULT_VERIFY5.
-- CI run 3: RESULT_CI3.
+- Verify run 5 (on 9d9f5bd): `STAGE 3.4 OK`, 605 checks across stages 0.1–3.4 and D13, the UI suites included. The UI-test suite held `tb.ui.dashboardRange = 30d` this time (PM-3.4-8 stays open).
+- CI run 3 (PR #14, head 9d9f5bd): `build-test` passed: build, 223 tests, coverage gate, lint, event-table check, app build and the secret guard. The guard tests ran and passed on CI's runner. This file's final update re-runs CI before the merge.
 
 ## Deviations from the docs
 - 14 step 1, 11 § Fixtures: the error fixtures are `projects.401`, `costs.403`, `usage_completions.429` and `usage_completions.500`, not `auth.401` and the rest. Page 2 is `usage_completions.page2`. `FixtureTransport` can only serve `<endpoint>.<case>` names (Q-029). 14 and 11 are reworded.
