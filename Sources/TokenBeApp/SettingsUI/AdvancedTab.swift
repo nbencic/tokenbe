@@ -94,7 +94,9 @@ struct DatabaseMaintenanceRows: View {
       let result = try await repository.backup()
       settings.dbLastBackupAt = Date().timeIntervalSince1970
       let size = Int64(result.bytes).formatted(.byteCount(style: .file))
-      let time = Date(timeIntervalSince1970: settings.dbLastBackupAt).formatted(date: .abbreviated, time: .standard)
+      // 08 § Formatting rules fixes dates (`MMM d`); the time of day is added, since 08 has no rule for it (Q-025).
+      let savedAt = Date(timeIntervalSince1970: settings.dbLastBackupAt)
+      let time = "\(Formatters.date(savedAt, calendar: .current)) \(savedAt.formatted(date: .omitted, time: .shortened))"
       return MaintenanceReport(title: Strings.backupTitle,
                                lines: [Strings.backupDetail(size: size, time: time), result.url.path])
     } catch {
