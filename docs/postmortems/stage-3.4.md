@@ -59,7 +59,11 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - Verify run 1: FAIL at `3.2 KeychainKeyStoreIntegrationTests ran (not skipped)`, after 460 checks. The suite had run. `3.2.sh` looked for `<skipped` in the two lines after the test case, and this run's parallel order put `FixtureDBTests.regenerate()` there, which is skipped by design. The check now asserts that the test case's element is self-closing, so it has no `<skipped/>` or `<failure>` child (PM-3.4-6). No product code changed.
 - Verify run 2: `STAGE 3.4 OK`, 603 checks across stages 0.1–3.4 and D13, the UI suites included.
 - CI run 1 (PR #14, head dcbadc1): `build-test` failed in the Release build. Swift 6.1, the CI compile gate (PM-0.5-1), rejected `Poller.retrying<T>` with "non-sendable result type 'T' cannot be sent from nonisolated context". The local Swift 6.4 accepted it. Fix: `T: Sendable`. The local toolchain can't reproduce 6.1 diagnostics, so the Swift 6.1 gate stays CI's job (PM-3.4-7).
-- Verify run 3 (after the circuit and `Sendable` fixes): RESULT_VERIFY3.
+- Verify run 3 (after the circuit and `Sendable` fixes): FAIL at `1.2 tb.ui.dashboardRange = 30d in the UI-test suite after the test`, after 236 checks.
+  - `DashboardShellUITests` passed, including its own relaunch check that `30 d` persisted. Afterwards, though, the UI-test suite held `7d`. No UI test clicks `7 d` after that test.
+  - The UI test order and steps matched runs 1 and 2, which passed this check. This stage changed no Dashboard or Settings code, so a later test's Dashboard toggle (`SettingsGeneralUITests`, ⌃⌥K/⌃⌥T) most likely races the range binding now and then.
+  - Re-run unchanged; carried as PM-3.4-8.
+- Verify run 4: RESULT_VERIFY3.
 - CI run 2: RESULT_CI2.
 
 ## Deviations from the docs
@@ -101,6 +105,7 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - PM-3.4-4 · agent · DeepSeek stage · A balance-capable account's `balance` job fails as `providerRule("<p>_balance_not_stored")` until `Repository+Balance` and the poller's write exist.
 - PM-3.4-5 · agent · process · Run `swiftlint --strict` after each implementation slice, not only before verify.
 - PM-3.4-7 · agent · process · Generic helpers that cross actor or task boundaries get `Sendable` constraints from the start. Swift 6.1, CI's gate, is stricter than the local toolchain here. After pushing, read CI's Release-build step first.
+- PM-3.4-8 · agent · 4.2 (next Dashboard stage) · Find out what wrote `tb.ui.dashboardRange = 7d` after `DashboardShellUITests` in verify run 3. Suspects: the Dashboard that `SettingsGeneralUITests` opens with the shortcut, or the segmented picker taking keyboard input. Then make `1.2.sh`'s check independent of later suites, for example by having the Dashboard test write its own marker.
 - PM-3.4-6 · agent · process · Checks on xunit results look at one `<testcase>` element, never at "the next N lines". Swift Testing's order is parallel, so neighbours change from run to run. Closed in this stage for `3.2.sh`; follow the rule in new stage scripts.
 - Earlier actions targeting 3.4:
   - PM-3.1-1: closed (5c141ad).
