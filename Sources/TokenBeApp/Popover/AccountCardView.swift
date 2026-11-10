@@ -1,8 +1,8 @@
 import SwiftUI
 import TokenBeCore
 
-/// One account card (08 § Popover 3). Stage 1.1 renders row 1 (label, mode chip, band dot) and the
-/// "No data yet" state; rows 2–4 fill in as the data exists (Phases 3–7).
+/// One account card (08 § Popover 3). Row 1: label, mode chip, band dot. Row 2: the pinned metric
+/// (09 `tb.popover.pinnedMetric`), or "No data yet". Row 3 and 4 fill in as the data exists (Phases 3–7).
 struct AccountCardView: View {
   let summary: AccountSummary
   @Environment(\.appEnvironment) private var environment
@@ -25,9 +25,9 @@ struct AccountCardView: View {
           .accessibilityLabel(Strings.bandLabel(summary.band.word))
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).band")
       }
-      Text(remainingText)
+      Text(pinnedText)
         .font(.system(size: 20, weight: .semibold).monospacedDigit())
-        .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).remaining")
+        .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).pinned")
       Text(Formatters.freshness(summary.lastSuccessAt, now: Date(), calendar: .current, stale: summary.isStale))
         .font(.caption.monospacedDigit())
         .foregroundStyle(summary.isStale ? Color(.healthLow) : Color.secondary)
@@ -48,12 +48,19 @@ struct AccountCardView: View {
     }
   }
 
-  private var remainingText: String {
-    guard let cents = summary.remainingCents else { return Strings.noDataYet }
-    return Formatters.remaining(
-      Money(cents: cents, currency: summary.currency),
-      hideCents: environment?.settings.uiHideCents ?? true, locale: .current
-    )
+  /// Row 2 (09 `tb.popover.pinnedMetric`); a metric not known yet reads "No data yet".
+  private var pinnedText: String {
+    let hideCents = environment?.settings.uiHideCents ?? true
+    switch environment?.settings.popoverPinnedMetric ?? "runway" {
+    case "remaining":
+      guard let cents = summary.remainingCents else { return Strings.noDataYet }
+      return Formatters.remaining(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+    case "todaySpend":
+      guard let cents = summary.todaySpendCents else { return Strings.noDataYet }
+      return Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+    default:
+      return Formatters.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday) ?? Strings.noDataYet
+    }
   }
 
   private var bandColor: Color {
