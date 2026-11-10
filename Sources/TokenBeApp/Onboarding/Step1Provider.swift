@@ -49,7 +49,6 @@ struct Step1Provider: View {
           .font(.caption)
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
-          .accessibilityIdentifier("onboarding.provider.\(provider.rawValue).caption")
       }
       .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
       .padding(12)

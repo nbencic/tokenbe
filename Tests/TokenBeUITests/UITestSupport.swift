@@ -9,11 +9,19 @@ extension XCTestCase {
 
   /// The app under `root`, at debug log level. Settings reach the app as launch arguments: the runner is
   /// sandboxed, so its own `UserDefaults` writes never reach the app's suite (Q-019).
-  func makeApp(root: URL, resetSettings: Bool = false) -> XCUIApplication {
+  ///
+  /// `tb.ui.onboardingDone` is true unless a test asks for onboarding: with no account, a fresh launch would
+  /// otherwise open onboarding (09) in every suite (Q-030). Booleans go as plist literals so the suite reads a Bool.
+  /// `fixtures` turns on `tb.debug.fixtureMode`; `fixtureCases` picks non-`ok` fixtures (`openai/projects=401`).
+  func makeApp(root: URL, resetSettings: Bool = false, onboardingDone: Bool = true, fixtures: Bool = false,
+               fixtureCases: String? = nil) -> XCUIApplication {
     let app = XCUIApplication()
     app.launchEnvironment["TOKENBE_TEST_ROOT"] = root.path
     if resetSettings { app.launchEnvironment["TOKENBE_TEST_RESET_SETTINGS"] = "1" }
+    if let fixtureCases { app.launchEnvironment["TOKENBE_TEST_FIXTURE_CASES"] = fixtureCases }
     app.launchArguments += ["-tb.log.level", "debug"]
+    app.launchArguments += ["-tb.ui.onboardingDone", onboardingDone ? "<true/>" : "<false/>"]
+    if fixtures { app.launchArguments += ["-tb.debug.fixtureMode", "<true/>"] }
     return app
   }
 

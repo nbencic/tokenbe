@@ -62,19 +62,29 @@ struct PopoverView: View {
         model.showOnboarding()
       }
     } else {
-      ScrollView {
-        LazyVStack(spacing: 8) {
-          ForEach(model.sortedAccounts) { summary in
-            AccountCardView(summary: summary) {
-              model.settingsTab = .accounts
-              showSettings()
-            }
-          }
-        }
-        .padding(12)
+      // The cards size the popover while they fit; past 08's 560 pt they scroll inside a fixed height.
+      ViewThatFits(in: .vertical) {
+        cards
+        ScrollView { cards }
+          .frame(height: Self.maxCardsHeight)
       }
       .accessibilityIdentifier("popover.cards")
     }
+  }
+
+  /// 560 pt (08) minus the header and footer.
+  static let maxCardsHeight: CGFloat = 460
+
+  private var cards: some View {
+    VStack(spacing: 8) {
+      ForEach(model.sortedAccounts) { summary in
+        AccountCardView(summary: summary) {
+          model.settingsTab = .accounts
+          showSettings()
+        }
+      }
+    }
+    .padding(12)
   }
 
   private var footer: some View {
