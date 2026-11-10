@@ -72,9 +72,9 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
   - 11's suite-wide guard carried to 3.4.
 
 ## Carry-forward actions
-- PM-3.1-1 · agent · 3.4 · 11 requires a suite-wide guard: "a URLProtocol stub asserts zero real requests and fails the suite otherwise". Adapters first send in 3.4. Add the guard there, for example a test-target `URLSessionTransport` factory that always installs the stub, plus a `3.4.sh` grep that bans a bare `URLSessionTransport(version:)` followed by `send` in Tests.
+- PM-3.1-1 · agent · 3.4 · 11 requires a suite-wide guard: "a URLProtocol stub asserts zero real requests and fails the suite otherwise". Adapters first send in 3.4. Add the guard there, for example a test-target `URLSessionTransport` factory that always installs the stub, plus a `3.4.sh` grep that bans a bare `URLSessionTransport(version:)` followed by `send` in Tests. Status: closed (5c141ad). `NoNetworkInTests` replaces the HTTP stack of any stub-less transport in a test process; `3.4.sh` has the grep (Q-029).
 - PM-3.1-2 · agent · 3.6 · `scripts/record-fixtures.sh` writes each response in the `{status, headers, body}` envelope of 11 § Fixtures (Q-026), so recorded files load through `FixtureEnvelope`. Status: closed in 3.3, where the script was created.
-- PM-3.1-3 · agent · 3.3/3.4 · Wire `Transports.make(fixtureMode: settings.debugFixtureMode, version:)` into `AppEnvironment` with the first adapter, and add each adapter's routes to `FixtureTransport.knownRoutes`. Status: re-targeted → 3.4 (3.3 has no adapter yet).
+- PM-3.1-3 · agent · 3.3/3.4 · Wire `Transports.make(fixtureMode: settings.debugFixtureMode, version:)` into `AppEnvironment` with the first adapter, and add each adapter's routes to `FixtureTransport.knownRoutes`. Status: re-targeted → 3.4 (3.3 has no adapter yet); closed in 3.4 (5c141ad) as PM-3.3-2.
 - PM-3.1-4 · agent · 4.1 · `ManualNetworkMonitor` and the `NWPathMonitorAdapter` wiring, with `sched.skip reason=offline`.
 - PM-3.1-5 · agent · process · Run verify under `caffeinate -i -d`, keeping the display awake as well. `-i` alone let the screen lock mid-run and cost one verify run.
 - Earlier actions targeting 3.1: none. Phase 2's risk notes are addressed: the host allowlist passes, and no provider is called during `swift test`. The second is guarded per test now; the suite-wide guard is PM-3.1-1.

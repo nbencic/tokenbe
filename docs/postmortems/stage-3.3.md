@@ -58,7 +58,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 
 ## Carry-forward actions
 - PM-3.3-1 · agent · 3.5 · Onboarding: map `KeyCheck.wrongPrefix` to 08's copy for OpenAI. Anthropic's copy is not in 08, so log a Q. Add the step-1 captions and the provider glyph from Paper.
-- PM-3.3-2 · agent · 3.4 · The OpenAI adapter registers in `ProviderRegistry`, adds its `FixtureTransport` routes, and wires `Transports.make` into `AppEnvironment` (PM-3.1-3, re-targeted here).
+- PM-3.3-2 · agent · 3.4 · The OpenAI adapter registers in `ProviderRegistry`, adds its `FixtureTransport` routes, and wires `Transports.make` into `AppEnvironment` (PM-3.1-3, re-targeted here). Status: closed (5c141ad).
 - PM-3.3-3 · agent · process · To regenerate the fixture DB, run `TOKENBE_WRITE_FIXTURES=1 swift test --filter FixtureDBTests`, then the same command without the variable. Before committing, run `scripts/record-fixtures.sh --verify-redacted` (R11).
 - PM-3.3-4 · agent · process · After any Release build that adds string constants resembling key formats, run `check-no-secrets.sh`. Short literals are packed into instructions.
 - Earlier actions targeting 3.3:

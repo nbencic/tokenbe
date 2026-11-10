@@ -9,8 +9,9 @@ Fixture naming: `<endpoint>.<case>.recorded.json` = captured from the live API b
 ```
 Fixtures/
 ├── providers/<provider>/<endpoint>.<case>.json     # recorded by scripts/record-fixtures.sh in Milestone 0, redacted
-│   e.g. openai/usage_completions.ok.json, openai/usage_completions.empty.json, openai/costs.ok.json,
-│        openai/api_keys.ok.json, openai/auth.401.json, openai/rate_limit.429.json,
+│   e.g. openai/usage_completions.ok.json, openai/usage_completions.page2.json (page=page2),
+│        openai/usage_completions.empty.json, openai/costs.ok.json, openai/api_keys.ok.json,
+│        openai/projects.401.json, openai/costs.403.json, openai/usage_completions.429.json,
 │        anthropic/usage_report.ok.json, anthropic/usage_report.lagging.json, anthropic/cost_report.ok.json,
 │        anthropic/api_keys.ok.json, anthropic/no_org.403.json, anthropic/credit_low.400.json,
 │        openrouter/credits.ok.json, openrouter/key.ok.json, openrouter/keys.ok.json,
@@ -30,7 +31,7 @@ Fixtures/
     ├── pricing.csv                     # provider,model,classes…,expected_cents,unpriced
     └── ledger.csv                      # remaining_cents,burn7d,burnToday,floor,expected_runway_min_s,expected_band
 ```
-Every `providers/` file is one response in an envelope (Q-026): `{"status": 429, "headers": {"Retry-After": "12"}, "body": <the provider's JSON>}`. `headers` may be omitted. "Field names strictly from `02`" applies to `body`. `FixtureTransport` and `StubTransport` read files through the same loader (`FixtureEnvelope`), and `scripts/record-fixtures.sh` writes the same shape.
+An error case is named by the endpoint that returns it and its status, `<endpoint>.<status>`, as the recorder writes it; a later page of a paged endpoint is the case its `page` cursor names (Q-029). Every `providers/` file is one response in an envelope (Q-026): `{"status": 429, "headers": {"Retry-After": "12"}, "body": <the provider's JSON>}`. `headers` may be omitted. "Field names strictly from `02`" applies to `body`. `FixtureTransport` and `StubTransport` read files through the same loader (`FixtureEnvelope`), and `scripts/record-fixtures.sh` writes the same shape.
 
 Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; org/project ids replaced with `org_fixture`, `proj_fixture`; amounts kept real.
 
