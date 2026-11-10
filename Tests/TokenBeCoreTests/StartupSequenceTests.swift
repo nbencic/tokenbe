@@ -5,7 +5,7 @@ import Testing
 /// Stages append their steps here as they implement 04 steps 2–8.
 @MainActor @Suite struct StartupSequenceTests {
   /// 04 step names implemented so far, in order.
-  static let implementedSteps = ["logging"]
+  static let implementedSteps = ["logging", "database"]
 
   static func harness() -> (LogPipeline, CapturingLogSink) {
     let sink = CapturingLogSink()

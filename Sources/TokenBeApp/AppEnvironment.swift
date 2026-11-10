@@ -10,6 +10,8 @@ struct AppEnvironment {
   let logSinks: [any LogSink]
   /// Where the NDJSON log lives (07; a test root's `Logs/TokenBe` in UI tests), for `Open log folder`.
   let logsDirectory: URL
+  /// The store (03), set by startup step 2; nil only if that step failed, in which case the app quits.
+  var repository: (any Repository)?
 }
 
 extension EnvironmentValues {

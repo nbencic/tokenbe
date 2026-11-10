@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     Task {
-      await startup.run()
+      guard await startup.run() else { return }
       model.environment = startup.environment
       if let settings = startup.environment?.settings {
         model.bind(settings)
@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     shortcutWatcher?.cancel()
     hotKeys.unregister()
     Task {
-      await startup.terminate(reason: "quit")
+      await startup.terminate(reason: startup.terminationReason)
       sender.reply(toApplicationShouldTerminate: true)
     }
     return .terminateLater

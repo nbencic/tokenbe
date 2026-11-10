@@ -52,6 +52,12 @@ real_tb_keys() { defaults read dev.bathyon.tokenbe 2>/dev/null | grep -E '^ *"?t
 real_tb_before="$(real_tb_keys)"
 real_tb_unchanged() { [[ "$(real_tb_keys)" == "$real_tb_before" ]] || { echo "tb.* keys in dev.bathyon.tokenbe changed"; return 1; }; }
 
+# The file names in the owner's real support folder, snapshotted the same way: verification launches only ever use a
+# TOKENBE_TEST_ROOT, so no stage may create or remove anything there (D10, Q-014), e.g. a real tokenbe.sqlite.
+real_support_files() { ls -1A "$HOME/Library/Application Support/TokenBe" 2>/dev/null || true; }
+real_support_before="$(real_support_files)"
+real_support_unchanged() { [[ "$(real_support_files)" == "$real_support_before" ]] || { echo "files in ~/Library/Application Support/TokenBe changed"; diff <(echo "$real_support_before") <(real_support_files); return 1; }; }
+
 # headings_in_order <file> <heading…>: the required `## ` headings all appear, in this order.
 headings_in_order() {
   local file="$1"; shift
