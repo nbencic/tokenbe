@@ -45,6 +45,8 @@ final class Startup {
   private var loginItem: LoginItemController?
   /// Set when step 2 failed; launch stops with `FatalErrorAlert` (03 § Migrations).
   private(set) var databaseFailure: DatabaseOpenError?
+  /// Set when step 2 repaired a corrupt database; the user is told once startup has finished (03 § Durability).
+  private(set) var databaseRecovery: DatabaseRecovery?
   /// `app.terminate {reason}` for the next terminate: `quit`, or `database` after a fatal alert.
   private(set) var terminationReason = "quit"
 
@@ -56,7 +58,12 @@ final class Startup {
       StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("login item") { [self] in startLoginItem() }
     ])
-    guard await sequence.run() else {
+    let succeeded = await sequence.run()
+    if succeeded, let recovery = databaseRecovery {
+      // Shown after startup so the modal never holds up later steps (Q-024).
+      FatalErrorAlert.showRecovered(recovery)
+    }
+    guard succeeded else {
       if let databaseFailure {
         FatalErrorAlert.show(databaseFailure)
         terminationReason = "database"
@@ -74,9 +81,7 @@ final class Startup {
     do {
       let opened = try await DatabaseOpener.open(directory: paths.support)
       environment?.repository = GRDBRepository(database: opened.database)
-      if let recovery = opened.recovery {
-        FatalErrorAlert.showRecovered(recovery)
-      }
+      databaseRecovery = opened.recovery
     } catch {
       databaseFailure = error as? DatabaseOpenError ?? DatabaseOpenError(
         migration: nil, message: String(describing: error),

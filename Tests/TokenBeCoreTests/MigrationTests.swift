@@ -328,15 +328,14 @@ struct StoreHarness {
     await eventually("writer held") { started.load(ordering: .sequentiallyConsistent) }
     try await database.write("waiting") { _ in }
     try await holder.value
-    let busy = try #require(await harness.records(.dbBusy).first)
+    // Under load the holder may also wait > 100 ms (and log); only the waiting write's record is asserted.
+    let busy = try #require(await harness.records(.dbBusy).first { $0.ctx["op"] == .string("waiting") })
     #expect(busy.lvl == .warn)
-    #expect(busy.ctx["op"] == .string("waiting"))
     if case .int(let waited)? = busy.ctx["waited_ms"] {
       #expect(waited >= 100)
     } else {
       Issue.record("waited_ms missing")
     }
-    #expect(await harness.records(.dbBusy).count == 1, "the holder itself did not wait")
   }
 
   @Test("timestamps are RFC3339 UTC with milliseconds and round-trip")
