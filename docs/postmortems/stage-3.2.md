@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.2 Keychain seam
-Date: 2026-11-10 · Branch: s3.2-keychain · PR: #12 · Planned size: S · Commits: 3
+Date: 2026-11-10 · Branch: s3.2-keychain · PR: #12 · Planned size: S · Commits: 4
 
 ## Outcome
 API keys now have a place to live. Nothing is visible to the user yet.
@@ -26,7 +26,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 
 ## Verify and CI failures
 - Verify run 1: `STAGE 3.2 OK`, 477 checks across stages 0.1–3.2 and D13, the UI suites included. It passed on the first run, under `caffeinate -i -d` (PM-3.1-5).
-- CI: see the PR.
+- CI: PR #12 `build-test` passed on the first run (5 m 59 s). `KeychainKeyStoreIntegrationTests` ran and passed on the GitHub runner's login keychain too, in 0.47 s, so it was not skipped.
 
 ## Deviations from the docs
 - 14 § Stage 3.2 step 2: `kSecUseDataProtectionKeychain = true` → `false`, the login keychain (owner, Q-027). 14, 11 SEC-2 and 13 D-keychain-only are updated.
