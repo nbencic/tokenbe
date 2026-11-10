@@ -29,6 +29,17 @@ struct TokenBeApp: App {
     .defaultLaunchBehavior(.suppressed)
     .restorationBehavior(.disabled)
 
+    // 08 § Onboarding: its own fixed-size window (Q-030). Opened at launch (09 `tb.ui.onboardingDone`) or from
+    // the Empty state's `Add account…`; never restored.
+    Window(Strings.onboardingTitle, id: OnboardingSheet.windowID) {
+      OnboardingSheet(model: appDelegate.model)
+        .environment(\.appEnvironment, appDelegate.model.environment)
+        .tint(appDelegate.model.accentTint)
+    }
+    .windowResizability(.contentSize)
+    .defaultLaunchBehavior(.suppressed)
+    .restorationBehavior(.disabled)
+
     // 08 § Settings. Opened from the popover footer (`Settings…`, ⌘,).
     Settings {
       SettingsView(model: appDelegate.model)
@@ -39,7 +50,8 @@ struct TokenBeApp: App {
   }
 }
 
-/// The menu-bar label: the glyph, plus the hand-over of `openWindow` to the model for the global shortcut.
+/// The menu-bar label: the glyph, plus the hand-over of `openWindow` to the model for the global shortcut and for
+/// onboarding at launch.
 private struct StatusLabel: View {
   let model: AppModel
   @Environment(\.openWindow) private var openWindow
@@ -49,6 +61,7 @@ private struct StatusLabel: View {
       .onAppear {
         let open = openWindow
         model.openDashboard = { open(id: DashboardView.windowID) }
+        model.openOnboarding = { open(id: OnboardingSheet.windowID) }
       }
   }
 }

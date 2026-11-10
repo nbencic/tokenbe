@@ -17,8 +17,8 @@ for copy in "No accounts yet" "Add a provider key to start tracking." "No data y
   check "Strings has 08 copy: $copy" grep -qF "\"$copy\"" Sources/TokenBeApp/Strings.swift
 done
 # A control appears only with its action (D6): no later-stage controls in the popover yet.
-# `Open dashboard` arrived in 1.2 and `Settings…` in 1.3, each with its action.
-for later in "Add account" "Pause polling" "arrow.clockwise"; do
+# `Open dashboard` arrived in 1.2, `Settings…` in 1.3 and `Add account…` in 3.5, each with its action.
+for later in "Pause polling" "arrow.clockwise"; do
   check "popover has no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/Popover Sources/TokenBeApp/Strings.swift"
 done
 for shape in "case solid" "case notched" "case dashed"; do

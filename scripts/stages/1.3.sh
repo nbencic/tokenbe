@@ -28,7 +28,8 @@ check "app.login_item_failed emitted" grep -qF "appLoginItemFailed" Sources/Toke
 check "check-log-events.sh (14 Verify)" scripts/check-log-events.sh
 
 # A control appears only with its action (D6): later tabs and rows arrive with their stages.
-for later in "Accounts" "Sources" "Alerts"; do
+# Accounts arrived in 3.5.
+for later in "Sources" "Alerts"; do
   check "SettingsView has no '$later' tab yet" bash -c "! grep -qF 'tab$later' Sources/TokenBeApp/SettingsUI/SettingsView.swift"
 done
 # "integrity" and "Back up" arrived in 2.2.

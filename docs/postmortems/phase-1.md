@@ -58,5 +58,5 @@ Date: 2026-11-10 · Stages: 1.1 (#6), 1.2 (#7), 1.3 (#8)
 - PM-1.2-4 · agent · 9.5 · Whether `Reset all settings…` also resets AppKit's window state.
 - PM-1.1-1 · agent · process · Check the screen lock before UI tests.
 - PM-1.1-2 · owner · optional · `sudo automationmodetool enable-automationmode-without-authentication`.
-- PM-1.1-3 · agent · 3.5 · Crowded-menu-bar guidance in onboarding.
+- PM-1.1-3 · agent · 3.5 · Crowded-menu-bar guidance in onboarding. Status: re-targeted → 11.2 (Q-030).
 - Phase 0's open actions: PM-0.1-3 (H4 Apple ID, 11.5); PM-0.2-3 (`--from-tests`, 9.5); PM-0.3-2, PM-0.4-2 and PM-0.5-1 (process); PM-0.4-3 (owner, `.env` permissions); PM-0.5-2 (owner, coverage, 11.2).

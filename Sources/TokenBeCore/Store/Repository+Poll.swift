@@ -46,9 +46,24 @@ public protocol PollRepository: Sendable {
   /// Returns the updated row.
   func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
                          circuit: CircuitRule) async throws -> PollStateRecord?
+  /// `Replace key…` and `Test` (04: "polls stop until the user re-tests the key (which resets the circuit)"):
+  /// every job's circuit and failure count cleared. Returns the jobs whose circuit was open.
+  func resetCircuit(accountID: String) async throws -> [Job]
 }
 
 extension GRDBRepository {
+  public func resetCircuit(accountID: String) async throws -> [Job] {
+    try await database.write("resetCircuit") { db in
+      let open = try String.fetchAll(db, sql: """
+        SELECT job FROM poll_state WHERE account_id = ? AND circuit_open_until IS NOT NULL ORDER BY job
+        """, arguments: [accountID])
+      try db.execute(sql: """
+        UPDATE poll_state SET circuit_open_until = NULL, consecutive_failures = 0 WHERE account_id = ?
+        """, arguments: [accountID])
+      return open.compactMap(Job.init(rawValue:))
+    }
+  }
+
   public func fetchPollState(accountID: String, job: Job) async throws -> PollStateRecord? {
     try await database.read { db in
       try PollStateRecord.fetchOne(db, key: ["account_id": accountID, "job": job.rawValue])

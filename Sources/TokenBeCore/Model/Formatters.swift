@@ -38,6 +38,23 @@ public enum Formatters {
   // MARK: - Runway
 
   /// 05: `< 1 h`, `N h` below 48 h, `~N d` below 60 d, `> 60 d`. Values are floored. Nil stays nil.
+  /// A typed amount (`200`, `200.5`, `1,234.56` in `locale`) → cents, rounded half up; nil when it is not a
+  /// non-negative number. Parsing lives here because `Decimal` is allowed only in `Formatters` (R7).
+  public static func cents(fromInput text: String, locale: Locale) -> Int64? {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    formatter.generatesDecimalNumbers = true
+    guard let number = formatter.number(from: trimmed) as? NSDecimalNumber else { return nil }
+    var scaled = number.decimalValue * 100
+    guard scaled >= 0 else { return nil }
+    var rounded = Decimal()
+    NSDecimalRound(&rounded, &scaled, 0, .plain)
+    return NSDecimalNumber(decimal: rounded).int64Value
+  }
+
   public static func runway(_ seconds: TimeInterval?) -> String? {
     guard let seconds, seconds.isFinite else { return nil }
     let hours = seconds / 3600

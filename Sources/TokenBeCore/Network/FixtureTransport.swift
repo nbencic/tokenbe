@@ -121,12 +121,26 @@ public struct FixtureTransport: HTTPTransport {
 /// The transport for a run (09 `tb.debug.fixtureMode`): fixtures in DEBUG when the setting is on, otherwise the
 /// network. Release builds ignore the setting. Wired into `AppEnvironment` with the first adapter (Q-026).
 public enum Transports {
-  public static func make(fixtureMode: Bool, version: String) -> any HTTPTransport {
+  /// `cases` picks a non-`ok` fixture per endpoint (`"openai/projects": "401"`); UI tests set it through
+  /// `TOKENBE_TEST_FIXTURE_CASES` (Q-030). Ignored outside fixture mode.
+  public static func make(fixtureMode: Bool, version: String, cases: [String: String] = [:]) -> any HTTPTransport {
     #if DEBUG
     if fixtureMode {
-      return FixtureTransport(routes: FixtureTransport.knownRoutes)
+      return FixtureTransport(routes: FixtureTransport.knownRoutes, cases: cases)
     }
     #endif
     return URLSessionTransport(version: version)
+  }
+
+  /// `openai/projects=401,openai/costs=403` → `["openai/projects": "401", "openai/costs": "403"]`. Malformed
+  /// entries are skipped.
+  public static func cases(from text: String?) -> [String: String] {
+    var cases: [String: String] = [:]
+    for entry in (text ?? "").split(separator: ",") {
+      let parts = entry.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+      guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { continue }
+      cases[parts[0]] = parts[1]
+    }
+    return cases
   }
 }

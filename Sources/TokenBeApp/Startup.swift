@@ -35,6 +35,8 @@ final class Startup {
   nonisolated static let testRootVariable = "TOKENBE_TEST_ROOT"
   /// Debug-only, with `TOKENBE_TEST_ROOT`: `1` clears the UI-test settings suite before `Settings` loads (Q-020).
   nonisolated static let testResetSettingsVariable = "TOKENBE_TEST_RESET_SETTINGS"
+  /// Debug-only, with `TOKENBE_TEST_ROOT`: fixture cases for `FixtureTransport`, `openai/projects=401` (Q-030).
+  nonisolated static let testFixtureCasesVariable = "TOKENBE_TEST_FIXTURE_CASES"
 
   private let paths = Paths.current()
   private lazy var sentinel = RunningSentinel(directory: paths.support)
@@ -45,6 +47,9 @@ final class Startup {
   private var loginItem: LoginItemController?
   /// Set when step 2 failed; launch stops with `FatalErrorAlert` (03 § Migrations).
   private(set) var databaseFailure: DatabaseOpenError?
+  /// Keychain refs with no item, from step 3.
+  private(set) var missingKeys: Set<String> = []
+  private(set) var accountCount = 0
   /// Set when step 2 repaired a corrupt database; the user is told once startup has finished (03 § Durability).
   private(set) var databaseRecovery: DatabaseRecovery?
   /// `app.terminate {reason}` for the next terminate: `quit`, or `database` after a fatal alert.
@@ -56,6 +61,7 @@ final class Startup {
     let sequence = StartupSequence(steps: [
       StartupStep("logging") { [self] in try await startLogging() },
       StartupStep("database") { [self] in try await openDatabase() },
+      StartupStep("accounts") { [self] in await checkAccounts() },
       StartupStep("login item") { [self] in startLoginItem() }
     ])
     let succeeded = await sequence.run()
@@ -127,15 +133,54 @@ final class Startup {
       settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog], logsDirectory: paths.logs,
       transport: Transports.make(
         fixtureMode: current.debugFixtureMode,
-        version: info?["CFBundleShortVersionString"] as? String ?? "dev"
+        version: info?["CFBundleShortVersionString"] as? String ?? "dev",
+        cases: fixtureCases()
       ),
-      registry: ProviderRegistry(adapters: [OpenAIAdapter()])
+      registry: ProviderRegistry(adapters: [OpenAIAdapter()]),
+      keyStore: makeKeyStore()
     )
     await fileSink.setRetentionDays(current.logRetentionDays)
     retentionWatcher = Task { [weak self] in
       for await key in current.changes where key == .logRetentionDays {
         await self?.sink?.setRetentionDays(current.logRetentionDays)
       }
+    }
+  }
+
+  /// The UI tests' fixture cases (`openai/projects=401`), DEBUG and test root only (PM-3.4-1, Q-030).
+  private func fixtureCases() -> [String: String] {
+    #if DEBUG
+    if paths.testRoot != nil {
+      return Transports.cases(from: ProcessInfo.processInfo.environment[Self.testFixtureCasesVariable])
+    }
+    #endif
+    return [:]
+  }
+
+  /// The login keychain; under a DEBUG test root, a file inside the root so UI tests never touch a keychain
+  /// (PM-3.2-1, Q-030).
+  private func makeKeyStore() -> any KeyStore {
+    #if DEBUG
+    if let root = paths.testRoot { return FileKeyStore(directory: root) }
+    #endif
+    return KeychainKeyStore()
+  }
+
+  /// 04 step 3: load the accounts and check each one's Keychain item (existence only, R8). A missing item logs
+  /// `keychain.missing`, and the account's card reads `Key missing · Fix…` (08).
+  private func checkAccounts() async {
+    guard var environment, let repository = environment.repository, let lifecycle = environment.lifecycle else {
+      return
+    }
+    environment.poller = Poller(store: repository, keyStore: environment.keyStore, registry: environment.registry,
+                                transport: environment.transport)
+    self.environment = environment
+    do {
+      let accounts = try await repository.fetchAccounts()
+      accountCount = accounts.count
+      missingKeys = await lifecycle.missingKeys(accounts)
+    } catch {
+      Log.error(.uiError, cat: .ui, msg: "accounts not loaded", err: error, ctx: ["view": "startup"])
     }
   }
 

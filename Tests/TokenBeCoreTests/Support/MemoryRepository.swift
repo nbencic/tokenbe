@@ -130,6 +130,25 @@ actor MemoryRepository: Repository {
     return state
   }
 
+  func resetCircuit(accountID: String) async throws -> [Job] {
+    var open: [Job] = []
+    for job in Job.allCases {
+      var state = pollState(accountID, job)
+      if state.circuitOpenUntil != nil { open.append(job) }
+      state.circuitOpenUntil = nil
+      state.consecutiveFailures = 0
+      states["\(accountID)/\(job.rawValue)"] = state
+    }
+    return open
+  }
+
+  private(set) var ledger: [LedgerEventRecord] = []
+
+  func insertLedgerEvent(_ event: LedgerEventRecord) async throws {
+    if ledger.contains(where: { $0.id == event.id }) { throw StoreError.duplicate(event.id) }
+    ledger.append(event)
+  }
+
   private func pollState(_ accountID: String, _ job: Job) -> PollStateRecord {
     states["\(accountID)/\(job.rawValue)"] ?? PollStateRecord(
       accountId: accountID, job: job.rawValue, lastAttemptAt: nil, lastSuccessAt: nil, lastErrorClass: nil,

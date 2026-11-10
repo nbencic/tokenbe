@@ -73,7 +73,7 @@ DoD D1–D3, D6 and D8–D11 are met. D12 is met by PR #6's green CI. D13 is met
 
 ## Carry-forward actions
 - PM-1.1-1 · agent · every stage with UI tests · Before running `uitest`, check `ioreg -n Root -d1 -a | plutil -extract IOConsoleLocked raw -`. If it prints `true`, finish everything else in the stage first and ask the owner to unlock, instead of burning test runs on automation-mode time-outs. Status: open (process).
-- PM-1.1-3 · agent · 3.5 (onboarding) · On a crowded menu bar TokenBe's glyph sits behind macOS's overflow `«`, which defeats an at-a-glance monitor. 08 doesn't cover it. In onboarding, consider first-run guidance (⌘-drag the glyph to the right) or a notification when the item is hidden. Status: open.
+- PM-1.1-3 · agent · 3.5 (onboarding) · On a crowded menu bar TokenBe's glyph sits behind macOS's overflow `«`, which defeats an at-a-glance monitor. 08 doesn't cover it. In onboarding, consider first-run guidance (⌘-drag the glyph to the right) or a notification when the item is hidden. Status: re-targeted → 11.2 (release review). 08 lists onboarding's content exactly, and first-run guidance would add copy and a screen 08 does not have (R9, Q-030).
 - PM-1.1-2 · Nikola · optional · Run `sudo automationmodetool enable-automationmode-without-authentication` once, so UI tests don't ask for a password after each reboot. Status: open.
 - Earlier open actions, unchanged by this stage:
   - PM-0.4-3 (`chmod 600 .env`, owner);

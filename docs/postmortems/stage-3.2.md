@@ -37,8 +37,8 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - Q-027 (Blocking: yes, answered by the owner): the login keychain. Also: the error type, `errSecDecode` for non-UTF-8 items, `errSecUserCanceled` as a plain failure, update-or-add for `set`, idempotent `delete`, and what the log records carry.
 
 ## Carry-forward actions
-- PM-3.2-1 · agent · 3.5 · Onboarding is the first caller of `KeyStore.set`. The UI tests must inject `InMemoryKeyStore` (or `KeychainKeyStore(service: "dev.bathyon.tokenbe.test")`) under `TOKENBE_TEST_ROOT`. A Debug UI run must never write to the owner's `dev.bathyon.tokenbe` items.
-- PM-3.2-2 · agent · 3.5 · Startup step 3 (04): read each account's item. A missing item logs `keychain.missing` and sets the account to `needs_key`, and `StartupSequenceTests` gains the step.
+- PM-3.2-1 · agent · 3.5 · Onboarding is the first caller of `KeyStore.set`. The UI tests must inject `InMemoryKeyStore` (or `KeychainKeyStore(service: "dev.bathyon.tokenbe.test")`) under `TOKENBE_TEST_ROOT`. A Debug UI run must never write to the owner's `dev.bathyon.tokenbe` items. Status: closed in 3.5. Under `TOKENBE_TEST_ROOT` the app uses `FileKeyStore` in the root, never a keychain (Q-030).
+- PM-3.2-2 · agent · 3.5 · Startup step 3 (04): read each account's item. A missing item logs `keychain.missing` and sets the account to `needs_key`, and `StartupSequenceTests` gains the step. Status: closed in 3.5: `KeyStore.contains`, `AccountLifecycle.missingKeys`, and `Key missing · Fix…` on the card (Q-030).
 - PM-3.2-3 · agent · 11.2 · Security review: re-assess Q-027 once Developer ID signing exists (H4). If moving to the data-protection keychain is worth a one-time migration of existing items, log it as a new Q.
 - PM-3.2-4 · agent · process · Before implementing any Security- or entitlement-gated API, spike it on an ad-hoc-signed binary first.
 - Earlier actions targeting 3.2: none.

@@ -14,7 +14,7 @@ struct DashboardView: View {
 
   var body: some View {
     NavigationSplitView {
-      SidebarView(selection: $selection)
+      SidebarView(accounts: model.accounts, selection: $selection)
     } detail: {
       OverviewView(model: model)
     }

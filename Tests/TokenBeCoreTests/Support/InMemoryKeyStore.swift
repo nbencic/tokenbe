@@ -20,6 +20,11 @@ actor InMemoryKeyStore: KeyStore {
     return items[ref]
   }
 
+  func contains(_ ref: String) async throws(KeyStoreError) -> Bool {
+    if let failure = failures[.read] { throw failure }
+    return items[ref] != nil
+  }
+
   func set(_ ref: String, secret: String) async throws(KeyStoreError) {
     if let failure = failures[.write] { throw failure }
     items[ref] = secret

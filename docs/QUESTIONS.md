@@ -301,3 +301,42 @@ Decisions:
 - **Wiring (PM-3.3-2).** `AppEnvironment` holds `transport` (`Transports.make(fixtureMode: settings.debugFixtureMode, …)`) and `registry` (`ProviderRegistry(adapters: [OpenAIAdapter()])`), both built at launch, so a fixture-mode change takes effect at the next launch. Release onboarding still offers nothing, because `Verified.providers` is empty.
 - **Outside the inventory.** `Logging/EventLog.swift` (an `EventLog` for Core types that log under several categories, plus `DailyOnce`), `Providers/RawBody.swift` (redact-then-truncate and `ResponseTrace`), `PollContext.trace`, `UsagePage.expected` and `StoreError.writeIncomplete`.
 Blocking: no
+
+## Q-030 Onboarding and Accounts: window, copy, test key store, fixture cases, startup step 3, Keys & apps            (2026-11-10)
+Context: Stage 3.5 (`Onboarding/*`, `SettingsUI/AccountsTab.swift`, `Accounts/AccountLifecycle.swift`, `Startup.swift`, UI tests).
+Decisions:
+- **A window, not a sheet.** 08 says "sheet 520×440". A menu-bar app has no window to carry one: the popover closes when focus moves, and Settings may not be open. Onboarding is its own fixed-size `Window` scene (520×440, never restored). `openWindow` is captured from the menu-bar label, as for the Dashboard (Q-023). `Replace key…` is a real sheet on the Settings window, reusing step 2.
+- **Launch.** 09: onboarding opens at launch when `tb.ui.onboardingDone` is false and there is no account. `onboardingDone` becomes true when step 2 creates the account (14 step 1), so closing at step 3 still counts as done. Every UI test launches with `-tb.ui.onboardingDone <true/>` unless it tests onboarding. Booleans go as plist literals, so the argument domain yields a Bool.
+- **Copy.** 08 gives the tile captions, `Added`, `Cancel`, `Continue`, `Paste`, the OpenAI wrong-prefix message, `Test & continue`, `Set anchor…`, `Skip for now`, `Launch at login`, `Done`, `Add account…`, `Key missing · Fix…`, `Replace key…`, `Test`, `Remove account…`, `Keys & apps` and `Valid · tested <freshness>`.
+  - **Taken from Paper** where 08 is silent: the step header `Provider — Key — Balance`, `Which provider?`, `<Provider> admin key`, `Admin API key`, `Stored in the macOS Keychain, this device only.`.
+  - **Authored**, all in `Strings.swift`, `CoreStrings.keyMissing` excepted:
+    - step 3's `First numbers` labels (`Mode`, `Keys found`, `Currency`), `Balance shown by the provider` and `Anchor: $N`;
+    - the generic wrong-prefix line for providers without 08 copy;
+    - the create, replace and anchor failure lines;
+    - the remove confirmation text;
+    - `Key missing`, `Select an account.`, `No keys found yet.` and `(unnamed key)`;
+    - `CoreStrings.keyMissing`, the result of `Test` without a key.
+  - Paper's step-3 auto-reload toggle and step-2 capability list are not in 08, so they are not built (R9).
+- **Glyph (PM-3.3-1).** 08 names no glyph asset, so the provider glyph is Paper's filled circle with a letter (`O`, `A`, `R`, `D`, `X`), drawn in code. Anthropic's wrong-prefix copy is not in 08, and only OpenAI has an adapter, so DEBUG offers no Anthropic tile. The generic line covers it until the Anthropic stage (3.7) brings 08's copy or a Q.
+- **Keys in UI tests (PM-3.2-1).** Under a DEBUG `TOKENBE_TEST_ROOT` the app keeps keys in `test-keychain.json` inside the root (`FileKeyStore`, DEBUG only), never in a keychain. Ad-hoc builds change their signature on every build, so a keychain item one build wrote makes the next one prompt for the login password. The sandboxed runner cannot read the app's items either. 14's "Remove account deletes Keychain item — checked via the test's own `KeychainKeyStore` read" is covered in two places:
+  - `AccountLifecycleTests` checks that `remove` deletes the item, in process (with `InMemoryKeyStore`; `KeychainKeyStore.delete` itself is covered by the 3.2 integration test on the `.test` service);
+  - the UI test reads the root's key file.
+- **Fixture cases (PM-3.4-1).** DEBUG, test root only: `TOKENBE_TEST_FIXTURE_CASES=openai/projects=401` reaches `FixtureTransport`'s `cases` through `Transports.make(cases:)`.
+- **Probe and writes.** The probe passes when `humanMessage` is nil (Q-029). It times out after 10 s on the injected `Clock` and returns the unreachable message. On success, `AccountLifecycle.create` writes:
+  - the Keychain item (ref = provider);
+  - the account: UUIDv7 id, label (blank → provider name), `balance_mode` from the capabilities, currency, `capabilities` JSON, `created_at`;
+  - its four `poll_state` rows;
+  - the discovered keys.
+
+  If the database refuses any of it, the item and the row are removed again. A wrong prefix disables `Test & continue`: the button validates and is not inert (D6), and fixture mode would otherwise accept any key.
+- **Startup step 3 (PM-3.2-2).** It checks each account's Keychain item for existence only (`KeyStore.contains`, attributes, no secret: R8, and no ACL prompt). A missing item logs `keychain.missing` (error) and sets `needsKey`. A keychain that cannot be read (locked, denied) is not "missing". `Replace key…` and a new account clear `needsKey`. `Test` and `Replace key…` reset the circuit (04) and log `poll.circuit_close` for each job that was open.
+- **Summary inputs (PM-2.2-3).** `SummaryInputs` gains each job's `last_success_at` and `circuit_open_until` (never `last_raw`), so cards show `never` before the first poll. `needsKey` comes from startup step 3's set.
+- **Accounts tab.**
+  - Paper's 720 pt master-detail, with the form tabs at 520 pt; the selected tab lives on `AppModel`, so `Fix…` can open Accounts.
+  - The label saves on Return or when the detail closes.
+  - `Valid · tested <freshness>` uses the latest of creation (a passed probe), the last successful poll and the last `Test`.
+  - Keys & apps shows 08's name and hint (`…a1b2`, the last 4 characters of `redacted`). 14 also listed "created, last used"; 08 does not, and 03 has no columns for them, so 08 wins (R1). The bound-app picker arrives in 7.1, as 14 says.
+  - The anchor amount is parsed in `Formatters.cents(fromInput:locale:)`, since `Decimal` lives only in `Formatters` (R7).
+- **Sidebar rows.** Account rows show the glyph, label and an `unknown` band dot. They cannot be selected until the account detail exists (5.x), so no row leads nowhere (D6).
+- **Crowded menu bar (PM-1.1-3).** First-run guidance would add copy and a screen that 08 does not list (R9). Re-targeted to the release review (11.2), with Q-019's overflow handling unchanged.
+Blocking: no
