@@ -124,7 +124,12 @@ final class Startup {
     #endif
     let current = Settings(store: SettingsSuite.store(named: paths.settingsSuite))
     environment = AppEnvironment(
-      settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog], logsDirectory: paths.logs
+      settings: current, clock: ContinuousClock(), logSinks: [fileSink, osLog], logsDirectory: paths.logs,
+      transport: Transports.make(
+        fixtureMode: current.debugFixtureMode,
+        version: info?["CFBundleShortVersionString"] as? String ?? "dev"
+      ),
+      registry: ProviderRegistry(adapters: [OpenAIAdapter()])
     )
     await fileSink.setRetentionDays(current.logRetentionDays)
     retentionWatcher = Task { [weak self] in

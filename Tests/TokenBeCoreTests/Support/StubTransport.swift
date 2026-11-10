@@ -23,6 +23,11 @@ actor StubTransport: HTTPTransport {
     routes[Self.key(method, path), default: []].append(contentsOf: answers)
   }
 
+  /// Replaces the route's queued answers.
+  func replace(_ method: String, _ path: String, _ answers: Answer...) {
+    routes[Self.key(method, path)] = answers
+  }
+
   func send(_ request: HTTPRequest) async throws(TransportError) -> HTTPResponse {
     calls.append(request)
     let key = Self.key(request.method, request.url.path())

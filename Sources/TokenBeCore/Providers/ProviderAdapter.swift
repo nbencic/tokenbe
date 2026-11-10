@@ -7,18 +7,22 @@ public struct PollContext: Sendable {
   public var key: String
   /// The paging cursor saved in `poll_state.cursor`, if a page sequence was interrupted.
   public var cursor: String?
+  /// `start`: how far back the job looks (`Poller.lookback`); `end`: now, which is also the rows' `fetched_at`.
   public var window: DateInterval
   public var transport: any HTTPTransport
   public var clock: any Clock<Duration>
+  /// Receives every response body, so the poller can keep the last one when decoding fails (04).
+  public var trace: ResponseTrace
 
   public init(accountID: String, key: String, cursor: String?, window: DateInterval, transport: any HTTPTransport,
-              clock: any Clock<Duration>) {
+              clock: any Clock<Duration>, trace: ResponseTrace = ResponseTrace()) {
     self.accountID = accountID
     self.key = key
     self.cursor = cursor
     self.window = window
     self.transport = transport
     self.clock = clock
+    self.trace = trace
   }
 }
 
@@ -67,15 +71,19 @@ public struct ProbeResult: Sendable, Equatable {
 }
 
 /// One page of a usage poll: rows to upsert, the cursor of the next page, and the redacted body for `last_raw`.
+/// `expected` is the page's results summed before they became rows, for V2 (04 § Invariants).
 public struct UsagePage: Sendable, Equatable {
   public var rows: [UsageBucketRecord]
   public var nextCursor: String?
   public var rawBody: String
+  public var expected: TokenClasses
 
-  public init(rows: [UsageBucketRecord], nextCursor: String?, rawBody: String) {
+  /// `expected` defaults to the rows' own sum.
+  public init(rows: [UsageBucketRecord], nextCursor: String?, rawBody: String, expected: TokenClasses? = nil) {
     self.rows = rows
     self.nextCursor = nextCursor
     self.rawBody = rawBody
+    self.expected = expected ?? rows.reduce(TokenClasses()) { $0 + $1.classes }
   }
 }
 

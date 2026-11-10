@@ -1,0 +1,1 @@
+{"status": 403, "headers": {"Content-Type": "application/json"}, "body": "synthetic 403: the key lacks the scope for /v1/organization/costs"}

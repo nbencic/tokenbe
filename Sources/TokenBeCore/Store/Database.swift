@@ -7,6 +7,8 @@ public enum StoreError: Error, Sendable, Equatable {
   case duplicate(String)
   /// The row to update or delete does not exist.
   case notFound(String)
+  /// V2 (04 § Invariants): the rows stored for a usage page do not add up to the page's results; rolled back.
+  case writeIncomplete(expected: Int64, written: Int64)
 }
 
 /// The database could not be opened or migrated. Launch stops with an alert that names the migration, the error and

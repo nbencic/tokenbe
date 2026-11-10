@@ -18,7 +18,12 @@ public final class URLSessionTransport: HTTPTransport {
   /// Tests pass a `URLProtocol` stub and a small cap; nothing else differs from the app's session.
   init(version: String, protocolClasses: [AnyClass]?, maxBodyBytes: Int) {
     let configuration = Self.configuration()
-    if let protocolClasses { configuration.protocolClasses = protocolClasses }
+    if let protocolClasses {
+      configuration.protocolClasses = protocolClasses
+    } else if NoNetworkInTests.isActive {
+      // No real request may leave a test process (11, R13; PM-3.1-1).
+      configuration.protocolClasses = [NoNetworkInTests.self]
+    }
     session = URLSession(configuration: configuration)
     userAgent = Self.userAgent(version: version)
     self.maxBodyBytes = maxBodyBytes

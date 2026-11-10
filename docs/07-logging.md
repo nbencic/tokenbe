@@ -74,6 +74,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `poll.schema_drift` | error | acct, job, missing_keys, sample (≤512 chars redacted) |
 | `poll.unknown_keys` | info | acct, job, keys (once per day) |
 | `poll.provider_rule` | warn | acct, job, rule (e.g. `anthropic_requires_org`, `deepseek_no_usage_api`) |
+| `poll.write_incomplete` | error | acct, job, expected, written — V2: a usage page's stored rows do not add up to its results; the page is rolled back (Q-029) |
 | `normalize.negative` | warn | provider, field, value |
 | `normalize.failed` | error | provider, missing_key, request_id? |
 | `normalize.unknown_keys` | info | provider, keys |

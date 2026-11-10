@@ -10,8 +10,13 @@
 /// | maintenance | `backup, integrityCheck, quickCheck, incrementalVacuum` | 2.1 |
 /// | maintenance | `rollup, purgeHarnessEvents, thinBalanceSnapshots, exportJSON, importJSON, exportCSV, stats` | with their features |
 /// | observation | `observeSummaryInputs` (in `Observation.swift`) | 2.2 |
-/// | providerKeys, usage, cost, balance, ledger, prices, poll, band, apps, ingest | see 14 § Stage 2.1 | with their features |
+/// | providerKeys, usage, cost, poll | `Repository+ProviderKeys/Usage/Cost/Poll.swift` | 3.4 |
+/// | balance, ledger, prices, band, apps, ingest | see 14 § Stage 2.1 | with their features |
 public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository
+  & ProviderKeyRepository & UsageRepository & CostRepository & PollRepository
+
+/// What `Poller` writes (14 § Stage 3.4 step 6).
+public typealias PollStore = ProviderKeyRepository & UsageRepository & CostRepository & PollRepository
 
 /// `account` rows (03). Creating an account also seeds its four `poll_state` rows in the same transaction (03).
 public protocol AccountRepository: Sendable {
