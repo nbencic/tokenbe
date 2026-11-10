@@ -12,134 +12,156 @@ extension OpenAIAdapter {
     let redactor = log.redactor
     redactor.register(secret: key)
     defer { redactor.unregister(secret: key) }
-    var probe = Run(adapter: self, key: key, transport: transport, now: Date())
+    var probe = OpenAIProbe(adapter: self, key: key, transport: transport, now: Date())
     return await probe.run()
   }
+}
 
-  /// One probe's state; a value type so the steps read top to bottom.
-  struct Run {
-    let adapter: OpenAIAdapter
-    let key: String
-    let transport: any HTTPTransport
-    let now: Date
-    var capabilities = OpenAIAdapter.capabilities
-    var bodies: [String: String] = [:]
-    var keys: [DiscoveredKey] = []
+/// How one probe step ended.
+enum OpenAIProbeStep {
+  case passed(Data)
+  /// 401/403: the step's capability is off.
+  case refused(status: Int)
+  /// Ends the probe with this message.
+  case failed(String)
+}
 
-    enum Step {
-      case passed(Data)
-      /// 401/403: the step's capability is off.
-      case refused(status: Int)
-      /// Ends the probe with this message.
-      case failed(String)
+/// One probe's state; a value type so the steps read top to bottom.
+struct OpenAIProbe {
+  let adapter: OpenAIAdapter
+  let key: String
+  let transport: any HTTPTransport
+  let now: Date
+  var capabilities = OpenAIAdapter.capabilities
+  var bodies: [String: String] = [:]
+  var keys: [DiscoveredKey] = []
+
+  static let organization = OpenAIAdapter.organization
+  static let name = ProviderID.openai.displayName
+
+  mutating func run() async -> ProbeResult {
+    // 1. Admin scope.
+    let projects: OpenAIProjectList
+    switch await step("projects", "\(Self.organization)/projects", [.init(name: "limit", value: "100")]) {
+    case .passed(let body):
+      guard let list = decoded(OpenAIProjectList.self, body, "projects") else { return failure(Self.unreadable) }
+      projects = list
+    case .refused(let status):
+      return failure(status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope)
+    case .failed(let message):
+      return failure(message)
     }
+    // 2. Keys of every project.
+    if let message = await listKeys(projects) { return failure(message) }
+    // 3. Usage scope.
+    let usageQuery: [URLQueryItem] = [
+      .init(name: "start_time", value: String(OpenAIAdapter.floor(now.addingTimeInterval(-3600), to: 1))),
+      .init(name: "bucket_width", value: "1h"), .init(name: "limit", value: "1")
+    ]
+    if let message = await scope("usage_completions", "\(Self.organization)/usage/completions", usageQuery, off: {
+      $0.usage = false
+      $0.perKeyUsage = false
+    }) { return failure(message) }
+    // 4. Cost scope.
+    let costQuery: [URLQueryItem] = [
+      .init(name: "start_time", value: String(OpenAIAdapter.floor(now.addingTimeInterval(-86400), to: 1))),
+      .init(name: "limit", value: "1")
+    ]
+    if let message = await scope("costs", "\(Self.organization)/costs", costQuery, off: { $0.cost = false }) {
+      return failure(message)
+    }
+    return ProbeResult(capabilities: capabilities, discoveredKeys: keys, currency: capabilities.currencyHint,
+                       rawBodiesRedacted: bodies)
+  }
 
-    mutating func run() async -> ProbeResult {
-      let organization = OpenAIAdapter.organization
-      // 1. Admin scope.
-      let projects: OpenAIProjectList
-      switch await step("projects", "\(organization)/projects", [.init(name: "limit", value: "100")]) {
+  /// Steps 3 and 4: a refusal turns the scope's capabilities `off`; returns a message when the probe must end.
+  mutating func scope(_ endpoint: String, _ path: String, _ query: [URLQueryItem],
+                      off: (inout Capabilities) -> Void) async -> String? {
+    switch await step(endpoint, path, query) {
+    case .passed: return nil
+    case .refused:
+      off(&capabilities)
+      return nil
+    case .failed(let message): return message
+    }
+  }
+
+  /// Step 2; returns a message when the probe must end.
+  mutating func listKeys(_ projects: OpenAIProjectList) async -> String? {
+    for project in projects.data {
+      let path = OpenAIAdapter.apiKeysPath(project: project.id)
+      switch await step("api_keys", path, [.init(name: "limit", value: "100")]) {
       case .passed(let body):
-        guard let list = decoded(OpenAIProjectList.self, body, "projects") else { return failure(unreadable) }
-        projects = list
-      case .refused(let status):
-        return failure(status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope)
-      case .failed(let message):
-        return failure(message)
-      }
-      // 2. Keys of every project.
-      for project in projects.data {
-        let path = OpenAIAdapter.apiKeysPath(project: project.id)
-        switch await step("api_keys", path, [.init(name: "limit", value: "100")]) {
-        case .passed(let body):
-          guard let list = decoded(OpenAIAPIKeyList.self, body, "api_keys") else { return failure(unreadable) }
-          keys += list.data.map {
-            DiscoveredKey(providerKeyID: $0.id, name: $0.name, redacted: $0.redactedValue, projectID: project.id)
-          }
-        case .refused:
-          capabilities.keyNames = false
-        case .failed(let message):
-          return failure(message)
+        guard let list = decoded(OpenAIAPIKeyList.self, body, "api_keys") else { return Self.unreadable }
+        keys += list.data.map {
+          DiscoveredKey(providerKeyID: $0.id, name: $0.name, redacted: $0.redactedValue, projectID: project.id)
         }
-      }
-      // 3. Usage scope.
-      let hourAgo = String(OpenAIAdapter.floor(now.addingTimeInterval(-3600), to: 1))
-      let usageQuery: [URLQueryItem] = [
-        .init(name: "start_time", value: hourAgo), .init(name: "bucket_width", value: "1h"),
-        .init(name: "limit", value: "1")
-      ]
-      switch await step("usage_completions", "\(organization)/usage/completions", usageQuery) {
-      case .passed: break
       case .refused:
-        capabilities.usage = false
-        capabilities.perKeyUsage = false
-      case .failed(let message): return failure(message)
-      }
-      // 4. Cost scope.
-      let dayAgo = String(OpenAIAdapter.floor(now.addingTimeInterval(-86400), to: 1))
-      switch await step("costs", "\(organization)/costs",
-                        [.init(name: "start_time", value: dayAgo), .init(name: "limit", value: "1")]) {
-      case .passed: break
-      case .refused: capabilities.cost = false
-      case .failed(let message): return failure(message)
-      }
-      return ProbeResult(capabilities: capabilities, discoveredKeys: keys, currency: capabilities.currencyHint,
-                         rawBodiesRedacted: bodies)
-    }
-
-    var unreadable: String { CoreStrings.unexpectedResponse(ProviderID.openai.displayName) }
-
-    mutating func step(_ endpoint: String, _ path: String, _ query: [URLQueryItem]) async -> Step {
-      let name = ProviderID.openai.displayName
-      do {
-        let response = try await OpenAIAdapter.send(path, query: query, key: key, transport: transport)
-        bodies[endpoint] = RawBody.redacted(response.body, redactor: adapter.log.redactor)
-        return .passed(response.body)
-      } catch {
-        if case .auth(let status, let body) = error {
-          bodies[endpoint] = RawBody.truncated(adapter.log.redactor.redact(body))
-          return .refused(status: status)
-        }
-        adapter.log.emit(.error, .pollFailed, cat: .poll(ProviderID.openai.rawValue), msg: "probe step failed",
-                         acct: ProviderID.openai.rawValue, job: "probe", err: error, ctx: ["endpoint": .string(endpoint)])
-        switch error {
-        case .rateLimited: return .failed(CoreStrings.rateLimited(name))
-        case .server(let status, let body):
-          bodies[endpoint] = RawBody.truncated(adapter.log.redactor.redact(body))
-          return .failed(CoreStrings.serverError(name, status: status))
-        case .transport, .cancelled: return .failed(CoreStrings.unreachable(name))
-        case .decode: return .failed(unreadable)
-        case .providerRule(let rule):
-          let status = rule.hasPrefix("http ") ? Int(rule.dropFirst(5)) : nil
-          return .failed(status.map { CoreStrings.unexpectedStatus(name, status: $0) } ?? unreadable)
-        case .auth, .schemaDrift: return .failed(unreadable)
-        }
+        capabilities.keyNames = false
+      case .failed(let message):
+        return message
       }
     }
+    return nil
+  }
 
-    func decoded<Value: Decodable>(_ type: Value.Type, _ body: Data, _ endpoint: String) -> Value? {
-      do {
-        let result = try LenientDecoding.decode(type, from: body, endpoint: endpoint)
-        adapter.logUnknown(result, job: .keys, now: now)
-        return result.value
-      } catch {
-        adapter.log.emit(.error, .pollSchemaDrift, cat: .poll(ProviderID.openai.rawValue),
-                         msg: "probe response could not be decoded", acct: ProviderID.openai.rawValue, job: "probe",
-                         err: error, ctx: [
-                           "missing_keys": .string(Self.field(error)), "sample": .string(String(bodies[endpoint]?.prefix(512) ?? ""))
-                         ])
-        return nil
+  static var unreadable: String { CoreStrings.unexpectedResponse(name) }
+
+  mutating func step(_ endpoint: String, _ path: String, _ query: [URLQueryItem]) async -> OpenAIProbeStep {
+    let redactor = adapter.log.redactor
+    do {
+      let response = try await OpenAIAdapter.send(path, query: query, key: key, transport: transport)
+      bodies[endpoint] = RawBody.redacted(response.body, redactor: redactor)
+      return .passed(response.body)
+    } catch {
+      switch error {
+      case .auth(let status, let body):
+        bodies[endpoint] = RawBody.truncated(redactor.redact(body))
+        return .refused(status: status)
+      case .server(_, let body):
+        bodies[endpoint] = RawBody.truncated(redactor.redact(body))
+      case .transport, .rateLimited, .decode, .schemaDrift, .providerRule, .cancelled:
+        break
       }
+      adapter.log.emit(.error, .pollFailed, cat: .poll(ProviderID.openai.rawValue), msg: "probe step failed",
+                       acct: ProviderID.openai.rawValue, job: "probe", err: error,
+                       ctx: ["endpoint": .string(endpoint), "attempts": 1])
+      return .failed(Self.message(for: error))
     }
+  }
 
-    static func field(_ error: PollError) -> String {
-      if case .decode(let field, let path) = error { return "\(field) (\(path))" }
-      return "\(error)"
+  /// The human message for a failure that ends the probe (CoreStrings, Q-029).
+  static func message(for error: PollError) -> String {
+    switch error {
+    case .rateLimited: return CoreStrings.rateLimited(name)
+    case .server(let status, _): return CoreStrings.serverError(name, status: status)
+    case .transport, .cancelled: return CoreStrings.unreachable(name)
+    case .providerRule(let rule):
+      guard rule.hasPrefix("http "), let status = Int(rule.dropFirst(5)) else { return unreadable }
+      return CoreStrings.unexpectedStatus(name, status: status)
+    case .auth, .decode, .schemaDrift: return unreadable
     }
+  }
 
-    func failure(_ message: String) -> ProbeResult {
-      ProbeResult(capabilities: capabilities, humanMessage: message, discoveredKeys: keys,
-                  currency: capabilities.currencyHint, rawBodiesRedacted: bodies)
+  func decoded<Value: Decodable>(_ type: Value.Type, _ body: Data, _ endpoint: String) -> Value? {
+    do {
+      let result = try LenientDecoding.decode(type, from: body, endpoint: endpoint)
+      adapter.logUnknown(result, job: .keys, now: now)
+      return result.value
+    } catch {
+      var missing = "\(error)"
+      if case .decode(let field, let path) = error { missing = "\(field) (\(path))" }
+      adapter.log.emit(.error, .pollSchemaDrift, cat: .poll(ProviderID.openai.rawValue),
+                       msg: "probe response could not be decoded", acct: ProviderID.openai.rawValue, job: "probe",
+                       err: error, ctx: [
+                         "missing_keys": .string(missing), "sample": .string(String(bodies[endpoint]?.prefix(512) ?? ""))
+                       ])
+      return nil
     }
+  }
+
+  func failure(_ message: String) -> ProbeResult {
+    ProbeResult(capabilities: capabilities, humanMessage: message, discoveredKeys: keys,
+                currency: capabilities.currencyHint, rawBodiesRedacted: bodies)
   }
 }

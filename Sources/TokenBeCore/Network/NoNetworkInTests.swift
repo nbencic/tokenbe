@@ -23,9 +23,9 @@ final class NoNetworkInTests: URLProtocol, @unchecked Sendable {
     #endif
   }()
 
-  override class func canInit(with request: URLRequest) -> Bool { true }
+  override static func canInit(with request: URLRequest) -> Bool { true }
 
-  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+  override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
   override func startLoading() {
     Self.count.add(1, ordering: .relaxed)

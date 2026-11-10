@@ -51,7 +51,7 @@ extension GRDBRepository {
           "model": row.model, "provider_key_id": row.providerKeyId, "service_tier": row.serviceTier,
           "source": row.source
         ])
-        if let stored { written = written + stored.classes }
+        if let stored { written += stored.classes }
       }
       guard written == page.expected else {
         throw StoreError.writeIncomplete(expected: page.expected.tokens, written: written.tokens)

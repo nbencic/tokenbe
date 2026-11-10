@@ -20,6 +20,17 @@ public struct PollFailure: Sendable, Equatable {
   }
 }
 
+/// 04: the circuit opens when an auth failure makes `threshold` in a row, until `until`.
+public struct CircuitRule: Sendable, Equatable {
+  public var threshold: Int
+  public var until: Date
+
+  public init(threshold: Int, until: Date) {
+    self.threshold = threshold
+    self.until = until
+  }
+}
+
 /// `poll_state` rows (03): one per account and job, seeded with the account.
 public protocol PollRepository: Sendable {
   func fetchPollState(accountID: String, job: Job) async throws -> PollStateRecord?
@@ -30,10 +41,10 @@ public protocol PollRepository: Sendable {
   @discardableResult
   func recordPollSuccess(accountID: String, job: Job, at time: Date, lastRaw: String?) async throws -> PollStateRecord?
   /// `consecutive_failures + 1` and the error; when the failure counts toward the circuit and the count reaches
-  /// `circuitThreshold`, `circuit_open_until = circuitUntil`. The cursor is kept, so paging resumes (Q-029).
+  /// `circuit.threshold`, `circuit_open_until = circuit.until`. The cursor is kept, so paging resumes (Q-029).
   /// Returns the updated row.
-  func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure, circuitThreshold: Int,
-                         circuitUntil: Date) async throws -> PollStateRecord?
+  func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
+                         circuit: CircuitRule) async throws -> PollStateRecord?
 }
 
 extension GRDBRepository {
@@ -65,7 +76,7 @@ extension GRDBRepository {
   }
 
   public func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
-                                circuitThreshold: Int, circuitUntil: Date) async throws -> PollStateRecord? {
+                                circuit: CircuitRule) async throws -> PollStateRecord? {
     try await database.write("recordPollFailure") { db in
       let key: [String: (any DatabaseValueConvertible)?] = ["account_id": accountID, "job": job.rawValue]
       guard var state = try PollStateRecord.fetchOne(db, key: key) else { return nil }
@@ -73,8 +84,8 @@ extension GRDBRepository {
       state.lastErrorClass = failure.errorClass
       state.lastErrorMessage = failure.message
       if let lastRaw = failure.lastRaw { state.lastRaw = Data(lastRaw.utf8) }
-      if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuitThreshold) {
-        state.circuitOpenUntil = DBTime.string(circuitUntil)
+      if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuit.threshold) {
+        state.circuitOpenUntil = DBTime.string(circuit.until)
       }
       try state.update(db)
       return state

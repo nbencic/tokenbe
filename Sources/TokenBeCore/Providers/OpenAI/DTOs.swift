@@ -7,63 +7,63 @@ import Synchronization
 
 /// `GET /v1/organization/projects` (probe step 1): `data[]` with `id` and `name`.
 struct OpenAIProjectList: Decodable, Equatable {
-  struct Project: Decodable, Equatable {
-    var id: String
-    var name: String?
-
-    enum CodingKeys: String, CodingKey, CaseIterable { case id, name }
-
-    init(from decoder: any Decoder) throws {
-      let container = try LenientDecoding.container(decoder, CodingKeys.self)
-      id = try container.decode(String.self, forKey: .id)
-      name = try container.decodeIfPresent(String.self, forKey: .name)
-    }
-  }
-
-  var data: [Project]
+  var data: [OpenAIProject]
 
   enum CodingKeys: String, CodingKey, CaseIterable { case data }
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
-    data = try container.decode([Project].self, forKey: .data)
+    data = try container.decode([OpenAIProject].self, forKey: .data)
   }
 }
 
-/// `GET /v1/organization/projects/{project_id}/api_keys` (probe step 2): `data[]` with `id`, `name`,
-/// `redacted_value`, `created_at`, `last_used_at`.
-struct OpenAIAPIKeyList: Decodable, Equatable {
-  struct APIKey: Decodable, Equatable {
-    var id: String
-    var name: String?
-    var redactedValue: String?
-    var createdAt: Int64?
-    var lastUsedAt: Int64?
+struct OpenAIProject: Decodable, Equatable {
+  var id: String
+  var name: String?
 
-    enum CodingKeys: String, CodingKey, CaseIterable {
-      case id, name
-      case redactedValue = "redacted_value"
-      case createdAt = "created_at"
-      case lastUsedAt = "last_used_at"
-    }
+  enum CodingKeys: String, CodingKey, CaseIterable { case id, name }
 
-    init(from decoder: any Decoder) throws {
-      let container = try LenientDecoding.container(decoder, CodingKeys.self)
-      id = try container.decode(String.self, forKey: .id)
-      name = try container.decodeIfPresent(String.self, forKey: .name)
-      redactedValue = try container.decodeIfPresent(String.self, forKey: .redactedValue)
-      createdAt = try container.decodeIfPresent(Int64.self, forKey: .createdAt)
-      lastUsedAt = try container.decodeIfPresent(Int64.self, forKey: .lastUsedAt)
-    }
+  init(from decoder: any Decoder) throws {
+    let container = try LenientDecoding.container(decoder, CodingKeys.self)
+    id = try container.decode(String.self, forKey: .id)
+    name = try container.decodeIfPresent(String.self, forKey: .name)
   }
+}
 
-  var data: [APIKey]
+/// `GET /v1/organization/projects/{project_id}/api_keys` (probe step 2): `data[]` of `OpenAIAPIKey`.
+struct OpenAIAPIKeyList: Decodable, Equatable {
+  var data: [OpenAIAPIKey]
 
   enum CodingKeys: String, CodingKey, CaseIterable { case data }
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
-    data = try container.decode([APIKey].self, forKey: .data)
+    data = try container.decode([OpenAIAPIKey].self, forKey: .data)
+  }
+}
+
+/// `id`, `name`, `redacted_value`, `created_at`, `last_used_at` (02).
+struct OpenAIAPIKey: Decodable, Equatable {
+  var id: String
+  var name: String?
+  var redactedValue: String?
+  var createdAt: Int64?
+  var lastUsedAt: Int64?
+
+  enum CodingKeys: String, CodingKey, CaseIterable {
+    case id, name
+    case redactedValue = "redacted_value"
+    case createdAt = "created_at"
+    case lastUsedAt = "last_used_at"
+  }
+
+  init(from decoder: any Decoder) throws {
+    let container = try LenientDecoding.container(decoder, CodingKeys.self)
+    id = try container.decode(String.self, forKey: .id)
+    name = try container.decodeIfPresent(String.self, forKey: .name)
+    redactedValue = try container.decodeIfPresent(String.self, forKey: .redactedValue)
+    createdAt = try container.decodeIfPresent(Int64.self, forKey: .createdAt)
+    lastUsedAt = try container.decodeIfPresent(Int64.self, forKey: .lastUsedAt)
   }
 }
 
@@ -71,27 +71,7 @@ struct OpenAIAPIKeyList: Decodable, Equatable {
 /// `{ "object":"page", "data":[ { "object":"bucket", "start_time", "end_time", "results":[…] } ], "has_more",
 /// "next_page" }`.
 struct OpenAIPage<Result: Decodable & Equatable>: Decodable, Equatable {
-  struct Bucket: Decodable, Equatable {
-    var startTime: Int64
-    var endTime: Int64
-    var results: [Result]
-
-    enum CodingKeys: String, CodingKey, CaseIterable {
-      case object
-      case startTime = "start_time"
-      case endTime = "end_time"
-      case results
-    }
-
-    init(from decoder: any Decoder) throws {
-      let container = try LenientDecoding.container(decoder, CodingKeys.self)
-      startTime = try container.decode(Int64.self, forKey: .startTime)
-      endTime = try container.decode(Int64.self, forKey: .endTime)
-      results = try container.decode([Result].self, forKey: .results)
-    }
-  }
-
-  var data: [Bucket]
+  var data: [OpenAIBucket<Result>]
   var hasMore: Bool
   var nextPage: String?
 
@@ -103,7 +83,7 @@ struct OpenAIPage<Result: Decodable & Equatable>: Decodable, Equatable {
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
-    data = try container.decode([Bucket].self, forKey: .data)
+    data = try container.decode([OpenAIBucket<Result>].self, forKey: .data)
     hasMore = try container.decodeIfPresent(Bool.self, forKey: .hasMore) ?? false
     nextPage = try container.decodeIfPresent(String.self, forKey: .nextPage)
   }
@@ -112,6 +92,26 @@ struct OpenAIPage<Result: Decodable & Equatable>: Decodable, Equatable {
   var cursor: String? {
     guard hasMore, let nextPage, !nextPage.isEmpty else { return nil }
     return nextPage
+  }
+}
+
+struct OpenAIBucket<Result: Decodable & Equatable>: Decodable, Equatable {
+  var startTime: Int64
+  var endTime: Int64
+  var results: [Result]
+
+  enum CodingKeys: String, CodingKey, CaseIterable {
+    case object
+    case startTime = "start_time"
+    case endTime = "end_time"
+    case results
+  }
+
+  init(from decoder: any Decoder) throws {
+    let container = try LenientDecoding.container(decoder, CodingKeys.self)
+    startTime = try container.decode(Int64.self, forKey: .startTime)
+    endTime = try container.decode(Int64.self, forKey: .endTime)
+    results = try container.decode([Result].self, forKey: .results)
   }
 }
 
@@ -169,20 +169,7 @@ struct OpenAIUsageResult: Decodable, Equatable {
 /// One result of 02 § Cost: `object`, `amount { value, currency }`, `line_item`, `project_id`, `api_key_id`,
 /// `api_source`. `value` decodes as `Decimal` from the JSON text, never through `Double` (R7).
 struct OpenAICostResult: Decodable, Equatable {
-  struct Amount: Decodable, Equatable {
-    var value: Decimal
-    var currency: String
-
-    enum CodingKeys: String, CodingKey, CaseIterable { case value, currency }
-
-    init(from decoder: any Decoder) throws {
-      let container = try LenientDecoding.container(decoder, CodingKeys.self)
-      value = try container.decode(Decimal.self, forKey: .value)
-      currency = try container.decode(String.self, forKey: .currency)
-    }
-  }
-
-  var amount: Amount
+  var amount: OpenAICostAmount
   var lineItem: String?
   var projectID: String?
   var apiKeyID: String?
@@ -198,11 +185,24 @@ struct OpenAICostResult: Decodable, Equatable {
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
-    amount = try container.decode(Amount.self, forKey: .amount)
+    amount = try container.decode(OpenAICostAmount.self, forKey: .amount)
     lineItem = try container.decodeIfPresent(String.self, forKey: .lineItem)
     projectID = try container.decodeIfPresent(String.self, forKey: .projectID)
     apiKeyID = try container.decodeIfPresent(String.self, forKey: .apiKeyID)
     apiSource = try container.decodeIfPresent(String.self, forKey: .apiSource)
+  }
+}
+
+struct OpenAICostAmount: Decodable, Equatable {
+  var value: Decimal
+  var currency: String
+
+  enum CodingKeys: String, CodingKey, CaseIterable { case value, currency }
+
+  init(from decoder: any Decoder) throws {
+    let container = try LenientDecoding.container(decoder, CodingKeys.self)
+    value = try container.decode(Decimal.self, forKey: .value)
+    currency = try container.decode(String.self, forKey: .currency)
   }
 }
 

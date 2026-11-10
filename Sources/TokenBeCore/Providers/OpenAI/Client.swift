@@ -32,16 +32,16 @@ public struct OpenAIAdapter: ProviderAdapter {
   // MARK: - Keys (02 § Probe steps 1–2)
 
   public func pollKeys(_ context: PollContext) async throws(PollError) -> KeysPage {
-    let projects = try await get(
+    let projects: Fetched<OpenAIProjectList> = try await get(
       "\(Self.organization)/projects", query: [.init(name: "limit", value: "100")], endpoint: "projects",
-      as: OpenAIProjectList.self, context: context, job: .keys
+      context: context, job: .keys
     )
     var keys: [DiscoveredKey] = []
     var lastBody = projects.body
     for project in projects.value.data {
-      let list = try await get(
+      let list: Fetched<OpenAIAPIKeyList> = try await get(
         Self.apiKeysPath(project: project.id), query: [.init(name: "limit", value: "100")], endpoint: "api_keys",
-        as: OpenAIAPIKeyList.self, context: context, job: .keys
+        context: context, job: .keys
       )
       lastBody = list.body
       keys += list.value.data.map {
@@ -67,9 +67,9 @@ public struct OpenAIAdapter: ProviderAdapter {
     var query: [URLQueryItem] = [.init(name: "start_time", value: String(start)), .init(name: "bucket_width", value: "1h")]
     query += Self.usageGroups.map { URLQueryItem(name: "group_by[]", value: $0) }
     if let page { query.append(.init(name: "page", value: page)) }
-    let decoded = try await get(
-      "\(Self.organization)/usage/completions", query: query, endpoint: "usage_completions",
-      as: OpenAIPage<OpenAIUsageResult>.self, context: context, job: .usage
+    let decoded: Fetched<OpenAIPage<OpenAIUsageResult>> = try await get(
+      "\(Self.organization)/usage/completions", query: query, endpoint: "usage_completions", context: context,
+      job: .usage
     )
     let now = context.window.end
     var merged: [UsageKey: UsageBucketRecord] = [:]
@@ -80,7 +80,7 @@ public struct OpenAIAdapter: ProviderAdapter {
       let provisional = end.addingTimeInterval(Self.lagSeconds) >= now
       for result in bucket.results {
         let classes = OpenAINormalizer.classes(result, log: log)
-        expected = expected + classes
+        expected += classes
         let key = UsageKey(start: bucket.startTime, model: result.model ?? "*", apiKey: result.apiKeyID ?? "",
                            tier: result.serviceTier ?? "")
         if var existing = merged[key] {
@@ -139,15 +139,14 @@ public struct OpenAIAdapter: ProviderAdapter {
   public func pollCost(_ context: PollContext) async throws(PollError) -> CostPage {
     let start = Self.floor(context.window.start, to: 86400)
     var page: String?
-    var buckets: [OpenAIPage<OpenAICostResult>.Bucket] = []
+    var buckets: [OpenAIBucket<OpenAICostResult>] = []
     var lastBody = Data()
     for _ in 0..<Self.maxPages {
       var query: [URLQueryItem] = [.init(name: "start_time", value: String(start))]
       query += Self.costGroups.map { URLQueryItem(name: "group_by[]", value: $0) }
       if let page { query.append(.init(name: "page", value: page)) }
-      let decoded = try await get(
-        "\(Self.organization)/costs", query: query, endpoint: "costs", as: OpenAIPage<OpenAICostResult>.self,
-        context: context, job: .cost
+      let decoded: Fetched<OpenAIPage<OpenAICostResult>> = try await get(
+        "\(Self.organization)/costs", query: query, endpoint: "costs", context: context, job: .cost
       )
       buckets += decoded.value.data
       lastBody = decoded.body
@@ -161,21 +160,32 @@ public struct OpenAIAdapter: ProviderAdapter {
     throw .providerRule("openai_costs_more_than_\(Self.maxPages)_pages")
   }
 
-  static func costRows(_ buckets: [OpenAIPage<OpenAICostResult>.Bucket], accountID: String,
+  static func costRows(_ buckets: [OpenAIBucket<OpenAICostResult>], accountID: String,
                        now: Date) -> [CostBucketRecord] {
-    var rows: [CostBucketRecord] = []
+    // Buckets that name the same UTC day are one day (never expected from 1d buckets, but the key is the day).
+    var days: [String] = []
+    var byDay: [String: (end: Date, results: [OpenAICostResult])] = [:]
     for bucket in buckets {
-      let start = Date(timeIntervalSince1970: TimeInterval(bucket.startTime))
+      let day = DailyOnce.utcDay(Date(timeIntervalSince1970: TimeInterval(bucket.startTime)))
       let end = Date(timeIntervalSince1970: TimeInterval(bucket.endTime))
-      let day = DailyOnce.utcDay(start)
-      let provisional = end.addingTimeInterval(lagSeconds) >= now
+      if let known = byDay[day] {
+        byDay[day] = (max(known.end, end), known.results + bucket.results)
+      } else {
+        byDay[day] = (end, bucket.results)
+        days.append(day)
+      }
+    }
+    var rows: [CostBucketRecord] = []
+    for day in days {
+      guard let bucket = byDay[day] else { continue }
+      let provisional = bucket.end.addingTimeInterval(lagSeconds) >= now
       let currency = bucket.results.first?.amount.currency.uppercased() ?? capabilities.currencyHint.rawValue
-      var groups: [(kind: String, key: String, amount: Decimal)] = []
+      var groups: [CostGroup] = []
       func add(_ kind: String, _ key: String, _ amount: Decimal) {
         if let index = groups.firstIndex(where: { $0.kind == kind && $0.key == key }) {
           groups[index].amount += amount
         } else {
-          groups.append((kind, key, amount))
+          groups.append(CostGroup(kind: kind, key: key, amount: amount))
         }
       }
       var total = Decimal(0)
@@ -184,7 +194,7 @@ public struct OpenAIAdapter: ProviderAdapter {
         add("line_item", result.lineItem ?? "", result.amount.value)
         total += result.amount.value
       }
-      groups.append(("total", "", total))
+      groups.append(CostGroup(kind: "total", key: "", amount: total))
       rows += groups.map {
         CostBucketRecord(accountId: accountID, day: day, groupKind: $0.kind, groupKey: $0.key,
                          amountCents: cents($0.amount), currency: currency, provisional: provisional,
@@ -192,6 +202,12 @@ public struct OpenAIAdapter: ProviderAdapter {
       }
     }
     return rows
+  }
+
+  struct CostGroup {
+    var kind: String
+    var key: String
+    var amount: Decimal
   }
 
   /// Dollars → cents, rounded half up once (05; R7: `Decimal`, never `Double`).
@@ -211,11 +227,11 @@ public struct OpenAIAdapter: ProviderAdapter {
 
   /// GET with 02's headers; a non-2xx status becomes its `PollError` (04). Unknown keys are logged once per day.
   func get<Value: Decodable>(
-    _ path: String, query: [URLQueryItem], endpoint: String, as type: Value.Type, context: PollContext, job: Job
+    _ path: String, query: [URLQueryItem], endpoint: String, context: PollContext, job: Job
   ) async throws(PollError) -> Fetched<Value> {
     let response = try await Self.send(path, query: query, key: context.key, transport: context.transport)
     context.trace.record(response.body)
-    let decoded = try LenientDecoding.decode(type, from: response.body, endpoint: endpoint)
+    let decoded = try LenientDecoding.decode(Value.self, from: response.body, endpoint: endpoint)
     logUnknown(decoded, job: job, now: context.window.end)
     return Fetched(value: decoded.value, body: response.body)
   }

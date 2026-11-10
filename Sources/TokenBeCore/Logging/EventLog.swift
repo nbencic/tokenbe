@@ -13,7 +13,6 @@ public struct EventLog: Sendable {
   /// The redactor whose exact pass sees the secrets in flight: the pipeline's in tests, `Log.redactor` in the app.
   public var redactor: Redactor { pipeline?.redactor ?? Log.redactor }
 
-  // swiftlint:disable:next function_parameter_count
   public func emit(
     _ lvl: LogLevel, _ evt: Evt, cat: Cat, msg: String, acct: String? = nil, job: String? = nil,
     attempt: Int? = nil, err: (any Error)? = nil, dur: Duration? = nil, ctx: [String: LogValue] = [:]

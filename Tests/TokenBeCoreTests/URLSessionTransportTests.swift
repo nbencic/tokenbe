@@ -173,4 +173,24 @@ final class StubURLProtocol: URLProtocol {
     #expect(production.maxBodyBytes == 20 * 1024 * 1024)
     #expect(production.session.configuration.protocolClasses?.contains { $0 == StubURLProtocol.self } != true)
   }
+
+  @Test("in a test process the app's transport cannot reach the network (11, R13; PM-3.1-1)")
+  func noRealRequests() async throws {
+    #expect(NoNetworkInTests.isActive)
+    let before = NoNetworkInTests.blocked
+    let transport = URLSessionTransport(version: "test")
+    let url = try #require(URL(string: "https://api.openai.com/v1/organization/projects"))
+    do {
+      _ = try await transport.send(HTTPRequest(url: url))
+      Issue.record("a real request went through")
+    } catch {
+      guard case .urlError(let urlError) = error else { Issue.record("unexpected \(error)"); return }
+      #expect(urlError.code == .notConnectedToInternet)
+    }
+    #expect(NoNetworkInTests.blocked == before + 1)
+    // The factory's network transport is guarded the same way.
+    let made = Transports.make(fixtureMode: false, version: "test")
+    await #expect(throws: TransportError.self) { try await made.send(HTTPRequest(url: url)) }
+    #expect(NoNetworkInTests.blocked == before + 2)
+  }
 }

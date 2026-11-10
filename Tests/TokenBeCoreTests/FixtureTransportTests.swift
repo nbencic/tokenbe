@@ -115,6 +115,21 @@ import Testing
     await #expect(throws: TransportError.noFixture("GET /c")) { try await stub.send(try Self.request("/c")) }
     #expect(await stub.callOrder == ["GET /a", "GET /a", "GET /a", "GET /b", "GET /c"])
   }
+
+  @Test("the OpenAI routes serve the committed synthetic fixtures; page=<cursor> selects that page's file")
+  func openAIRoutes() async throws {
+    let transport = FixtureTransport(routes: FixtureTransport.knownRoutes)
+    let base = "https://api.openai.com/v1/organization"
+    for (path, marker) in [("/projects", "proj_fixture"), ("/projects/proj_fixture/api_keys", "key_fixture_a1b2"),
+                           ("/usage/completions", "page2"), ("/costs", "organization.costs.result"),
+                           ("/usage/completions?start_time=1&page=page2", "1794308400")] {
+      let url = try #require(URL(string: base + path))
+      let response = try await transport.send(HTTPRequest(url: url))
+      #expect(response.status == 200 && utf8Text(response.body).contains(marker), "\(path)")
+    }
+    let odd = try #require(URL(string: base + "/usage/completions?page=..%2Fx"))
+    #expect(FixtureTransport.pageCase(odd) == nil)
+  }
 }
 
 /// 14 § Stage 3.1 step 6: `app.network_changed {online, interface}` on each transition, not on the first status.

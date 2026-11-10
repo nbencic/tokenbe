@@ -32,6 +32,10 @@ public struct TokenClasses: Sendable, Equatable {
       output: lhs.output + rhs.output, reasoning: lhs.reasoning + rhs.reasoning, requests: lhs.requests + rhs.requests
     )
   }
+
+  public static func += (lhs: inout TokenClasses, rhs: TokenClasses) {
+    lhs = lhs + rhs
+  }
 }
 
 extension UsageBucketRecord {

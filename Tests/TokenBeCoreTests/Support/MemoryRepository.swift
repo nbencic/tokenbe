@@ -118,13 +118,13 @@ actor MemoryRepository: Repository {
     return before
   }
 
-  func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure, circuitThreshold: Int,
-                         circuitUntil: Date) async throws -> PollStateRecord? {
+  func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
+                         circuit: CircuitRule) async throws -> PollStateRecord? {
     var state = pollState(accountID, job)
     state.consecutiveFailures += 1
     state.lastErrorClass = failure.errorClass
-    if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuitThreshold) {
-      state.circuitOpenUntil = DBTime.string(circuitUntil)
+    if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuit.threshold) {
+      state.circuitOpenUntil = DBTime.string(circuit.until)
     }
     states["\(accountID)/\(job.rawValue)"] = state
     return state

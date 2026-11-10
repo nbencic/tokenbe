@@ -21,7 +21,7 @@ public actor Poller {
   }
 
   public enum Outcome: Sendable, Equatable {
-    case ok(rows: Int)
+    case succeeded(rows: Int)
     /// `poll_state.last_error_class` of the failure (`PollFailure.errorClass`).
     case failed(String)
     /// Nothing ran, nothing was recorded: the job does not apply to the account, or it was cancelled.
@@ -107,11 +107,11 @@ public actor Poller {
       log.emit(.info, .pollOk, cat: cat, msg: "\(job.rawValue) poll ok", acct: acct, job: job.rawValue,
                dur: ContinuousClock.now - started,
                ctx: ["rows": .int(rows), "cursor": resumedFrom.map { .string($0) } ?? .null])
-      return .ok(rows: rows)
+      return .succeeded(rows: rows)
     } catch let error as PollError {
-      return await failed(error, account: account, job: job, attempts: attempts, trace: trace, at: time)
+      return await failed(error, Run(account: account, job: job, attempts: attempts, trace: trace, time: time))
     } catch {
-      return await storeFailed(error, account: account, job: job, attempts: attempts, at: time)
+      return await storeFailed(error, Run(account: account, job: job, attempts: attempts, trace: trace, time: time))
     }
   }
 
@@ -211,8 +211,17 @@ public actor Poller {
     return .skipped(rule)
   }
 
-  private func failed(_ error: PollError, account: AccountRecord, job: Job, attempts: Int, trace: ResponseTrace,
-                      at time: Date) async -> Outcome {
+  /// One `runOnce` call, for the failure paths.
+  struct Run {
+    var account: AccountRecord
+    var job: Job
+    var attempts: Int
+    var trace: ResponseTrace
+    var time: Date
+  }
+
+  private func failed(_ error: PollError, _ run: Run) async -> Outcome {
+    let (account, job, attempts, trace, time) = (run.account, run.job, run.attempts, run.trace, run.time)
     let acct = account.provider
     let cat = Cat.poll(acct)
     let redactor = log.redactor
@@ -248,8 +257,8 @@ public actor Poller {
     return .failed(failure.errorClass)
   }
 
-  private func storeFailed(_ error: any Error, account: AccountRecord, job: Job, attempts: Int,
-                           at time: Date) async -> Outcome {
+  private func storeFailed(_ error: any Error, _ run: Run) async -> Outcome {
+    let (account, job, attempts, time) = (run.account, run.job, run.attempts, run.time)
     let acct = account.provider
     if case StoreError.writeIncomplete(let expected, let written) = error {
       log.emit(.error, .pollWriteIncomplete, cat: .poll(acct), msg: "usage rows do not add up to the page (V2)",
@@ -266,8 +275,8 @@ public actor Poller {
   private func record(_ failure: PollFailure, account: AccountRecord, job: Job, at time: Date) async -> PollStateRecord? {
     do {
       return try await store.recordPollFailure(
-        accountID: account.id, job: job, at: time, failure: failure, circuitThreshold: Self.circuitThreshold,
-        circuitUntil: time.addingTimeInterval(Self.circuitDuration)
+        accountID: account.id, job: job, at: time, failure: failure,
+        circuit: CircuitRule(threshold: Self.circuitThreshold, until: time.addingTimeInterval(Self.circuitDuration))
       )
     } catch {
       log.emit(.error, .pollFailed, cat: .poll(account.provider), msg: "poll_state not updated",
