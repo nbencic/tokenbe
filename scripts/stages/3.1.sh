@@ -37,7 +37,8 @@ done
 check "FixtureTransport is compiled in DEBUG only" bash -c "head -n 1 $net/FixtureTransport.swift | grep -qx '#if DEBUG'"
 check "no DispatchQueue in Network (R6)" bash -c "! grep -rqE 'DispatchQueue|\\.start\\(queue' $net"
 check "app.network_changed emitted" grep -qF '.appNetworkChanged' $net/NetworkMonitor.swift
-check "no Tests/Fixtures/providers file committed before record-fixtures.sh (R11, Q-026)" bash -c "! git ls-files Tests/Fixtures/providers | grep -q ."
+# 3.3 added record-fixtures.sh, so committed provider fixtures must pass its redaction check (R11, Q-026, Q-028).
+check "Tests/Fixtures passes record-fixtures.sh --verify-redacted (R11)" scripts/record-fixtures.sh --verify-redacted
 check "check-log-events.sh" scripts/check-log-events.sh
 check "check-no-secrets.sh URL allowlist (14 Verify)" scripts/check-no-secrets.sh
 

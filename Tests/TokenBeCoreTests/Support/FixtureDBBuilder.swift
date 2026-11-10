@@ -7,13 +7,18 @@ import GRDB
 /// 4 KiB. Regenerate with `TOKENBE_WRITE_FIXTURES=1 swift test --filter FixtureDBTests`.
 enum FixtureDBBuilder {
   static let stamp = "2026-01-15T09:30:00.000Z"
+  /// OpenAI's 02 capabilities, as `Capabilities.json()` stores them (`CapabilitiesTests.fixtureRow` keeps the two equal).
+  static let capabilities = Capabilities(usage: true, cost: true, balance: false, perKeyUsage: true, keyNames: true,
+                                         balanceModeDefault: .anchored, usageLag: .seconds(3600), currencyHint: .usd)
+  static let capabilitiesJSON = #"{"balance":false,"balance_mode_default":"anchored","cost":true,"#
+    + #""currency_hint":"USD","key_names":true,"per_key_usage":true,"usage":true,"usage_lag_s":3600}"#
   static let accountID = "0190f0a0-0000-7000-8000-000000000001"
 
   static func account(id: String = accountID, provider: String = "openai", label: String = "OpenAI",
                       createdAt: String = stamp) -> AccountRecord {
     AccountRecord(
       id: id, provider: provider, label: label, keychainRef: "tokenbe.\(provider)", balanceMode: "anchored",
-      currency: "USD", capabilities: #"{"usage":true,"cost":true,"balance":false,"keys":true}"#,
+      currency: "USD", capabilities: capabilitiesJSON,
       orgId: "org-fixture", orgName: "Fixture Org", autoReloadEnabled: false, autoReloadToCents: nil,
       autoReloadBelowCents: nil, paused: false, intervalOverrideJson: nil, createdAt: createdAt
     )

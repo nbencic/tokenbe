@@ -1,5 +1,5 @@
 /// Account currency (03: integer minor units with an explicit currency; D-no-currency-conversion).
-public enum Currency: String, CaseIterable, Sendable {
+public enum Currency: String, CaseIterable, Sendable, Codable {
   case usd = "USD"
   case cny = "CNY"
 
