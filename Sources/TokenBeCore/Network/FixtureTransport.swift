@@ -66,8 +66,8 @@ public struct FixtureTransport: HTTPTransport {
     }
   }
 
-  /// Every adapter's routes, added with the adapter (3.4 onward); empty until then.
-  public static let knownRoutes: [Route] = []
+  /// Every adapter's routes, added with each adapter.
+  public static let knownRoutes: [Route] = OpenAIAdapter.fixtureRoutes
 
   public let root: URL
   public let routes: [Route]
@@ -87,13 +87,22 @@ public struct FixtureTransport: HTTPTransport {
       .appendingPathComponent("Tests/Fixtures/providers", isDirectory: true)
   }
 
+  /// A request for a later page names its case by the cursor: `page=page2` → `<endpoint>.page2` (Q-029), so the
+  /// `ok` page can say `has_more` without paging forever. Only `[A-Za-z0-9_]` cursors map to a file.
+  static func pageCase(_ url: URL) -> String? {
+    let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+    guard let page = items.first(where: { $0.name == "page" })?.value, !page.isEmpty,
+          page.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") }) else { return nil }
+    return page
+  }
+
   public func send(_ request: HTTPRequest) async throws(TransportError) -> HTTPResponse {
     let hostPath = (request.url.host() ?? "") + request.url.path()
     guard let route = routes.first(where: { $0.method == request.method && $0.hostPath == hostPath }) else {
       throw .noFixture("\(request.method) \(hostPath)")
     }
     let key = "\(route.provider.rawValue)/\(route.endpoint)"
-    let name = "\(route.endpoint).\(cases[key] ?? "ok")"
+    let name = "\(route.endpoint).\(Self.pageCase(request.url) ?? cases[key] ?? "ok")"
     let folder = root.appendingPathComponent(route.provider.rawValue, isDirectory: true)
     for kind in ["recorded", "synthetic"] {
       let file = folder.appendingPathComponent("\(name).\(kind).json")

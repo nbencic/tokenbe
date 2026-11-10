@@ -1,0 +1,10 @@
+{
+  "status": 200,
+  "headers": {"Content-Type": "application/json"},
+  "body": {
+    "data": [
+      {"id": "key_fixture_a1b2", "name": "Production", "redacted_value": "sk-FIXTURE-openai-a1b2", "created_at": 1768467600, "last_used_at": 1794303000},
+      {"id": "key_fixture_c3d4", "name": "Staging", "redacted_value": "sk-FIXTURE-openai-c3d4", "created_at": 1768467600, "last_used_at": null}
+    ]
+  }
+}

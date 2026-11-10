@@ -1,0 +1,5 @@
+provider,case,inputUncached,cacheWrite5m,cacheWrite1h,cacheRead,output,reasoning,requests
+openai,usage_completions.ok/0/0,1000,0,0,200,300,0,4
+openai,usage_completions.ok/0/1,500,50,0,0,80,0,2
+openai,usage_completions.ok/1/0,0,0,0,150,10,0,1
+openai,usage_completions.page2/0/0,40,0,0,10,5,0,1

@@ -31,6 +31,7 @@ public enum Evt: String, CaseIterable, Sendable {
   case pollSchemaDrift = "poll.schema_drift"
   case pollUnknownKeys = "poll.unknown_keys"
   case pollProviderRule = "poll.provider_rule"
+  case pollWriteIncomplete = "poll.write_incomplete"
   case normalizeNegative = "normalize.negative"
   case normalizeFailed = "normalize.failed"
   case normalizeUnknownKeys = "normalize.unknown_keys"

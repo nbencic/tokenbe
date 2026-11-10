@@ -10,6 +10,11 @@ struct AppEnvironment {
   let logSinks: [any LogSink]
   /// Where the NDJSON log lives (07; a test root's `Logs/TokenBe` in UI tests), for `Open log folder`.
   let logsDirectory: URL
+  /// Every provider request goes through this (14 § 0.3): fixtures in DEBUG with `tb.debug.fixtureMode`, else the
+  /// network. Chosen once at launch, so changing the setting takes effect at the next launch (Q-029).
+  let transport: any HTTPTransport
+  /// The adapters this build has (PM-3.3-2); onboarding (3.5) offers `registry.availableForOnboarding`.
+  let registry: ProviderRegistry
   /// The store (03), set by startup step 2; nil only if that step failed, in which case the app quits.
   var repository: (any Repository)?
 }

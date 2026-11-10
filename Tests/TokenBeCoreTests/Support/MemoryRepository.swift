@@ -55,6 +55,88 @@ actor MemoryRepository: Repository {
     return 0
   }
 
+  // MARK: - Provider keys, usage, cost, poll (3.4): plain storage for view-model tests, no SQL semantics (11)
+
+  private(set) var providerKeys: [String: [DiscoveredKey]] = [:]
+  private(set) var usage: [UsageBucketRecord] = []
+  private(set) var costs: [CostBucketRecord] = []
+  private var states: [String: PollStateRecord] = [:]
+
+  func upsertProviderKeys(accountID: String, keys: [DiscoveredKey], seenAt: Date) async throws {
+    var known = providerKeys[accountID, default: []].filter { old in !keys.contains { $0.providerKeyID == old.providerKeyID } }
+    known += keys
+    providerKeys[accountID] = known
+  }
+
+  func fetchProviderKeys(accountID: String) async throws -> [ProviderKeyRecord] {
+    providerKeys[accountID, default: []].map {
+      ProviderKeyRecord(accountId: accountID, providerKeyId: $0.providerKeyID, name: $0.name, redacted: $0.redacted,
+                        projectId: $0.projectID, workspaceId: $0.workspaceID, status: "active", firstSeenAt: "",
+                        lastSeenAt: "")
+    }
+  }
+
+  func writeUsagePage(_ page: UsagePageWrite) async throws {
+    usage += page.rows
+    var state = pollState(page.accountID, page.job)
+    state.cursor = page.cursor
+    states["\(page.accountID)/\(page.job.rawValue)"] = state
+  }
+
+  func fetchUsageBuckets(accountID: String) async throws -> [UsageBucketRecord] {
+    usage.filter { $0.accountId == accountID }
+  }
+
+  func replaceCostDays(accountID: String, rows: [CostBucketRecord]) async throws {
+    let days = Set(rows.map(\.day))
+    costs.removeAll { $0.accountId == accountID && days.contains($0.day) }
+    costs += rows
+  }
+
+  func fetchCostBuckets(accountID: String) async throws -> [CostBucketRecord] {
+    costs.filter { $0.accountId == accountID }
+  }
+
+  func fetchPollState(accountID: String, job: Job) async throws -> PollStateRecord? {
+    states["\(accountID)/\(job.rawValue)"]
+  }
+
+  func recordPollAttempt(accountID: String, job: Job, at time: Date) async throws {
+    var state = pollState(accountID, job)
+    state.lastAttemptAt = DBTime.string(time)
+    states["\(accountID)/\(job.rawValue)"] = state
+  }
+
+  func recordPollSuccess(accountID: String, job: Job, at time: Date, lastRaw: String?) async throws -> PollStateRecord? {
+    let before = states["\(accountID)/\(job.rawValue)"]
+    var state = pollState(accountID, job)
+    state.lastSuccessAt = DBTime.string(time)
+    state.consecutiveFailures = 0
+    state.circuitOpenUntil = nil
+    state.cursor = nil
+    states["\(accountID)/\(job.rawValue)"] = state
+    return before
+  }
+
+  func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure, circuitThreshold: Int,
+                         circuitUntil: Date) async throws -> PollStateRecord? {
+    var state = pollState(accountID, job)
+    state.consecutiveFailures += 1
+    state.lastErrorClass = failure.errorClass
+    if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuitThreshold) {
+      state.circuitOpenUntil = DBTime.string(circuitUntil)
+    }
+    states["\(accountID)/\(job.rawValue)"] = state
+    return state
+  }
+
+  private func pollState(_ accountID: String, _ job: Job) -> PollStateRecord {
+    states["\(accountID)/\(job.rawValue)"] ?? PollStateRecord(
+      accountId: accountID, job: job.rawValue, lastAttemptAt: nil, lastSuccessAt: nil, lastErrorClass: nil,
+      lastErrorMessage: nil, consecutiveFailures: 0, circuitOpenUntil: nil, cursor: nil, lastRaw: nil
+    )
+  }
+
   // MARK: - Observation (like `ValueObservation`: the current value first, then one value per change)
 
   nonisolated func observeSummaryInputs() -> AsyncStream<SummaryInputs> {
