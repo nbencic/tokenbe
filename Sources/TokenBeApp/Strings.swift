@@ -73,4 +73,21 @@ enum Strings {
 
   /// VoiceOver label for a band dot (08 § Accessibility: colour is never the only carrier).
   static func bandLabel(_ word: String) -> String { "Band: \(word)" }
+
+  // Database alerts (03 § Migrations, § Durability; 14 § Stage 2.1). 08 has no copy for these (Q-024).
+  static let databaseFatalTitle = "TokenBe can\u{2019}t open its database"
+  static func databaseFatalBody(migration: String?, error: String, database: String, backup: String) -> String {
+    let cause = migration.map { "Migration \($0) failed." } ?? "The database could not be opened."
+    return "\(cause)\n\nError: \(error)\n\nYour data has not been changed.\nDatabase: \(database)\nBackup: \(backup)"
+  }
+  static let databaseRecoveredTitle = "TokenBe repaired its database"
+  static func databaseRecoveredBody(corruptCopy: String, restoredFrom: String?) -> String {
+    guard let restoredFrom else {
+      return "The database was damaged and no backup was found, so TokenBe started a new, empty database."
+        + "\n\nDamaged copy: \(corruptCopy)"
+    }
+    return "The database was damaged and has been restored from the last backup."
+      + "\n\nDamaged copy: \(corruptCopy)\nBackup used: \(restoredFrom)"
+  }
+  static let okButton = "OK"
 }

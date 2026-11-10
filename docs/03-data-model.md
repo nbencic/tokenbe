@@ -8,7 +8,7 @@ Engine: SQLite via GRDB (`DatabasePool`). File: `~/Library/Application Support/T
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 PRAGMA foreign_keys = ON;
-PRAGMA auto_vacuum = INCREMENTAL;      -- must be set before any table exists; migration 001 runs it first
+PRAGMA auto_vacuum = INCREMENTAL;      -- must be set before any table exists; the writer connection sets it on open (Q-024)
 PRAGMA cache_size = -2000;             -- 2 MB
 PRAGMA mmap_size = 0;
 PRAGMA temp_store = MEMORY;

@@ -11,6 +11,7 @@ let package = Package(
     .target(name: "TokenBeCore", dependencies: [.product(name: "GRDB", package: "GRDB.swift")],
             resources: [.copy("Store/Migrations")],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency"), .swiftLanguageMode(.v6)]),
-    .testTarget(name: "TokenBeCoreTests", dependencies: ["TokenBeCore"], resources: [.copy("../Fixtures")])
+    .testTarget(name: "TokenBeCoreTests",
+                dependencies: ["TokenBeCore", .product(name: "GRDB", package: "GRDB.swift")], resources: [.copy("../Fixtures")])
   ]
 )

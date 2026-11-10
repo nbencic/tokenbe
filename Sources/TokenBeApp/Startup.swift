@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import ServiceManagement
 import TokenBeCore
 
@@ -43,13 +43,48 @@ final class Startup {
   private(set) var environment: AppEnvironment?
   private var retentionWatcher: Task<Void, Never>?
   private var loginItem: LoginItemController?
+  /// Set when step 2 failed; launch stops with `FatalErrorAlert` (03 § Migrations).
+  private(set) var databaseFailure: DatabaseOpenError?
+  /// `app.terminate {reason}` for the next terminate: `quit`, or `database` after a fatal alert.
+  private(set) var terminationReason = "quit"
 
-  func run() async {
+  /// Returns false when launch must stop: the fatal alert has been shown and the app is terminating.
+  @discardableResult
+  func run() async -> Bool {
     let sequence = StartupSequence(steps: [
       StartupStep("logging") { [self] in try await startLogging() },
+      StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("login item") { [self] in startLoginItem() }
     ])
-    await sequence.run()
+    guard await sequence.run() else {
+      if let databaseFailure {
+        FatalErrorAlert.show(databaseFailure)
+        terminationReason = "database"
+        NSApp.terminate(nil)
+        return false
+      }
+      return true
+    }
+    return true
+  }
+
+  /// 04 step 2: open `tokenbe.sqlite` with 03's PRAGMAs, `quick_check`, migrate (`DatabaseOpener`). A corrupt
+  /// database is repaired on the way and the user is told where the damaged copy went.
+  private func openDatabase() async throws {
+    do {
+      let opened = try await DatabaseOpener.open(directory: paths.support)
+      environment?.repository = GRDBRepository(database: opened.database)
+      if let recovery = opened.recovery {
+        FatalErrorAlert.showRecovered(recovery)
+      }
+    } catch {
+      databaseFailure = error as? DatabaseOpenError ?? DatabaseOpenError(
+        migration: nil, message: String(describing: error),
+        databasePath: paths.support.appendingPathComponent(AppDatabase.fileName).path,
+        backupPath: paths.support.appendingPathComponent(AppDatabase.fileName + ".bak").path
+      )
+      throw error
+    }
   }
 
   /// 04 step 1: file sink first, then OSLog; `app.launch`; previous-crash check; crash handler; sentinel.
