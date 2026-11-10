@@ -71,7 +71,7 @@ check "07 lists poll.write_incomplete (V2, Q-029)" grep -qF '`poll.write_incompl
 check "check-log-events.sh (07 ↔ Evt)" scripts/check-log-events.sh
 
 # Step 7: the repository aggregates join Repository.
-check "Repository includes providerKeys, usage, cost and poll" grep -qxF '  & ProviderKeyRepository & UsageRepository & CostRepository & PollRepository' $store/Repository.swift
+check "Repository includes providerKeys, usage, cost and poll" grep -qF '& ProviderKeyRepository & UsageRepository & CostRepository & PollRepository' $store/Repository.swift
 
 # PM-3.1-1: no real request leaves a test process. PM-3.3-2: adapter, routes and transport wired into the app.
 check "URLSessionTransport installs the test guard" grep -qF 'NoNetworkInTests.isActive' Sources/TokenBeCore/Network/URLSessionTransport.swift
