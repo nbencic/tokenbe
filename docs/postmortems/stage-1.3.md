@@ -23,7 +23,7 @@ Core gained:
 - `SettingSpec.intBounds`: stepper ranges from 09.
 
 Verification:
-- {{TESTS}} Core tests pass, including 4 new suites: Shortcut, LoginItemController, AccountOrder and SettingSpecBounds. A 60-run loop of the full suite: {{LOOP}}.
+- {{TESTS}} Core tests pass, including 4 new suites: Shortcut, LoginItemController, AccountOrder and SettingSpecBounds. The full suite was looped twice, 60 runs each. The first loop had 1 failure, an old 0.2 test (item 5); the second, after the fix, had none.
 - `SettingsGeneralUITests` runs these steps:
   - opens Settings from the footer;
   - flips launch at login against a test-root marker, never the real login item;
@@ -61,6 +61,8 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by the PR's green CI; D13 is me
    - the UI test function exceeded 50 lines and was split into steps;
    - a parameter named `on`.
 
+5. **A 0.2 Redactor test flaked once in 60 runs.** `pattern3` builds a random 40-character token. When the token is all letters (about 1 run in 1,100), pattern 3 reads it as a scheme word like `Bearer` and also redacts the following word. The exact-output assertion then fails, although the result is *more* redacted, never less. Fix: the token starts with a digit; the redactor's behaviour is safe and unchanged. Found only because of the ≥ 50-run loop (PM-1.2-3). Cost: one extra loop.
+
 ## Verify and CI failures
 - `build-app` run 1: green. `swift test` run 1: green ({{TESTS}} tests).
 - `uitest` (Settings only):
@@ -68,6 +70,7 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by the PR's green CI; D13 is me
   - run 9: green after the Dashboard change;
   - run 10: green with the live log-level check.
 - `lint` run 1: item 4 (3 violations). Run 2: clean.
+- Full-suite loop 1: 1 of 60 failed (item 5). Loop 2: 0 of 60.
 - `verify-stage.sh 1.3` run 1: {{VERIFY}}.
 - CI on the PR: {{CI}}.
 

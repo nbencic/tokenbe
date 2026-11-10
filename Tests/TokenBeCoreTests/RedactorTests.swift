@@ -42,7 +42,9 @@ import Testing
   @Test("pattern 3: auth headers, with scheme word and JSON quoting")
   func pattern3() {
     let redactor = Redactor()
-    let token = Self.body(40)
+    // A leading digit keeps the token from looking like a scheme word: an all-letter value followed by another word
+    // is redacted together with that word (safe, but it broke the exact-output check about once in 1,100 runs).
+    let token = "7" + Self.body(39)
     let cases = [
       "Authorization: Bearer \(token)",
       "authorization=Basic \(token)",
