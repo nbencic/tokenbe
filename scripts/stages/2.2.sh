@@ -35,7 +35,7 @@ check "check-log-events.sh" scripts/check-log-events.sh
 for suite in ObservationTests AccountSummaryBuilderTests RepositoryAccountTests SettingsTests; do
   check "suite $suite passed" suite_passed "$suite"
 done
-check "AdvancedMaintenanceUITests passed" grep -q "Test Suite 'AdvancedMaintenanceUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
+ui_check "AdvancedMaintenanceUITests passed" grep -q "Test Suite 'AdvancedMaintenanceUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 
 # 14 Verify, under the UI test's TOKENBE_TEST_ROOT (Q-025): the test asserts tokenbe.sqlite.bak in its root and the
 # app.settings_changed records for both tb.db.* keys (DashboardShellUITests resets the UI-test suite afterwards, Q-020).

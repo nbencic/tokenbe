@@ -64,6 +64,6 @@ for suite in AccountLifecycleTests AccountSupportTests StartupSequenceTests KeyS
   check "suite $suite passed" suite_passed "$suite"
 done
 # 14 Verify: the UI test asserts 1 account, 4 poll_state rows and the provider keys in its own root (Q-025, Q-030).
-check "OnboardingUITests passed" grep -q "Test Suite 'OnboardingUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
+ui_check "OnboardingUITests passed" grep -q "Test Suite 'OnboardingUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 check "the owner's real support folder is unchanged (D10)" real_support_unchanged
 check "no TokenBe settings changed in the owner's real domain" real_tb_unchanged

@@ -77,7 +77,7 @@ check "relaunch after the kill" launch_cycle "$crash_root"
 check "crash.previous_launch logged once" test "$(count_evt "$crash_root" crash.previous_launch)" -eq 1
 
 check "StartupSequenceTests passed" suite_passed StartupSequenceTests
-check "UI tests (LaunchSmokeTests)" scripts/run.sh uitest
+ui_check "UI tests (LaunchSmokeTests)" scripts/run.sh uitest
 real_untouched() {
   local dir changed=""
   for dir in "$HOME/Library/Logs/TokenBe" "$HOME/Library/Application Support/TokenBe"; do

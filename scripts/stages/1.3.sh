@@ -40,13 +40,13 @@ done
 for suite in ShortcutTests LoginItemControllerTests AccountOrderTests SettingSpecBoundsTests; do
   check "suite $suite passed" suite_passed "$suite"
 done
-check "SettingsGeneralUITests passed" grep -q "Test Suite 'SettingsGeneralUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
+ui_check "SettingsGeneralUITests passed" grep -q "Test Suite 'SettingsGeneralUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 
 # 14 Verify, on the UI-test suite (Q-014): each value the test set last.
 suite_is() { [[ "$(defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>/dev/null)" == "$2" ]] || { echo "$1 is '$(defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>&1)', want '$2'"; return 1; }; }
 for pair in tb.general.launchAtLogin=1 tb.menubar.metric=todaySpend tb.popover.pinnedMetric=remaining \
             tb.popover.sort=name tb.ui.hideCents=0 tb.ui.useSystemAccent=0 tb.ui.appearance=dark \
             tb.ui.shortcut=ctrl+alt+t tb.log.level=info; do
-  check "UI-test suite: ${pair%%=*} = ${pair#*=}" suite_is "${pair%%=*}" "${pair#*=}"
+  ui_check "UI-test suite: ${pair%%=*} = ${pair#*=}" suite_is "${pair%%=*}" "${pair#*=}"
 done
 check "owner's real TokenBe settings (tb.*) unchanged after the Settings UI tests" real_tb_unchanged
