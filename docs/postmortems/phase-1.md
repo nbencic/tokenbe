@@ -1,5 +1,5 @@
 # Postmortem — Phase 1 App shell
-Date: 2026-11-10 · Stages: 1.1 (#6), 1.2 (#7), 1.3 ({{PR}})
+Date: 2026-11-10 · Stages: 1.1 (#6), 1.2 (#7), 1.3 (#8)
 
 ## Outcome vs. phase map
 14 § 0.5: "Full window/menu chrome with real empty states; preferences work."

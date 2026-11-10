@@ -3,7 +3,7 @@ import SwiftUI
 import TokenBeCore
 
 /// The global shortcut (09 `tb.ui.shortcut`, D-hotkey-carbon): Carbon `RegisterEventHotKey`, which needs no
-/// Accessibility permission and consumes the key press. `NSEvent.addGlobalMonitorForEvents` is not allowed (09).
+/// Accessibility permission and consumes the key press. A global `NSEvent` monitor is not allowed (09).
 /// One hotkey at a time; registration failure logs `ui.hotkey_failed {shortcut, osstatus}`.
 @MainActor
 final class HotKeyCenter {
