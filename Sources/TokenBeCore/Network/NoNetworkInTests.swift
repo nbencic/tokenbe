@@ -6,9 +6,7 @@ import Synchronization
 /// stack: every request fails at once with `notConnectedToInternet` and is counted in `blocked`, and nothing
 /// reaches DNS. Tests that need a response inject `protocolClasses` (`URLSessionTransportTests`) or use
 /// `StubTransport`/`FixtureTransport`. Release builds never detect a test process.
-final class NoNetworkInTests: URLProtocol, @unchecked Sendable {
-  // @unchecked: URLProtocol is an open Objective-C class; this subclass adds no stored state (the counter is static
-  // and atomic), so instances are as thread-safe as Foundation's own protocol objects.
+final class NoNetworkInTests: URLProtocol {
   private static let count = Atomic<Int>(0)
 
   /// Requests refused so far in this process.

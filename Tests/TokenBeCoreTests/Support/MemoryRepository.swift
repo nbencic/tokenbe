@@ -121,7 +121,7 @@ actor MemoryRepository: Repository {
   func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
                          circuit: CircuitRule) async throws -> PollStateRecord? {
     var state = pollState(accountID, job)
-    state.consecutiveFailures += 1
+    state.consecutiveFailures = state.lastErrorClass == failure.errorClass ? state.consecutiveFailures + 1 : 1
     state.lastErrorClass = failure.errorClass
     if failure.countsTowardCircuit && state.consecutiveFailures >= Int64(circuit.threshold) {
       state.circuitOpenUntil = DBTime.string(circuit.until)

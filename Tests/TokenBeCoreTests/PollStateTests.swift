@@ -48,6 +48,16 @@ import Testing
     #expect(opened?.lastErrorClass == "auth" && opened?.lastErrorMessage == "m")
   }
 
+  @Test("only consecutive auth failures open the circuit; another class in between restarts the streak",
+        arguments: [([false, false, true], false), ([true, false, true, true], false), ([true, true, true], true),
+                    ([false, true, true, true], true)])
+  func mixedClasses(_ sequence: [Bool], opens: Bool) async throws {
+    let env = try await Harness()
+    var last: PollStateRecord?
+    for auth in sequence { last = try await fail(env, auth) }
+    #expect((last?.circuitOpenUntil != nil) == opens, "\(sequence)")
+  }
+
   @Test("success resets failures, error, circuit and cursor, and returns the row as it was")
   func successResets() async throws {
     let env = try await Harness()

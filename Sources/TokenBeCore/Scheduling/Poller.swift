@@ -162,8 +162,8 @@ public actor Poller {
 
   /// 04 § Retry policy within one attempt: transport/server ×3 (2/4/8 s ± 25 %), rate limit ×1 (`Retry-After`,
   /// cap 300 s, else 30 s), everything else at once.
-  private func retrying<T>(_ acct: String, _ job: Job, attempts: inout Int,
-                           _ operation: () async throws(PollError) -> T) async throws(PollError) -> T {
+  private func retrying<T: Sendable>(_ acct: String, _ job: Job, attempts: inout Int,
+                                     _ operation: () async throws(PollError) -> T) async throws(PollError) -> T {
     var tries = 0
     while true {
       tries += 1

@@ -40,7 +40,8 @@ public protocol PollRepository: Sendable {
   /// row as it was before, so the caller can log `poll.circuit_close`.
   @discardableResult
   func recordPollSuccess(accountID: String, job: Job, at time: Date, lastRaw: String?) async throws -> PollStateRecord?
-  /// `consecutive_failures + 1` and the error; when the failure counts toward the circuit and the count reaches
+  /// `consecutive_failures + 1` when the class repeats `last_error_class`, else 1 (a streak is one class), and the
+  /// error; when the failure counts toward the circuit and the count reaches
   /// `circuit.threshold`, `circuit_open_until = circuit.until`. The cursor is kept, so paging resumes (Q-029).
   /// Returns the updated row.
   func recordPollFailure(accountID: String, job: Job, at time: Date, failure: PollFailure,
@@ -80,7 +81,9 @@ extension GRDBRepository {
     try await database.write("recordPollFailure") { db in
       let key: [String: (any DatabaseValueConvertible)?] = ["account_id": accountID, "job": job.rawValue]
       guard var state = try PollStateRecord.fetchOne(db, key: key) else { return nil }
-      state.consecutiveFailures += 1
+      // A streak is failures of one class in a row (Q-029): 04's circuit needs 3 consecutive AUTH failures, so a
+      // 500 before a 401 must not count toward it.
+      state.consecutiveFailures = state.lastErrorClass == failure.errorClass ? state.consecutiveFailures + 1 : 1
       state.lastErrorClass = failure.errorClass
       state.lastErrorMessage = failure.message
       if let lastRaw = failure.lastRaw { state.lastRaw = Data(lastRaw.utf8) }

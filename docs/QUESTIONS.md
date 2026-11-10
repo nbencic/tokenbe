@@ -290,6 +290,7 @@ Decisions:
 - **Poller.** The lookbacks are usage 48 h and cost 7 d. `acct` in `poll.*` records is the provider name, as in 07's example. `last_error_class` is `auth`, `transport`, `server`, `rate_limited`, `decode`, `provider_rule`, `keychain` or `store`, and `last_error_message` is redacted and ≤ 512 chars. Rules for the other outcomes:
   - **Retries.** Per request, so each page gets 04's budget. `poll.rate_limited` is logged for every 429; `poll.retry` only when a retry follows.
   - **Decode failure.** Logs `poll.schema_drift {missing_keys, path, sample}` and stores the failing body, redacted, as `last_raw` (04). 02's "last successful" body is kept otherwise.
+  - **Failure streaks.** `consecutive_failures` counts failures of ONE class in a row: a failure whose class differs from `last_error_class` restarts it at 1. 04's circuit needs "3 consecutive auth failures", so `500, 500, 401` must not open it. The backoff and 04's "3 consecutive decode failures" badge read the same per-class streak.
   - **Circuit.** `poll.circuit_open` is logged when an auth failure sets `circuit_open_until`. `poll.circuit_close` is logged on the first success after it.
   - **Not run.** A job the capabilities do not allow is skipped with `poll.provider_rule`, as is an account without an adapter. A cancelled job records nothing.
   - **Missing key.** Logs `keychain.missing` and records a `keychain` failure.

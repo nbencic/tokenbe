@@ -25,13 +25,13 @@ Every OpenAI endpoint in 02 is decoded, normalized and written to the database. 
   - `AppEnvironment` holds `Transports.make(fixtureMode: settings.debugFixtureMode, …)` and a `ProviderRegistry` with the OpenAI adapter.
   - `FixtureTransport` serves the OpenAI routes, with `page=<cursor>` selecting a later page.
 - **No real network in tests (PM-3.1-1).** In a test process, a `URLSessionTransport` built without stub protocols fails every request at once. A test proves this on the production initializer.
-- **Verification.** 221 Core tests in 43 suites pass, 41 tests more than 3.3. New suites: OpenAITests, OpenAIProbeTests, NormalizerTests, PollStateTests and PollerTests. Core line coverage is 93.7 %.
+- **Verification.** 222 Core tests in 43 suites pass, 42 tests more than 3.3. New suites: OpenAITests, OpenAIProbeTests, NormalizerTests, PollStateTests and PollerTests. Core line coverage is 93.7 %.
 
 DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 
 ## What went as planned
 - The orientation spike ran before any code was written. It showed that a globally registered `URLProtocol` never reaches `URLSessionTransport`'s ephemeral session: the request went to real DNS. It also showed that `JSONDecoder` decodes `Decimal` exactly from the number text (`0.1`, 20-digit values). Both shaped the design.
-- Each design choice went into Q-029 before its code: fixture names, cursor format, cost grouping, probe outcome, V2 handling and the test guard.
+- Each design choice was settled before its code and checked against the docs in a review: fixture names, cursor format, cost grouping, probe outcome, V2 handling and the test guard. Q-029 itself was written in the docs commit, after both code commits, not before them.
 - Stage scripts were grepped before the `Repository` typealias grew. `2.1.sh`'s exact-line check still holds, and `3.4.sh` checks the new line.
 - The synthetic fixtures passed `record-fixtures.sh --verify-redacted` and `check-no-secrets.sh` as soon as they were written (R11). Fake keys in tests are built at run time.
 - The Release build (warnings as errors) passed, and `check-no-secrets.sh` was clean over its products (PM-3.3-4).
@@ -52,12 +52,15 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
    - one-letter test names.
 
    The fixes: top-level DTO types, `CircuitRule` and `Poller.Run` parameter structs, the response type inferred from the call site, a `CostGroup` struct, and the probe split into `OpenAIProbe` with a `scope` helper. Cost: one rebuild and one re-lint. Lint had not run on any slice before the tests were written, which is why the findings piled up.
-3. **Redundant protocol conformances.** The four new repository extensions declared their protocol again, which `Repository` already includes. The build rejected them, as in 2.2. Cost: one rebuild.
+3. **Mixed failure classes could open the circuit.** `consecutive_failures` counted every class, so `500, 500, 401` opened the 24 h circuit, but 04 requires 3 consecutive **auth** failures. The final review before merge caught it; no test or check did, because `PollStateTests.circuit` only covered all-server and all-auth runs. Fix: a change of class restarts the streak at 1 (Q-029). A table test covers `500,500,401`, `401,500,401,401`, `401,401,401` and `500,401,401,401`. Cost: one fix, plus a re-verify and a re-run of CI.
+4. **Redundant protocol conformances.** The four new repository extensions declared their protocol again, which `Repository` already includes. The build rejected them, as in 2.2. Cost: one rebuild.
 
 ## Verify and CI failures
 - Verify run 1: FAIL at `3.2 KeychainKeyStoreIntegrationTests ran (not skipped)`, after 460 checks. The suite had run. `3.2.sh` looked for `<skipped` in the two lines after the test case, and this run's parallel order put `FixtureDBTests.regenerate()` there, which is skipped by design. The check now asserts that the test case's element is self-closing, so it has no `<skipped/>` or `<failure>` child (PM-3.4-6). No product code changed.
 - Verify run 2: `STAGE 3.4 OK`, 603 checks across stages 0.1–3.4 and D13, the UI suites included.
-- CI: RESULT_CI.
+- CI run 1 (PR #14, head dcbadc1): `build-test` failed in the Release build. Swift 6.1, the CI compile gate (PM-0.5-1), rejected `Poller.retrying<T>` with "non-sendable result type 'T' cannot be sent from nonisolated context". The local Swift 6.4 accepted it. Fix: `T: Sendable`. The local toolchain can't reproduce 6.1 diagnostics, so the Swift 6.1 gate stays CI's job (PM-3.4-7).
+- Verify run 3 (after the circuit and `Sendable` fixes): RESULT_VERIFY3.
+- CI run 2: RESULT_CI2.
 
 ## Deviations from the docs
 - 14 step 1, 11 § Fixtures: the error fixtures are `projects.401`, `costs.403`, `usage_completions.429` and `usage_completions.500`, not `auth.401` and the rest. Page 2 is `usage_completions.page2`. `FixtureTransport` can only serve `<endpoint>.<case>` names (Q-029). 14 and 11 are reworded.
@@ -69,7 +72,7 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 - Changed outside the inventory:
   - `ProviderAdapter.swift`: `PollContext.trace`, `UsagePage.expected`.
   - `Database.swift`: `StoreError.writeIncomplete`.
-  - `URLSessionTransport.swift`: the guard.
+  - `URLSessionTransport.swift`: the guard. `NoNetworkInTests` needs no `@unchecked Sendable`: nothing requires it to be `Sendable` (R6).
   - `FixtureTransport.swift`: `knownRoutes` and page cases.
   - `AppEnvironment.swift` and `Startup.swift`: the wiring.
   - `StubTransport.swift`: `replace`.
@@ -92,11 +95,12 @@ DoD D1–D3, D5, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
   - wiring at launch.
 
 ## Carry-forward actions
-- PM-3.4-1 · agent · 3.5 · Onboarding treats `ProbeResult.humanMessage == nil` as success, and shows the message otherwise (Q-029). The Keys & apps table wants "created" and "last used". OpenAI's `created_at`/`last_used_at` are decoded, but 03's `provider_key` has no columns for them, so log a Q (a migration, or show `first_seen_at`/`last_seen_at`).
+- PM-3.4-1 · agent · 3.5 · Onboarding treats `ProbeResult.humanMessage == nil` as success, and shows the message otherwise (Q-029). `Transports.make` cannot pass `cases`, so fixture mode always serves `ok`. 3.5's UI tests for the 401 and wrong-key paths need a DEBUG way to choose a case, for example a test-root env var naming `openai/projects=401`; log the choice in a Q. The Keys & apps table wants "created" and "last used". OpenAI's `created_at`/`last_used_at` are decoded, but 03's `provider_key` has no columns for them, so log a Q (a migration, or show `first_seen_at`/`last_seen_at`).
 - PM-3.4-2 · agent · 3.6 · Recorded fixtures will carry keys 02 does not list, such as `object` on usage results and `has_more`/`first_id` on lists. They will show up as `poll.unknown_keys`/`normalize.unknown_keys`. Add each confirmed key to 02 and to the DTO in the same PR. Check the real error-body shape, and the format of `redacted_value`.
 - PM-3.4-3 · agent · 4.x pricing · `usage_bucket.est_cost_cents` is NULL and `unpriced` is 0 for provider rows. The pricing stage reprices them (`price.repriced`).
 - PM-3.4-4 · agent · DeepSeek stage · A balance-capable account's `balance` job fails as `providerRule("<p>_balance_not_stored")` until `Repository+Balance` and the poller's write exist.
 - PM-3.4-5 · agent · process · Run `swiftlint --strict` after each implementation slice, not only before verify.
+- PM-3.4-7 · agent · process · Generic helpers that cross actor or task boundaries get `Sendable` constraints from the start. Swift 6.1, CI's gate, is stricter than the local toolchain here. After pushing, read CI's Release-build step first.
 - PM-3.4-6 · agent · process · Checks on xunit results look at one `<testcase>` element, never at "the next N lines". Swift Testing's order is parallel, so neighbours change from run to run. Closed in this stage for `3.2.sh`; follow the rule in new stage scripts.
 - Earlier actions targeting 3.4:
   - PM-3.1-1: closed (5c141ad).
