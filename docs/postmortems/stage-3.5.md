@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.5 Onboarding, Accounts tab, first account
-Date: 2026-11-10 · Branch: s3.5-onboarding · PR: #15 · Planned size: L · Commits: COMMITS
+Date: 2026-11-10 · Branch: s3.5-onboarding · PR: #15 · Planned size: L · Commits: 5
 
 ## Outcome
 A user can add an OpenAI account and manage it. This is the first stage with a visible product flow.
@@ -22,7 +22,7 @@ A user can add an OpenAI account and manage it. This is the first stage with a v
 - **`SummaryInputs`** now carries `poll_state` freshness and the circuit.
 - **Verification.** 238 Core tests in 45 suites pass. New suites: AccountLifecycleTests, AccountSupportTests, and the `ObservationTests.pollStateFreshness` case. Two `OnboardingUITests` run in fixture mode and assert the database and key file of their own test root.
 
-DoD D1–D11 are met; D12 by the PR's CI; D13 by this file.
+DoD D1–D11 are met; D12 by the PR's CI; D13 by this file. 238 Core tests pass, lint is clean, and the Release build is green.
 
 ## What went as planned
 - The plan was reviewed before any code was written. The review caught three things:
@@ -42,7 +42,12 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file.
    - A tile element went stale when the account list arrived at launch.
 
    Each first looked like an app problem. The popover case cost two runs: I swapped the card list's `ScrollView` for `ViewThatFits` on a guess before a screenshot showed the popover rendering fine. The layout change was kept, and it is now covered by the test. The tests now query the rows that carry identifiers, using fresh queries. Cost: about six targeted UI runs.
-2. **Earlier stages' "not yet" checks and tests.** `1.1.sh`/`1.3.sh` and `PopoverEmptyStateUITests` asserted that `Add account…` and the Accounts tab did not exist. They were updated with the controls (D6), but only after verify run 1 failed on the UI test.
+2. **Earlier stages' checks and tests.**
+   - `1.1.sh`/`1.3.sh` and `PopoverEmptyStateUITests` asserted that `Add account…` and the Accounts tab did not exist.
+   - `2.1.sh` asserted the exact startup steps.
+   - `3.4.sh` asserted the exact `Repository` line.
+
+   Each surfaced one full verify at a time (runs 1 and 2, about 12 minutes each). Before a stage's first verify, grep the earlier stage scripts for every symbol, string and step it changes (PM-3.5-5).
 3. **A debug screenshot captured the owner's screen.** It was saved to the runner's temporary folder and the scratchpad, and deleted right after use. Use `app.debugDescription` filtered to TokenBe's elements instead (PM-3.5-1).
 
 ## Verify and CI failures
@@ -51,7 +56,10 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file.
   - `OnboardingUITests` hit a stale tile element.
 
   Both tests were fixed; the app was unchanged.
-- Verify run 2: RESULT_VERIFY.
+- Verify run 2: the UI suites all passed, then verify failed at `2.1 startup step 2 is the database (04), then the login item`, after 345 checks. 2.1's exact startup-order checks (declared and logged) and 3.4's exact `Repository` line did not expect 04 step 3 (`accounts`) or `& LedgerRepository`.
+  - All three checks now assert the order or the substring.
+  - Stages 2.1–3.5 were then dry-run without the UI suites, reusing run 2's results; no app code had changed since. An earlier dry-run attempt had run 2.1's launches before 1.3's check and tripped 1.3 on the reset settings, which was an artifact of the ordering.
+- Verify run 3: `STAGE 3.5 OK`, 678 checks across stages 0.1–3.5 and D13, the UI suites included.
 - CI: RESULT_CI.
 
 ## Deviations from the docs
@@ -64,7 +72,7 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file.
   - `PollRepository.resetCircuit`, `SummaryInputs.pollStates`, `CoreStrings.keyMissing`;
   - `ProviderGlyph`, `AppEnvironment` (keyStore, poller, lifecycle), `AppModel` (records, missingKeys, settingsTab, openOnboarding);
   - `TokenBeApp` (the onboarding window), `PopoverView`, `EmptyStateView`, `SettingsView`, `UITestSupport.makeApp`;
-  - `MemoryRepository`, `PopoverEmptyStateUITests`, `1.1.sh`, `1.3.sh`;
+  - `MemoryRepository`, `PopoverEmptyStateUITests`, `1.1.sh`, `1.3.sh`, `2.1.sh`, `3.4.sh`;
   - earlier postmortems' carry-forward statuses.
 
 ## Judgment calls
@@ -83,6 +91,7 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file.
 ## Carry-forward actions
 - PM-3.5-1 · agent · process · Debug UI tests with `app.debugDescription`, filtered to TokenBe's elements. A screenshot captures whatever else is on the owner's screen. If one is unavoidable, crop it to the app's frame and delete it right after use.
 - PM-3.5-2 · agent · process · In macOS UI tests, assert on the leaf elements that carry identifiers: texts and buttons. SwiftUI folds `.contain` containers into their parent, and button labels absorb their child texts. Re-query an element after the app may have redrawn.
+- PM-3.5-5 · agent · process · Before the first full verify, grep `scripts/stages/*.sh` for each file, string, startup step and typealias the stage changes. Then dry-run the later stage scripts without the UI suite, ordered as `verify-stage.sh` orders them.
 - PM-3.5-3 · agent · 4.1 · `Paused` writes `account.paused`. The scheduler (4.1) is its consumer, and `SummaryInputs` must carry it then (PM-2.2-3).
 - PM-3.5-4 · agent · 3.7 · Anthropic's wrong-prefix copy, which 08 lacks: log a Q or add it to 08 when the Anthropic tile appears (from PM-3.3-1).
 - Earlier actions targeting 3.5:
