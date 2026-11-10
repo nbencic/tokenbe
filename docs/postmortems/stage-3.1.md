@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.1 Network seam, error taxonomy, retry policy
-Date: 2026-11-10 · Branch: s3.1-network · PR: #11 · Planned size: M · Commits: 3
+Date: 2026-11-10 · Branch: s3.1-network · PR: #11 · Planned size: M · Commits: 4
 
 ## Outcome
 Every HTTP request of TokenBe now has one way out, and every failure has one name. Nothing is visible to the user yet.
@@ -50,7 +50,7 @@ DoD D1–D3, D9 and D11 are met; D12 by the PR's CI; D13 by this file.
 ## Verify and CI failures
 - Verify run 1: 148 checks passed through stage 0.4's builds. Then `UI tests (LaunchSmokeTests)` failed: the runner could not enable automation mode because the screen was locked (item 3). The 3.1 checks run standalone (static checks and the five suites) all passed.
 - Verify run 2, after the owner unlocked the screen (about 8 min later; a watcher started the run on unlock and kept the display awake with `caffeinate -d`): `STAGE 3.1 OK`, 454 checks across stages 0.1–3.1 and D13, the UI suites included.
-- CI: see the PR.
+- CI: PR #11 `build-test` passed on the first run (6 m 19 s) on Xcode 16.4 / Swift 6.1: build, tests, coverage gate, lint, event-table check, app build and the secret guard. This was the first 6.1 compile of the typed throws and the `NWPathMonitor` `AsyncSequence`.
 
 ## Deviations from the docs
 - 14 § Stage 3.1 step 3: `PollError.from(status:body:urlError:)` → `from(_ response:now:)` and `from(_ transportError:)`, because `Retry-After` needs the headers. 14 is reworded (Q-026).
