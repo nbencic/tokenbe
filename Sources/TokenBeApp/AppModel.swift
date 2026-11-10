@@ -28,6 +28,7 @@ final class AppModel {
 
   @ObservationIgnored private let popover = PopoverTracker()
   @ObservationIgnored private var settingsWatcher: Task<Void, Never>?
+  @ObservationIgnored private var summaryWatcher: Task<Void, Never>?
 
   /// 08 § Menu bar glyph. Stage 1.1: always solid; stale/offline (4.2) and low/critical (5.5) wire the others.
   var glyphState: GlyphState { .solid }
@@ -50,6 +51,22 @@ final class AppModel {
     settingsWatcher = Task { [weak self] in
       for await key in changes where Self.watchedKeys.contains(key) {
         self?.apply(settings)
+      }
+    }
+  }
+
+  /// Keeps `accounts` current from the database (14 § Stage 2.2): `ValueObservation` through the repository, mapped
+  /// by Core's `AccountSummaryBuilder` (04 I2, I3). A row Core cannot read is left out and logged `ui.error`.
+  func observe(_ repository: any Repository) {
+    let inputs = repository.observeSummaryInputs()
+    summaryWatcher?.cancel()
+    summaryWatcher = Task { [weak self] in
+      for await next in inputs {
+        self?.accounts = AccountSummaryBuilder.summaries(from: next) { record, invalid in
+          Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
+            "view": "accounts"
+          ])
+        }
       }
     }
   }

@@ -77,6 +77,6 @@ All are in Q-024:
 ## Carry-forward actions
 - PM-2.1-1 · agent · process · A helper that defaults to `#filePath` or `#file` resolves at the caller. Read it inside the function when the helper's own location matters.
 - PM-2.1-2 · agent · process · Tests never log through the process-wide `Log`. Every Core API that logs takes a `logPipeline:`, and tests pass one.
-- PM-2.1-3 · agent · 2.2 · Declare `observeSummaryInputs` with `SummaryInputs`; `AppModel` reads the repository from `AppEnvironment.repository`.
+- PM-2.1-3 · agent · 2.2 · Declare `observeSummaryInputs` with `SummaryInputs`; `AppModel` reads the repository from `AppEnvironment.repository`. Status: closed (12b1b59).
 - PM-2.1-5 · owner · done 2026-11-10 · Run `sudo automationmodetool enable-automationmode-without-authentication` once (replaces the optional PM-1.1-2). Unattended UI tests cannot start without it.
 - PM-2.1-4 · agent · 9.x · The weekly `integrity_check` decides whether a failure forces a restore on the next launch (Q-024). Closing the pool at quit, and the idle `wal_checkpoint(TRUNCATE)` / `optimize` of 03, are still open.

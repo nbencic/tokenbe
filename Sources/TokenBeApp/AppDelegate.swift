@@ -18,6 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.bind(settings)
         watchShortcut(settings)
       }
+      if let repository = startup.environment?.repository {
+        model.observe(repository)
+      }
     }
   }
 

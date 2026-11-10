@@ -23,6 +23,8 @@ final class SettingsGeneralUITests: XCTestCase {
     let app = makeApp(root: root)
     app.launch()
     try openSettings(app)
+    // The Settings window reopens on the tab last used in this suite, e.g. Advanced after 2.2's test (Q-025).
+    try selectTab(app, "General")
 
     checkLaunchAtLogin(app)
     checkGeneralControls(app)

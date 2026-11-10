@@ -18,7 +18,8 @@ struct SettingsView: View {
             PrivacyTab(logsDirectory: environment.logsDirectory)
           }
           Tab(Strings.tabAdvanced, systemImage: "wrench.and.screwdriver") {
-            AdvancedTab(settings: environment.settings, logsDirectory: environment.logsDirectory)
+            AdvancedTab(settings: environment.settings, logsDirectory: environment.logsDirectory,
+                        repository: environment.repository)
           }
         }
       } else {

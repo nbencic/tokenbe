@@ -9,9 +9,9 @@
 /// | accounts | `insertAccount, updateAccount, deleteAccount, fetchAccounts` | 2.1 |
 /// | maintenance | `backup, integrityCheck, quickCheck, incrementalVacuum` | 2.1 |
 /// | maintenance | `rollup, purgeHarnessEvents, thinBalanceSnapshots, exportJSON, importJSON, exportCSV, stats` | with their features |
-/// | observation | `observeSummaryInputs` | 2.2 |
+/// | observation | `observeSummaryInputs` (in `Observation.swift`) | 2.2 |
 /// | providerKeys, usage, cost, balance, ledger, prices, poll, band, apps, ingest | see 14 § Stage 2.1 | with their features |
-public typealias Repository = AccountRepository & MaintenanceRepository
+public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository
 
 /// `account` rows (03). Creating an account also seeds its four `poll_state` rows in the same transaction (03).
 public protocol AccountRepository: Sendable {
