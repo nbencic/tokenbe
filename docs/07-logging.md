@@ -57,7 +57,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `app.login_item_failed` | error | err (SMAppService) |
 | `app.network_changed` | info | online (bool), interface |
 | `app.diagnostics_exported` | info | path, bytes, files |
-| `sched.clock_jump` | warn | wall_delta_s, mono_delta_s, tz (bool) |
+| `sched.clock_jump` | warn | wall_delta_s, mono_delta_s, tz (bool), reason (`drift`,`wake`; Q-034) |
 | `sched.low_power` | info | enabled |
 | `sched.overlap_skipped` | warn | acct, job |
 | `sched.overrun` | error | acct, job, phase (`fetch`,`decode`,`write`), dur_ms |

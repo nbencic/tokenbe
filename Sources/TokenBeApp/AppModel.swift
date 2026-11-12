@@ -8,9 +8,13 @@ import TokenBeCore
 @Observable @MainActor
 final class AppModel {
   var accounts: [AccountSummary] = []
-  var isPaused = false
+  /// From the coordinator's `CoordinatorState` (14 § Stage 4.1 step 5).
+  private(set) var pausedUntil: Date?
+  private(set) var inFlightCount = 0
   var isOffline = false
-  var lastRefreshAt: Date?
+  var isPaused: Bool { pausedUntil != nil }
+  /// The header's `Refreshed …`: the oldest of the accounts' last successes (Core, `AccountSummary.refreshedAt`).
+  var lastRefreshAt: Date? { AccountSummary.refreshedAt(accounts) }
   private(set) var popoverIsOpen = false
   /// Set by `Startup` once the logging step has run.
   var environment: AppEnvironment?
@@ -60,6 +64,7 @@ final class AppModel {
   @ObservationIgnored private let popover = PopoverTracker()
   @ObservationIgnored private var settingsWatcher: Task<Void, Never>?
   @ObservationIgnored private var summaryWatcher: Task<Void, Never>?
+  @ObservationIgnored private var coordinatorWatcher: Task<Void, Never>?
 
   /// 08 § Menu bar glyph. Stage 1.1: always solid; stale/offline (4.2) and low/critical (5.5) wire the others.
   var glyphState: GlyphState { .solid }
@@ -99,6 +104,37 @@ final class AppModel {
     }
   }
 
+  /// Follows the scheduler: pause, jobs in flight, reachability.
+  func observe(_ coordinator: PollCoordinator<ContinuousClock>) {
+    let states = coordinator.states
+    coordinatorWatcher?.cancel()
+    coordinatorWatcher = Task { [weak self] in
+      for await state in states {
+        self?.pausedUntil = state.pausedUntil
+        self?.inFlightCount = state.inFlightCount
+        self?.isOffline = !state.isOnline
+      }
+    }
+  }
+
+  /// The header's refresh button (08): every account's jobs, now.
+  func refreshNow() {
+    guard let coordinator = environment?.coordinator else { return }
+    Task { await coordinator.refreshNow() }
+  }
+
+  /// `Pause polling for 1 h` (08): 09 `tb.poll.pausedUntil = now + 3600`.
+  func pauseForOneHour() {
+    environment?.settings.pollPausedUntil = Date().addingTimeInterval(Self.pauseDuration).timeIntervalSince1970
+  }
+
+  /// `Resume` (08): 09 `tb.poll.pausedUntil = 0`.
+  func resume() {
+    environment?.settings.pollPausedUntil = 0
+  }
+
+  static let pauseDuration: TimeInterval = 3600
+
   private func rebuild() {
     records = lastInputs.accounts
     accounts = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys) { record, invalid in
@@ -132,7 +168,7 @@ final class AppModel {
 
 /// The Settings window's tabs, in Paper's order (08 § Settings).
 enum SettingsTab: Hashable {
-  case general, accounts, privacy, advanced
+  case general, accounts, sources, privacy, advanced
 }
 
 /// `tb.ui.appearance` (09).

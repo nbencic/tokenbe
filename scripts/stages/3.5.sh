@@ -36,7 +36,8 @@ check "the Keychain write follows a passed probe (08, R8)" key_after_probe
 check "the probe has a 10 s timeout on the injected clock" grep -qF 'probeTimeout = Duration.seconds(10)' $core/Accounts/AccountLifecycle.swift
 check "create rolls back the Keychain item when the database refuses" grep -qF 'try await keyStore.delete(account.keychainRef)' $core/Accounts/AccountLifecycle.swift
 check "onboarding marks tb.ui.onboardingDone" grep -qF 'settings.uiOnboardingDone = true' $app/Onboarding/OnboardingSheet.swift
-check "Done runs the first keys and usage polls" bash -c "grep -qF 'job: .keys' $app/Onboarding/OnboardingSheet.swift && grep -qF 'job: .usage' $app/Onboarding/OnboardingSheet.swift"
+# 4.1 (PM-3.6-3): the coordinator polls a new account as soon as the store has it, so Done adds no request of its own.
+check "the first keys and usage polls run as soon as the account exists" bash -c "! grep -qE 'runOnce|poller' $app/Onboarding/OnboardingSheet.swift && grep -qF 'func follow(_ inputs: AsyncStream<SummaryInputs>)' $core/Scheduling/PollCoordinator.swift && grep -qF 'entries[key] = Slot(nextDue: now' $core/Scheduling/SchedulerLoop.swift"
 check "the anchor is ledger_event(kind=anchor) with ledger.anchor_set" bash -c "grep -qF 'kind: \"anchor\"' $core/Accounts/AccountLifecycle.swift && grep -qF '.ledgerAnchorSet' $core/Accounts/AccountLifecycle.swift"
 check "Repository includes LedgerRepository" grep -qF '& LedgerRepository' $core/Store/Repository.swift
 

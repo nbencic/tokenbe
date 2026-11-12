@@ -44,6 +44,8 @@ final class Startup {
   /// The composition root, available once the logging step has run.
   private(set) var environment: AppEnvironment?
   private var retentionWatcher: Task<Void, Never>?
+  /// Feed the coordinator: 09 § Sources changes, Low Power transitions, wake notifications (04 § Scheduler).
+  private var schedulerWatchers: [Task<Void, Never>] = []
   private var loginItem: LoginItemController?
   /// Set when step 2 failed; launch stops with `FatalErrorAlert` (03 § Migrations).
   private(set) var databaseFailure: DatabaseOpenError?
@@ -62,7 +64,8 @@ final class Startup {
       StartupStep("logging") { [self] in try await startLogging() },
       StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("accounts") { [self] in await checkAccounts() },
-      StartupStep("login item") { [self] in startLoginItem() }
+      StartupStep("login item") { [self] in startLoginItem() },
+      StartupStep("scheduler") { [self] in await startScheduler() }
     ])
     let succeeded = await sequence.run()
     if succeeded, let recovery = databaseRecovery {
@@ -169,12 +172,9 @@ final class Startup {
   /// 04 step 3: load the accounts and check each one's Keychain item (existence only, R8). A missing item logs
   /// `keychain.missing`, and the account's card reads `Key missing · Fix…` (08).
   private func checkAccounts() async {
-    guard var environment, let repository = environment.repository, let lifecycle = environment.lifecycle else {
+    guard let environment, let repository = environment.repository, let lifecycle = environment.lifecycle else {
       return
     }
-    environment.poller = Poller(store: repository, keyStore: environment.keyStore, registry: environment.registry,
-                                transport: environment.transport)
-    self.environment = environment
     do {
       let accounts = try await repository.fetchAccounts()
       accountCount = accounts.count
@@ -203,10 +203,43 @@ final class Startup {
     loginItem = controller
   }
 
+  /// 04 step 6: the poll coordinator, first tick at once for every account. It follows the store's accounts (a new
+  /// one is polled at once, PM-3.6-3), 09 § Sources, reachability (`NWPathMonitorAdapter`, PM-3.1-4), Low Power Mode
+  /// (`NSProcessInfoPowerStateDidChange`) and system wake (`NSWorkspace.didWakeNotification`).
+  private func startScheduler() async {
+    guard var environment, let repository = environment.repository else { return }
+    let clock = ContinuousClock()
+    let runner = Poller(store: repository, keyStore: environment.keyStore, registry: environment.registry,
+                        transport: environment.transport, clock: clock)
+    let settings = environment.settings
+    let coordinator = PollCoordinator(clock: clock, runner: runner, settings: ScheduleSettings(settings),
+                                      lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
+    environment.coordinator = coordinator
+    self.environment = environment
+    await coordinator.follow(repository.observeSummaryInputs())
+    await coordinator.follow(NWPathMonitorAdapter())
+    schedulerWatchers = [
+      coordinator.follow(settings),
+      Task {
+        for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
+          await coordinator.setLowPower(ProcessInfo.processInfo.isLowPowerModeEnabled)
+        }
+      },
+      Task {
+        for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
+          await coordinator.systemDidWake()
+        }
+      }
+    ]
+    await coordinator.start()
+  }
+
   /// `app.terminate {reason}`, sentinel removed, then the log drained (07).
   func terminate(reason: String) async {
     Log.info(.appTerminate, cat: .app, msg: "terminate", ctx: ["reason": .string(reason)])
     retentionWatcher?.cancel()
+    for watcher in schedulerWatchers { watcher.cancel() }
+    await environment?.coordinator?.shutdown()
     loginItem?.stop()
     do {
       try sentinel.markClean()

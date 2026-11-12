@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 import TokenBeCore
 
-/// The popover (08 § Popover; width 360 pt, max height 560 pt, scrolls). Stage 1.1: header title, the banner slot,
-/// the Empty state or the card list, and the footer with `Open dashboard`, `Settings…` and `Quit`. Other controls
-/// arrive with their actions.
+/// The popover (08 § Popover; width 360 pt, max height 560 pt, scrolls): the header (title; `Refreshed …` and the
+/// refresh button, or `Paused · resumes HH:mm` and `Resume`), the banner slot, the Empty state or the card list,
+/// and the footer with `Open dashboard`, `Settings…`, `Pause polling for 1 h` / `Resume` and `Quit`.
 struct PopoverView: View {
   let model: AppModel
   @Environment(\.openWindow) private var openWindow
@@ -50,9 +50,45 @@ struct PopoverView: View {
         .font(.headline)
         .accessibilityIdentifier("popover.header.title")
       Spacer()
+      if let until = model.pausedUntil {
+        Text(Strings.pausedResumes(Formatters.clockTime(until, calendar: .current)))
+          .font(.caption.monospacedDigit())
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier("popover.header.paused")
+        Button(Strings.resume) { model.resume() }
+          .buttonStyle(.link)
+          .font(.caption)
+          .accessibilityIdentifier("popover.header.resume")
+      } else {
+        if let refreshed = model.lastRefreshAt {
+          // Re-rendered every 30 s while the popover is open, so `2 min ago` keeps counting (no Timer, R6).
+          TimelineView(.periodic(from: .now, by: 30)) { context in
+            Text(Strings.refreshed(Formatters.freshness(refreshed, now: context.date, calendar: .current)))
+              .font(.caption.monospacedDigit())
+              .foregroundStyle(.secondary)
+              .accessibilityIdentifier("popover.header.freshness")
+          }
+        }
+        if !model.accounts.isEmpty { refreshButton }
+      }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 12)
+  }
+
+  private var refreshButton: some View {
+        Button {
+          model.refreshNow()
+        } label: {
+          Image(systemName: "arrow.clockwise")
+            // Spins while any job is in flight (08); symbol effects follow Reduce Motion.
+            .symbolEffect(.rotate, options: .repeat(.continuous), isActive: model.inFlightCount > 0)
+        }
+        .buttonStyle(.borderless)
+        .help(Strings.refresh)
+        .accessibilityLabel(Strings.refresh)
+        .accessibilityValue(model.inFlightCount > 0 ? "refreshing" : "idle")
+        .accessibilityIdentifier("popover.header.refresh")
   }
 
   @ViewBuilder private var content: some View {
@@ -72,8 +108,8 @@ struct PopoverView: View {
     }
   }
 
-  /// 560 pt (08) minus the header and footer.
-  static let maxCardsHeight: CGFloat = 460
+  /// 560 pt (08) minus the header and the two-row footer.
+  static let maxCardsHeight: CGFloat = 430
 
   private var cards: some View {
     VStack(spacing: 8) {
@@ -87,20 +123,32 @@ struct PopoverView: View {
     .padding(12)
   }
 
+  /// 08's four footer actions do not fit one 360 pt row, so they wrap to two (Q-034; Paper check in 11.3).
   private var footer: some View {
-    HStack {
-      Button(Strings.openDashboard) { openDashboard() }
-        .keyboardShortcut("d")
-        .accessibilityIdentifier("popover.footer.openDashboard")
-      Button(Strings.settingsEllipsis) { showSettings() }
-        .keyboardShortcut(",")
-        .accessibilityIdentifier("popover.footer.settings")
-      Spacer()
-      Button(Strings.quit) {
-        NSApp.terminate(nil)
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Button(Strings.openDashboard) { openDashboard() }
+          .keyboardShortcut("d")
+          .accessibilityIdentifier("popover.footer.openDashboard")
+        Button(Strings.settingsEllipsis) { showSettings() }
+          .keyboardShortcut(",")
+          .accessibilityIdentifier("popover.footer.settings")
       }
-      .keyboardShortcut("q")
-      .accessibilityIdentifier("popover.footer.quit")
+      HStack {
+        if model.isPaused {
+          Button(Strings.resume) { model.resume() }
+            .accessibilityIdentifier("popover.footer.resume")
+        } else {
+          Button(Strings.pausePolling) { model.pauseForOneHour() }
+            .accessibilityIdentifier("popover.footer.pause")
+        }
+        Spacer()
+        Button(Strings.quit) {
+          NSApp.terminate(nil)
+        }
+        .keyboardShortcut("q")
+        .accessibilityIdentifier("popover.footer.quit")
+      }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 10)

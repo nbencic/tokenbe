@@ -33,7 +33,7 @@ Legend: **Effect** says exactly what consumes the value. "Restart" means the cha
 | `account.auto_reload_enabled` | INTEGER | 0 | 0/1 | Enables runway override "reloads at $X" (05). |
 | `account.auto_reload_below_cents` | INTEGER | NULL | ≥ 0 | Threshold. |
 | `account.auto_reload_to_cents` | INTEGER | NULL | ≥ 0 | Amount the provider adds per reload; shown in the note `reloads +$50 at $10`. Not used in math. |
-| `account.interval_override_json` | TEXT | NULL | JSON `{usage?, cost?, balance?, keys?}` seconds | Overrides the global intervals below for that account. |
+| `account.interval_override_json` | TEXT | NULL | JSON `{usage?, cost?, balance?, keys?}` seconds; each value within the range of the global key it overrides (clamped + `app.settings_changed clamped=true source=system`, Q-034) | Overrides the global intervals below for that account (Accounts tab → `Refresh intervals`). `cost` runs in the daily activity (04), so its override is not read. |
 
 ## Sources
 | Key | Type | Default | Range | Effect |

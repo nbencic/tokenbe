@@ -1,8 +1,8 @@
 import SwiftUI
 import TokenBeCore
 
-/// The `Settings` scene (08 § Settings): one tab per area that exists so far, in Paper's order. Sources (4.1) and
-/// Alerts (5.3) join with their stages. Every control is bound to a 09 key through `Settings`; Accounts edits
+/// The `Settings` scene (08 § Settings): one tab per area that exists so far, in Paper's order. Alerts (5.3) joins
+/// with its stage. Every control is bound to a 09 key through `Settings`; Accounts edits
 /// `account` rows (3.5). The selected tab lives on the model, so `Key missing · Fix…` can open Accounts.
 struct SettingsView: View {
   @Bindable var model: AppModel
@@ -17,6 +17,9 @@ struct SettingsView: View {
           }
           Tab(Strings.tabAccounts, systemImage: "person.crop.rectangle.stack", value: SettingsTab.accounts) {
             AccountsTab(model: model, environment: environment)
+          }
+          Tab(Strings.tabSources, systemImage: "arrow.triangle.2.circlepath", value: SettingsTab.sources) {
+            SourcesTab(settings: environment.settings)
           }
           Tab(Strings.tabPrivacy, systemImage: "hand.raised", value: SettingsTab.privacy) {
             PrivacyTab(logsDirectory: environment.logsDirectory)

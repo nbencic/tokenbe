@@ -22,6 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       if let repository = startup.environment?.repository {
         model.observe(repository)
       }
+      if let coordinator = startup.environment?.coordinator {
+        model.observe(coordinator)
+      }
       if let settings = startup.environment?.settings, !settings.uiOnboardingDone, startup.accountCount == 0 {
         model.showOnboarding()
       }

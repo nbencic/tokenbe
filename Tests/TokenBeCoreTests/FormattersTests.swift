@@ -104,6 +104,40 @@ import Testing
     #expect(Formatters.tokens(.min, locale: Self.posix).hasPrefix("-"))
   }
 
+  @Test("clock time: HH:mm, 24-hour, zero-padded, in the calendar's zone (08 Paused · resumes 14:30)")
+  func clockTime() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "Europe/Zagreb") ?? .gmt
+    let date = Date(timeIntervalSince1970: 1_794_312_000) // 2026-11-10T12:00:00Z = 13:00 in Zagreb
+    #expect(Formatters.clockTime(date, calendar: calendar) == "13:00")
+    #expect(Formatters.clockTime(date.addingTimeInterval(-12 * 3600 + 5 * 60), calendar: calendar) == "01:05")
+    #expect(Formatters.clockTime(date.addingTimeInterval(5400), calendar: calendar) == "14:30")
+  }
+
+  @Test("interval: seconds, minutes, hours and mixed")
+  func interval() {
+    #expect(Formatters.interval(seconds: 30) == "30 s")
+    #expect(Formatters.interval(seconds: 60) == "1 min")
+    #expect(Formatters.interval(seconds: 300) == "5 min")
+    #expect(Formatters.interval(seconds: 3600) == "1 h")
+    #expect(Formatters.interval(seconds: 5400) == "1 h 30 min")
+    #expect(Formatters.interval(seconds: 86_400) == "24 h")
+    #expect(Formatters.interval(seconds: 90) == "1 min 30 s")
+  }
+
+  @Test("header freshness: the oldest last success across accounts; never-polled ones left out")
+  func refreshedAt() {
+    let old = Date(timeIntervalSince1970: 1_000)
+    let new = Date(timeIntervalSince1970: 2_000)
+    let first = AccountSummary(id: "a", provider: .openai, label: "A", mode: .anchored,
+                           freshness: [.usage: new, .keys: old])
+    let second = AccountSummary(id: "b", provider: .xai, label: "B", mode: .direct, freshness: [.balance: new])
+    let never = AccountSummary(id: "c", provider: .deepseek, label: "C", mode: .direct, freshness: [.balance: nil])
+    #expect(AccountSummary.refreshedAt([first, second, never]) == new)
+    #expect(AccountSummary.refreshedAt([never]) == nil)
+    #expect(AccountSummary.refreshedAt([]) == nil)
+  }
+
   @Test("freshness: just now, minutes, hours, yesterday, date, never, stale")
   func freshness() {
     let now = Self.date(2026, 11, 9, 14, 30)

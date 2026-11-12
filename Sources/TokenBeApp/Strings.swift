@@ -15,6 +15,11 @@ enum Strings {
   static let modeSpendOnly = "spend"
 
   // Popover — footer (08 § Popover 4)
+  static func refreshed(_ freshness: String) -> String { "Refreshed \(freshness)" }
+  static let refresh = "Refresh"
+  static func pausedResumes(_ time: String) -> String { "Paused \u{00B7} resumes \(time)" }
+  static let resume = "Resume"
+  static let pausePolling = "Pause polling for 1 h"
   static let openDashboard = "Open dashboard"
   static let settingsEllipsis = "Settings\u{2026}"
   static let quit = "Quit"
@@ -33,6 +38,7 @@ enum Strings {
   // Settings window (08 § Settings, 09; 14 § Stage 1.3)
   static let tabGeneral = "General"
   static let tabAccounts = "Accounts"
+  static let tabSources = "Sources"
   static let tabPrivacy = "Privacy"
   static let tabAdvanced = "Advanced"
   static let launchAtLogin = "Launch at login"
@@ -162,4 +168,17 @@ enum Strings {
   static let noKeysYet = "No keys found yet."
   static let noAccountSelected = "Select an account."
   static func hint(_ last4: String) -> String { "\u{2026}\(last4)" }
+
+  // Settings → Sources (08 § Settings; labels from 14 § Stage 4.1 step 3) and the per-account overrides (Q-034).
+  static let refreshIntervals = "Refresh intervals"
+  static let balanceEvery = "Balance every"
+  static let anthropicUsageEvery = "Anthropic usage every"
+  static let openAIUsageEvery = "OpenAI usage every"
+  static let keysEvery = "Keys every"
+  static let usageEvery = "Usage every"
+  static let lowPowerMultiplier = "Low Power multiplier"
+  static func every(_ label: String, _ interval: String) -> String { "\(label) \(interval)" }
+  static func times(_ factor: Int) -> String { "\u{00D7}\(factor)" }
+  static let lowPowerCaption = "Intervals are multiplied by this while Low Power Mode is on."
+  static func sourcesDefault(_ interval: String) -> String { "Sources setting (\(interval))" }
 }
