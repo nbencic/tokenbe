@@ -233,6 +233,27 @@ import Testing
     #expect(poll.count == 2 && normalize.count == 2)
   }
 
+  @Test("the envelope keys of the 3.6 recordings are known: no poll.unknown_keys for lists, projects or buckets")
+  func recordedEnvelopeKeysAreKnown() throws {
+    let projects = """
+      {"object":"list","first_id":"proj_fixture","last_id":"proj_fixture","has_more":false,"data":[
+      {"object":"organization.project","id":"proj_fixture","name":"Default project","created_at":1725013150,
+      "archived_at":null,"status":"active","residency":"GLOBAL","psp_decryption_key_id":null}]}
+      """
+    let keys = #"{"object":"list","first_id":null,"last_id":null,"has_more":false,"data":[]}"#
+    let page = """
+      {"object":"page","has_more":true,"next_page":"page2","data":[{"object":"bucket","start_time":1794308400,
+      "end_time":1794312000,"start_time_iso":"2026-11-10T11:00:00+00:00",
+      "end_time_iso":"2026-11-10T12:00:00+00:00","results":[]}]}
+      """
+    #expect(try LenientDecoding.decode(OpenAIProjectList.self, from: Data(projects.utf8), endpoint: "p")
+      .unknownKeys.isEmpty)
+    #expect(try LenientDecoding.decode(OpenAIAPIKeyList.self, from: Data(keys.utf8), endpoint: "k").unknownKeys.isEmpty)
+    let usage = try LenientDecoding.decode(OpenAIPage<OpenAIUsageResult>.self, from: Data(page.utf8), endpoint: "u")
+    let cost = try LenientDecoding.decode(OpenAIPage<OpenAICostResult>.self, from: Data(page.utf8), endpoint: "c")
+    #expect(usage.unknownKeys.isEmpty && cost.unknownKeys.isEmpty && usage.value.cursor == "page2")
+  }
+
   @Test("a missing required field fails as decode: no retry, poll.schema_drift, last_raw keeps the body")
   func decodeFailure() async throws {
     let env = try await Harness()

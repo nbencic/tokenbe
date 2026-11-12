@@ -24,6 +24,7 @@ Base: `https://api.openai.com`. Header: `Authorization: Bearer <admin key>`. Con
 
 ### Probe (onboarding "Test connection")
 1. `GET /v1/organization/projects?limit=100` → 200 proves admin scope. Store project ids and names.
+   Recorded 2026-11-12: `{ "object":"list", "data":[…], "first_id", "last_id", "has_more":bool }`; each project has `object:"organization.project"`, `id`, `name`, `created_at`, `archived_at` (null), `status` (`active`), `residency` (`GLOBAL`), `psp_decryption_key_id` (null). The api_keys list has the same envelope.
 2. For each project: `GET /v1/organization/projects/{project_id}/api_keys?limit=100` → `data[]` with `id`, `name`, `redacted_value`, `created_at`, `last_used_at` [expected]. Upsert into `provider_key` (provider_key_id = `id`).
 3. `GET /v1/organization/usage/completions?start_time=<now-3600>&bucket_width=1h&limit=1` → 200 proves usage scope.
 4. `GET /v1/organization/costs?start_time=<now-86400>&limit=1` → 200 proves cost scope.
@@ -33,7 +34,8 @@ A 401/403 on step 1, 3 or 4 sets the corresponding capability false and surfaces
 `GET /v1/organization/usage/completions`
 Query: `start_time` (unix seconds, inclusive, REQUIRED), `end_time` (unix seconds, exclusive), `bucket_width` ∈ `1m|1h|1d` (default `1d`), `limit` (buckets per page), `page` (cursor), `project_ids[]`, `user_ids[]`, `api_key_ids[]`, `models[]`, `group_by[]` ∈ `project_id|user_id|api_key_id|model|batch|service_tier`.
 TokenBe calls with `bucket_width=1h`, `group_by[]=api_key_id&group_by[]=model&group_by[]=service_tier`, window = last 48 h, paging until no `next_page`.
-Response: `{ "object":"page", "data":[ { "object":"bucket", "start_time":int, "end_time":int, "results":[ {…} ] } ], "has_more":bool, "next_page":string|null }`.
+Response: `{ "object":"page", "data":[ { "object":"bucket", "start_time":int, "end_time":int, "start_time_iso":string, "end_time_iso":string, "results":[ {…} ] } ], "has_more":bool, "next_page":string|null }`.
+Recorded 2026-11-12 (envelope confirmed): `*_iso` are RFC 3339 UTC (`2026-11-10T11:00:00+00:00`), informational only. `bucket_width=1h` without `limit` returns 24 buckets per page, so the 48 h window takes 2–3 pages. `next_page` is an opaque token such as `page_AAAA…=` (base64 alphabet, contains `-` and `=`) and is percent-encoded in the next query.
 Result fields [expected]: `input_tokens` (INCLUDES cached), `input_cached_tokens`, `input_cache_write_tokens` (may be absent → 0), `output_tokens`, `input_audio_tokens`, `output_audio_tokens`, `num_model_requests`, `project_id`, `user_id`, `api_key_id`, `model`, `batch` (bool), `service_tier`.
 Known quirk: community reports of `input_cached_tokens` being 0 in the usage API while per-response usage reports cached tokens. Treat usage-API cache counts as LOWER BOUNDS; never compute cache savings from them for OpenAI (`05 § Cache savings`).
 Reasoning tokens are not broken out in this endpoint → `reasoning = 0`.
@@ -42,6 +44,7 @@ Reasoning tokens are not broken out in this endpoint → `reasoning = 0`.
 `GET /v1/organization/costs`
 Query: `start_time` (REQUIRED), `end_time`, `bucket_width` = `1d` ONLY, `limit` 1–180 (default 7), `page`, `project_ids[]`, `api_key_ids[]`, `line_items[]`, `group_by[]` ∈ `project_id|user_id|line_item|api_key_id|api_source`.
 TokenBe calls daily with `group_by[]=api_key_id&group_by[]=line_item`, window = last 7 days (re-fetching finalizes provisional days).
+Recorded 2026-11-12 (envelope confirmed): the same page and bucket shape as Usage, `*_iso` included; without `limit` a page holds 7 daily buckets, so the 7-day window takes 2 pages.
 Result fields [expected]: `object:"organization.costs.result"`, `amount:{ "value":number, "currency":"usd" }`, `line_item`, `project_id`, `api_key_id`, `api_source`.
 OpenAI states the Costs endpoint reconciles to the invoice; the Usage endpoint may not. Cost is TRUTH; usage × price is ESTIMATE.
 

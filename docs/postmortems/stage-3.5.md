@@ -93,7 +93,7 @@ DoD D1–D11 are met; D12 by the PR's CI; D13 by this file. 238 Core tests pass,
 - PM-3.5-2 · agent · process · In macOS UI tests, assert on the leaf elements that carry identifiers: texts and buttons. SwiftUI folds `.contain` containers into their parent, and button labels absorb their child texts. Re-query an element after the app may have redrawn.
 - PM-3.5-5 · agent · process · Before the first full verify, grep `scripts/stages/*.sh` for each file, string, startup step and typealias the stage changes. Then dry-run the later stage scripts without the UI suite, ordered as `verify-stage.sh` orders them.
 - PM-3.5-3 · agent · 4.1 · `Paused` writes `account.paused`. The scheduler (4.1) is its consumer, and `SummaryInputs` must carry it then (PM-2.2-3).
-- PM-3.5-4 · agent · 3.7 · Anthropic's wrong-prefix copy, which 08 lacks: log a Q or add it to 08 when the Anthropic tile appears (from PM-3.3-1).
+- PM-3.5-4 · agent · 10.1 · Anthropic's wrong-prefix copy, which 08 lacks: log a Q or add it to 08 when the Anthropic tile appears (from PM-3.3-1). Status: re-targeted → 10.1 in phase 3's postmortem. 14 has no stage 3.7; the Anthropic adapter is 10.1.
 - Earlier actions targeting 3.5:
   - PM-3.2-1: closed.
   - PM-3.2-2: closed.

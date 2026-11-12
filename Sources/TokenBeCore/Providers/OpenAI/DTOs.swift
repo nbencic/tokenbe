@@ -1,15 +1,21 @@
 import Foundation
 import Synchronization
 
-// OpenAI response bodies (02 § openai). Field names come only from 02 (R2); every one is still `[expected]` until
-// 3.6 records fixtures. Decoding is lenient: a key 02 does not list is collected, not fatal. A missing required
-// field fails as `PollError.decode(field:path:)`.
+// OpenAI response bodies (02 § openai). Field names come only from 02 (R2); the envelope keys are confirmed by the
+// 3.6 recordings, row fields stay `[expected]` until a recording holds rows. Decoding is lenient: a key 02 does not
+// list is collected, not fatal. A missing required field fails as `PollError.decode(field:path:)`. Keys 02 lists
+// but TokenBe does not read are declared as cases so they are not reported as unknown.
 
 /// `GET /v1/organization/projects` (probe step 1): `data[]` with `id` and `name`.
 struct OpenAIProjectList: Decodable, Equatable {
   var data: [OpenAIProject]
 
-  enum CodingKeys: String, CodingKey, CaseIterable { case data }
+  enum CodingKeys: String, CodingKey, CaseIterable {
+    case object, data
+    case firstID = "first_id"
+    case lastID = "last_id"
+    case hasMore = "has_more"
+  }
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
@@ -21,7 +27,12 @@ struct OpenAIProject: Decodable, Equatable {
   var id: String
   var name: String?
 
-  enum CodingKeys: String, CodingKey, CaseIterable { case id, name }
+  enum CodingKeys: String, CodingKey, CaseIterable {
+    case object, id, name, status, residency
+    case createdAt = "created_at"
+    case archivedAt = "archived_at"
+    case pspDecryptionKeyID = "psp_decryption_key_id"
+  }
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
@@ -34,7 +45,12 @@ struct OpenAIProject: Decodable, Equatable {
 struct OpenAIAPIKeyList: Decodable, Equatable {
   var data: [OpenAIAPIKey]
 
-  enum CodingKeys: String, CodingKey, CaseIterable { case data }
+  enum CodingKeys: String, CodingKey, CaseIterable {
+    case object, data
+    case firstID = "first_id"
+    case lastID = "last_id"
+    case hasMore = "has_more"
+  }
 
   init(from decoder: any Decoder) throws {
     let container = try LenientDecoding.container(decoder, CodingKeys.self)
@@ -104,6 +120,8 @@ struct OpenAIBucket<Result: Decodable & Equatable>: Decodable, Equatable {
     case object
     case startTime = "start_time"
     case endTime = "end_time"
+    case startTimeISO = "start_time_iso"
+    case endTimeISO = "end_time_iso"
     case results
   }
 
