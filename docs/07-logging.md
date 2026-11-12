@@ -63,7 +63,8 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `sched.overrun` | error | acct, job, phase (`fetch`,`decode`,`write`), dur_ms |
 | `sched.tick` | debug | job, acct, due_in_s |
 | `sched.skip` | info | job, acct, reason (`paused`,`circuit_open`,`low_power`,`offline`) |
-| `sched.daily_start` / `sched.daily_end` | info | dur_ms, steps_ok, steps_failed |
+| `sched.daily_start` / `sched.daily_end` | info (end: warn when a step failed) | dur_ms, steps_ok, steps_failed, run, `<step>_ms` per step (14 § Stage 4.3) |
+| `sched.daily_step_failed` | error | step, err (the step is retried at the next activity, 04) |
 | `poll.start` | info | acct, job |
 | `poll.ok` | info | acct, job, dur_ms, rows, cursor |
 | `poll.retry` | warn | acct, job, attempt, delay_ms, err |

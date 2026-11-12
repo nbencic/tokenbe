@@ -20,6 +20,7 @@ public enum Evt: String, CaseIterable, Sendable {
   case schedSkip = "sched.skip"
   case schedDailyStart = "sched.daily_start"
   case schedDailyEnd = "sched.daily_end"
+  case schedDailyStepFailed = "sched.daily_step_failed"
   case pollStart = "poll.start"
   case pollOk = "poll.ok"
   case pollRetry = "poll.retry"
