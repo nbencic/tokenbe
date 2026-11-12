@@ -40,4 +40,48 @@ import Testing
     #expect(Set(await replacement.events()) == [.appLaunch, .appLogSinkFailed])
     await second.shutdown()
   }
+
+  @Test("EventLog and StoreLog without a pipeline log through Log at every level (the app's path)")
+  func facadeLoggers() async throws {
+    let capture = CapturingLogSink()
+    let pipeline = Log.configure(sinks: [capture], clock: TestClock(), version: "facade-3")
+    Log.minimumLevel = .debug
+    let levels: [LogLevel] = [.debug, .info, .notice, .warn, .error, .fault]
+    for level in levels {
+      EventLog().emit(level, .schedTick, cat: .sched, msg: "event \(level)")
+      StoreLog(pipeline: nil).emit(level, .dbOpen, msg: "store \(level)")
+    }
+    Log.minimumLevel = .info
+    await pipeline.drain()
+    let records = await capture.records
+    #expect(records.filter { $0.evt == .schedTick }.map(\.lvl) == levels)
+    #expect(records.filter { $0.evt == .dbOpen }.map(\.lvl) == levels)
+    #expect(records.filter { $0.evt == .dbOpen }.allSatisfy { $0.cat == .db })
+    await pipeline.shutdown()
+  }
+
+  @MainActor
+  @Test("StartupSequence, NetworkTransitions and PopoverTracker without a pipeline log through Log")
+  func facadeComponents() async throws {
+    struct Broken: Error {}
+    let capture = CapturingLogSink()
+    let pipeline = Log.configure(sinks: [capture], clock: TestClock(), version: "facade-4")
+    Log.minimumLevel = .debug
+    let sequence = StartupSequence(steps: [StartupStep("logging") {}, StartupStep("database") { throw Broken() }])
+    #expect(await sequence.run() == false)
+    var transitions = NetworkTransitions(logPipeline: nil)
+    let first = transitions.update(NetworkStatus(online: true, interface: "wifi"))
+    let second = transitions.update(NetworkStatus(online: false, interface: "none"))
+    #expect(first && second)
+    let tracker = PopoverTracker()
+    tracker.opened()
+    tracker.closed()
+    Log.minimumLevel = .info
+    await pipeline.drain()
+    let events = await capture.records.map(\.evt)
+    #expect(events.filter { $0 == .appLaunch }.count == 2)
+    #expect(events.contains(.appNetworkChanged))
+    #expect(events.contains(.uiPopoverOpen) && events.contains(.uiPopoverClose))
+    await pipeline.shutdown()
+  }
 }

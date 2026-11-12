@@ -411,3 +411,25 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Header freshness** is the oldest of the accounts' last successes (`AccountSummary.refreshedAt`). Never-polled accounts are left out; with none polled yet, the header shows no freshness. It re-renders every 30 s through `TimelineView` (no Timer, R6).
 - **Verify's 3-minute cadence run** (14) launches the app with settings as launch arguments (the argument domain, never stored). It seeds the account with `sqlite3` and the test key file, and requires `poll.ok usage` gaps of 60 s ± 5 s with zero error/fault records. It launches the app, so it runs when UI tests run (Q-031).
 Blocking: no
+
+## Q-035 Coverage gate raised to 97 %            (2026-11-12)
+Context: PM-0.5-2 (stage-0.5.md). The owner asked what 100 % line coverage of `TokenBeCore` takes. True 100 % needs a fake filesystem seam, which 14 § 0.3 forbids; about 97–98 % is cheap. On 2026-11-12 the owner chose 97 %.
+Options: A) 97 % now, in its own process PR; B) the cheap part in 11.2 (the old default); C) stay at 85 %.
+Chosen: A, the owner's decision. Coverage went from 93.31 % to 97.08 % (5019/5170 lines) with tests only, plus one code change: `FileKeyStore` takes a `logPipeline:` (PM-2.1-2).
+- **Added:**
+  - `FileKeyStoreTests`;
+  - `PollerFailurePathTests`;
+  - `OpenAIEdgeTests`;
+  - `IntegrityFailureTests`, on two new `sqlite3`-built fixtures, `db/index_mismatch.sqlite` and `db/shared_root.sqlite`. GRDB's connections are defensive, so `writable_schema` cannot be used from a test;
+  - `LogSinkFailureTests` (folder permissions);
+  - `UserDefaultsStoreEdgeTests`;
+  - `AccountLifecycleEdgeTests`;
+  - coordinator, loop and facade cases.
+- **Left uncovered on purpose:**
+  - `CrashHandler.install` and the live signal path (needs a crash-probe executable);
+  - Redactor patterns 2 and 6 (pattern 1 already removes those keys, so their closures cannot run);
+  - the token formatter's overflow branch (unreachable for `Int64`);
+  - a few defensive `??` fallbacks.
+- **A bug the loop found:** a job cancelled during a store write (account removed, quit, overrun) reached `Poller`'s store-failure path and logged `poll.failed` at error. `Poller` now returns `skipped("cancelled")` for `CancellationError`, as it already did for a cancelled request (`PollerFailurePathTests.cancelledDuringWrite`).
+- **The gate is 97 %** in `ci.yml`, `coverage-gate.sh` (default), `0.5.sh`, 10, 11 and 14 § Stage 0.5. Every later stage keeps it: a stage that adds Core code adds the tests that cover it.
+Blocking: no

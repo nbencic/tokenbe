@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Fails when TokenBeCore line coverage is below the gate (10 § CI, 14 § Stage 0.5; default 85 %).
+# Fails when TokenBeCore line coverage is below the gate (10 § CI, 11 § DoD; default 97 %, Q-035).
 # Run after `swift test --enable-code-coverage`. Reads the llvm-cov export JSON that SwiftPM writes, counting only
 # files under Sources/TokenBeCore/ (dependencies and tests excluded).
 #   scripts/coverage-gate.sh [minimum-percent]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-minimum="${1:-85}"
+minimum="${1:-97}"
 json="$(swift test --show-codecov-path 2>/dev/null)"
 [[ -s "$json" ]] || { echo "coverage-gate: no coverage data at '$json'; run swift test --enable-code-coverage first"; exit 2; }
 # Stale data would measure old code: refuse coverage older than any Core source or test file.

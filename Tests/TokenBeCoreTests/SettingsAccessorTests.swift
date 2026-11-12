@@ -128,3 +128,17 @@ import Testing
     #expect(settings.value(.debugFixtureMode) == SettingsKey.debugFixtureMode.spec.defaultValue)
   }
 }
+
+/// Typed reads of a key of another type fall back to the type's zero value instead of trapping (PM-0.5-2).
+@MainActor @Suite struct SettingsFallbackTests {
+  @Test("bool/int/double/string/strings of a key of another type read as false, 0, 0, empty")
+  func fallbacks() {
+    let settings = Settings(store: InMemorySettingsStore())
+    #expect(settings.bool(.pollBalanceIntervalS) == false)
+    #expect(settings.int(.uiAppearance) == 0)
+    #expect(settings.double(.uiAppearance) == 0)
+    #expect(settings.string(.pollBalanceIntervalS) == "")
+    #expect(settings.strings(.pollBalanceIntervalS) == [])
+    #expect(SettingsKey.uiAppearance.defaultInt == 0)
+  }
+}

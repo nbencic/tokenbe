@@ -171,3 +171,90 @@ import Testing
     #expect(try await env.state(.usage).consecutiveFailures == 0)
   }
 }
+
+/// `Poller`'s failure paths that the happy and retry cases do not reach (PM-0.5-2): no adapter, unreadable
+/// capabilities, the balance job before balances are stored, an unreadable key, an unwritable `poll_state`, and the
+/// page cap.
+@Suite struct PollerFailurePathTests {
+  typealias Harness = OpenAIHarness
+
+  @Test("a provider without an adapter is skipped (poll.provider_rule), no request")
+  func noAdapter() async throws {
+    let env = try await Harness()
+    let account = FixtureDBBuilder.account(id: "acct-xai", provider: "xai", label: "xAI")
+    #expect(await env.poller.runOnce(account: account, job: .balance) == .skipped("xai_no_adapter"))
+    #expect(await env.records(.pollProviderRule).first?.ctx["rule"] == "xai_no_adapter")
+    #expect(await env.transport.calls.isEmpty)
+  }
+
+  @Test("unreadable capabilities JSON fails the job with poll.failed, no request")
+  func unreadableCapabilities() async throws {
+    let env = try await Harness()
+    var account = Harness.account
+    account.capabilities = "{"
+    #expect(await env.poller.runOnce(account: account, job: .usage) == .failed("capabilities"))
+    #expect(await env.records(.pollFailed).first?.ctx["attempts"] == .int(0))
+    #expect(await env.transport.calls.isEmpty)
+  }
+
+  @Test("a balance-capable account's balance job fails as a provider rule until balances are stored (Q-029)")
+  func balanceNotStored() async throws {
+    let env = try await Harness()
+    var account = Harness.account
+    account.capabilities = account.capabilities.replacingOccurrences(of: #""balance":false"#, with: #""balance":true"#)
+    #expect(await env.poller.runOnce(account: account, job: .balance) == .failed("provider_rule"))
+    #expect(await env.records(.pollProviderRule).first?.ctx["rule"] == "openai_balance_not_stored")
+  }
+
+  @Test("a key that cannot be read fails the job (poll.failed key unavailable) and records keychain")
+  func keyUnreadable() async throws {
+    let env = try await Harness()
+    await env.keys.fail(.read, with: .failed(op: .read, status: -25_300))
+    #expect(await env.run(.usage) == .failed("keychain"))
+    #expect(await env.records(.pollFailed).first?.msg == "key unavailable")
+    #expect(try await env.state(.usage).lastErrorClass == "keychain")
+  }
+
+  @Test("a closed database: the attempt fails as store, and poll_state not updated is logged")
+  func storeUnavailable() async throws {
+    let env = try await Harness()
+    try env.database.close()
+    #expect(await env.run(.usage) == .failed("store"))
+    let messages = await env.records(.pollFailed).map(\.msg)
+    #expect(messages.contains("poll_state not updated") && messages.contains("usage poll failed"))
+  }
+
+  /// An `ok` page with a fresh `next_page` each time, so the cursor never repeats.
+  static func endlessPages(_ shape: String, count: Int) -> [StubTransport.Answer] {
+    (1...count).map { Harness.ok(#"{"object":"page","data":[],"has_more":true,"next_page":"p\#($0)"\#(shape)}"#) }
+  }
+
+  @Test("usage: more than 50 pages fails as a provider rule after the 50th page")
+  func usagePageCap() async throws {
+    let env = try await Harness()
+    for answer in Self.endlessPages("", count: Poller.maxPages + 1) { await env.on(Harness.usage, answer) }
+    #expect(await env.run(.usage) == .failed("provider_rule"))
+    #expect(await env.transport.calls.count == Poller.maxPages)
+    #expect(await env.records(.pollProviderRule).first?.ctx["rule"] == "openai_usage_more_than_50_pages")
+  }
+
+  @Test("PollError.schemaDrift names its class and keys")
+  func schemaDriftNames() {
+    let error = PollError.schemaDrift(unknownKeys: ["a", "b"])
+    #expect(error.className == "schema_drift")
+    #expect(error.summary == "unknown keys a,b")
+  }
+
+  @Test("cancelled before its store write (account removed, quit): skipped, no poll.failed, nothing recorded")
+  func cancelledDuringWrite() async throws {
+    let env = try await Harness()
+    await env.on(Harness.usage, "usage_completions.empty")
+    let run = Task {
+      withUnsafeCurrentTask { $0?.cancel() }
+      return await env.run(.usage)
+    }
+    #expect(await run.value == .skipped("cancelled"))
+    #expect(await env.records(.pollFailed).isEmpty)
+    #expect(try await env.state(.usage).lastErrorClass == nil)
+  }
+}

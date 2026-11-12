@@ -10,8 +10,8 @@ for step in "swift build -c release -Xswiftc -warnings-as-errors" "swift test --
 done
 
 check "build-release (warnings as errors)" scripts/run.sh build-release
-coverage() { swift test --enable-code-coverage >/dev/null 2>&1 && scripts/coverage-gate.sh 85; }
-check "coverage gate ≥ 85 % (TokenBeCore lines)" coverage
+coverage() { swift test --enable-code-coverage >/dev/null 2>&1 && scripts/coverage-gate.sh 97; }
+check "coverage gate ≥ 97 % (TokenBeCore lines, Q-035)" coverage
 check "check-no-secrets.sh on the repository and build products" scripts/check-no-secrets.sh
 
 # The guard must actually catch things: plant a key, a bearer token and an off-list URL in a scratch tree.

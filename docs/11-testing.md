@@ -93,5 +93,5 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 
 ## Definition of done
 - `swift test` green on CI with `-warnings-as-errors`.
-- Coverage gate: ≥ 85 % lines in `TokenBeCore` (measured with `swift test --enable-code-coverage`; CI fails below).
+- Coverage gate: ≥ 97 % lines in `TokenBeCore` (measured with `swift test --enable-code-coverage`; CI fails below). Raised from 85 % by the owner on 2026-11-12 (PM-0.5-2, Q-035).
 - Every `evt` in 07's table is produced by at least one test (`CapturingLogSink` union across suite, checked by `scripts/check-log-events.sh --from-tests`).

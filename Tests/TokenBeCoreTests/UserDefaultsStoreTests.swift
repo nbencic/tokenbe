@@ -51,3 +51,26 @@ import Testing
     #expect(UserDefaultsStore().suiteName == UserDefaultsStore.defaultSuiteName)
   }
 }
+
+/// The store's remaining paths (PM-0.5-2), each on a throwaway suite.
+@MainActor @Suite struct UserDefaultsStoreEdgeTests {
+  @Test("a value of a type 09 does not use reads back as text, so Settings can replace it")
+  func foreignType() throws {
+    let name = "dev.bathyon.tokenbe.tests.\(UUID().uuidString)"
+    let raw = try #require(UserDefaults(suiteName: name))
+    defer { raw.removePersistentDomain(forName: name) }
+    raw.set(Data([1, 2]), forKey: "tb.data")
+    let store = SettingsSuite.store(named: name)
+    guard case .string(let text) = store.value(forKey: "tb.data", as: .string) else {
+      Issue.record("a foreign value must read back as text")
+      return
+    }
+    #expect(text.contains("0102"))
+  }
+
+  @Test("resetUITests refuses every suite but the UI-test one")
+  func resetRefuses() {
+    #expect(SettingsSuite.resetUITests(named: SettingsSuite.name) == false)
+    #expect(SettingsSuite.resetUITests(named: "dev.bathyon.tokenbe.tests.other") == false)
+  }
+}

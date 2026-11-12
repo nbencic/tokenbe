@@ -35,7 +35,7 @@ tokenbe/
 │   ├── verify-stage.sh + stages/<id>.sh # machine-checked stage DoD (14)
 │   ├── make-icon.swift                 # renders AppIcon PNGs (D-icon-script)
 │   ├── update-bundled-prices.sh        # refreshes Resources/prices.bundled.json at release
-│   ├── coverage-gate.sh                # ≥ 85 % lines in TokenBeCore
+│   ├── coverage-gate.sh                # ≥ 97 % lines in TokenBeCore (Q-035)
 │   ├── bootstrap.sh                    # checks macOS ≥ 15, Xcode ≥ 16.2, swiftlint
 │   ├── check-log-events.sh             # 07 DoD
 │   ├── check-no-secrets.sh             # SEC-1 grep over build products and bundle

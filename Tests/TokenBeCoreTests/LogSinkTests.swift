@@ -323,3 +323,65 @@ extension LogSinkTests {
     #expect(LogPipeline.threadLabel().isEmpty == false)
   }
 }
+
+/// Sink failures injected with folder permissions (PM-0.5-2): each reports its 07 `op` and the sink keeps running.
+@Suite struct LogSinkFailureTests {
+  typealias Base = LogSinkTests
+
+  /// Runs `body` with `folder` at `mode`, restoring 0700 after so the temp folder can be removed.
+  static func with(_ folder: URL, mode: Int, _ body: () async throws -> Void) async throws {
+    try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: folder.path)
+    do {
+      try await body()
+    } catch {
+      try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+      throw error
+    }
+    try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+  }
+
+  static func sink(_ folder: URL, _ failures: Base.Failures) -> NDJSONSink {
+    NDJSONSink(directory: folder, now: { Base.date(2026, 11, 9) }, calendar: Base.calendar, onFailure: failures.handler)
+  }
+
+  @Test("a folder where no file can be created: open fails, the records are dropped, nothing crashes")
+  func openFails() async throws {
+    let dir = try TempDirectory()
+    let failures = Base.Failures()
+    try await Self.with(dir.url, mode: 0o500) {
+      let sink = Self.sink(dir.url, failures)
+      await sink.write(Base.record())
+      await sink.flush()
+      #expect(await sink.currentFileURL() == nil)
+    }
+    #expect(failures.ops.first == "open")
+  }
+
+  @Test("an old file that cannot be deleted: retention reports, today's file is still written")
+  func retentionRemoveFails() async throws {
+    let dir = try TempDirectory()
+    try Data().write(to: dir.url.appendingPathComponent("tokenbe-2026-11-09.ndjson"))
+    try Data("old\n".utf8).write(to: dir.url.appendingPathComponent("tokenbe-2026-09-01.ndjson"))
+    let failures = Base.Failures()
+    try await Self.with(dir.url, mode: 0o500) {
+      let sink = Self.sink(dir.url, failures)
+      await sink.write(Base.record("kept"))
+      await sink.flush()
+    }
+    #expect(failures.ops == ["retention"])
+    #expect(try Base.read(dir.url.appendingPathComponent("tokenbe-2026-11-09.ndjson")).count == 1)
+  }
+
+  @Test("a folder that cannot be listed: retention reports, the file is still created and written")
+  func listFails() async throws {
+    let dir = try TempDirectory()
+    let failures = Base.Failures()
+    try await Self.with(dir.url, mode: 0o300) {
+      let sink = Self.sink(dir.url, failures)
+      await sink.write(Base.record("written"))
+      await sink.flush()
+    }
+    #expect(failures.ops.allSatisfy { $0 == "retention" } && !failures.ops.isEmpty)
+    #expect(try Base.read(dir.url.appendingPathComponent("tokenbe-2026-11-09.ndjson")).count == 1)
+  }
+}

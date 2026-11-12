@@ -178,3 +178,43 @@ import Testing
     #expect(await sink.records.filter { $0.evt == .appNetworkChanged }.isEmpty, "the first status is not a transition")
   }
 }
+
+/// `FixtureEnvelope.load` on a file that is not there (PM-0.5-2).
+@Suite struct FixtureEnvelopeLoadTests {
+  @Test("a missing fixture file is unreadable, named by its file name")
+  func missingFile() {
+    #expect(throws: FixtureEnvelope.LoadError.unreadable("nope.json")) {
+      try FixtureEnvelope.load(URL(fileURLWithPath: "/nonexistent/nope.json"))
+    }
+  }
+}
+
+/// Small value paths with no other caller yet (PM-0.5-2).
+@Suite struct SmallPathTests {
+  @Test("a request without a host has no route: noFixture")
+  func noHost() async {
+    let transport = FixtureTransport(routes: [])
+    await #expect(throws: TransportError.self) {
+      try await transport.send(HTTPRequest(url: URL(fileURLWithPath: "/x")))
+    }
+  }
+
+  @Test("bodies that are not UTF-8 are described by size, in PollError and RawBody")
+  func notUTF8() {
+    let bytes = Data([0xFF, 0xFE])
+    if case .server(_, let body) = PollError.from(HTTPResponse(status: 500, body: bytes)) {
+      #expect(body == "<2 bytes, not UTF-8>")
+    } else {
+      Issue.record("a 500 maps to server")
+    }
+    #expect(RawBody.redacted(bytes, redactor: Redactor()) == "<2 bytes, not UTF-8>")
+  }
+
+  @Test("value types: a balance reading, an integer coding key, the probe's message for auth")
+  func values() {
+    let reading = BalanceReading(snapshots: [], rawBody: "{}")
+    #expect(reading.rawBody == "{}" && reading.snapshots.isEmpty)
+    #expect(LenientDecoding.AnyKey(intValue: 3)?.stringValue == "3")
+    #expect(OpenAIProbe.message(for: .auth(http: 401, body: "")) == CoreStrings.unexpectedResponse("OpenAI"))
+  }
+}
