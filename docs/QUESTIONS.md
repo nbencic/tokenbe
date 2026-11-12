@@ -351,3 +351,25 @@ Chosen: C, by the owner.
 - CI is unchanged; it never ran UI tests.
 - Consequence: a UI regression from a Core-only stage surfaces at the next app-touching stage or at phase end, and is fixed there. The postmortem names the stage that introduced it.
 Blocking: no (decided by the owner)
+
+## Q-032 OpenAI verification: the first recording held no rows; recorder pages, anonymizes and records the 401   (2026-11-12)
+Context: 14 § Stage 3.6, H2. The owner's first `record-fixtures.sh openai` run (2026-11-12) succeeded, but the org had no activity: no project keys, and empty `results[]` in every usage and cost bucket.
+Problem: an empty recording confirms the envelopes only. 02's row fields (api_keys, usage and cost results) stay unconfirmed, so OpenAI cannot be marked verified (D-verified-providers). The recorder also had two defects that a row-bearing re-record would hit:
+- it fetched only page 1, and both endpoints page (24 hourly / 7 daily buckets per page), so today's activity would be on a page never fetched;
+- the real `next_page` token (`page_AAAA…=`) is not a valid fixture case (`[A-Za-z0-9_]`), so a recorded page 1 with `has_more` would make `FixtureTransport` serve page 1 again.
+
+Personal data matters too, since the repository is public: real API-key rows carry the owner's name and email.
+Options: A) mark verified on the envelopes; B) keep `[expected]` on row fields, fix the recorder, re-record after real usage; C) hand-edit the recorded files.
+Chosen: B.
+- **Pages.** `fetch_pages` follows `next_page` until `has_more` is false (at most 8 pages). Page 1 is case `ok`, page n is `page<n>`, and each written page's `next_page` is rewritten to the next case (Q-029's mapping). The live token is percent-encoded in the next request.
+- **Anonymizing.**
+  - `key_…` ids become `key_fixture_<last4>`, consistent across the api_keys and usage files;
+  - `user-…` ids become `user_fixture`;
+  - emails become `owner@example.invalid`;
+  - the `name` of any object with an `email` becomes `Fixture Owner`.
+
+  Key names are free text, so the owner names the fixture key `tokenbe-fixture`.
+- **The 401 body (PM-3.4-2).** The recorder repeats the projects call with a key that cannot exist (`sk-admin-TOKENBEFIXTUREINVALID0000`) and writes `projects.401.recorded.json`.
+- **Confirmed now.** The list envelope (`object`, `first_id`, `last_id`, `has_more`), the project fields, and the bucket `start_time_iso` and `end_time_iso` are in 02 and declared as known DTO keys, so they never log `poll.unknown_keys`. The empty recordings are kept outside the repo. The re-record replaces them.
+- **Archived projects** (`status`, `archived_at`) are declared but not filtered: probe step 2 still lists every project's keys. Revisit if a recording shows an archived project.
+Blocking: no
