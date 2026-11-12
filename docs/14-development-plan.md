@@ -53,7 +53,7 @@ Exactly these protocols exist. No other protocol is introduced "for testability"
 | Provider | `ProviderAdapter` (`Providers/ProviderAdapter.swift`) | 5 adapters | adapters over `StubTransport` | 3.3 |
 | File watching | `FileWatcher` (`Ingest/FileWatcher.swift`) | `FSEventsWatcher`; `PollingWatcher` (fallback, also production) | `ManualWatcher` | 7.2 |
 | Notifications | `Notifier` (`TokenBeApp/Notifications/Notifier.swift`) | `UNNotifier` | `RecordingNotifier` | 5.4 |
-| Network reachability | `NetworkMonitor` (`Network/NetworkMonitor.swift`) | `NWPathMonitorAdapter` | `ManualNetworkMonitor` | 4.1 |
+| Network reachability | `NetworkMonitor` (`Network/NetworkMonitor.swift`) | `NWPathMonitorAdapter` | `ManualNetworkMonitor`; `FixedNetworkMonitor` (DEBUG UI tests, `TOKENBE_TEST_OFFLINE`, 4.2) | 4.1 |
 
 Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it talks to Core through `AppModel` (`@Observable @MainActor`) which exposes value types only (`AccountSummary`, `AppRow`, `ModelRow`, `SourceStatus`, …).
 
@@ -444,7 +444,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 3. Popover: stale overlay (opacity 0.6, freshness in `HealthLow`), `Offline — showing last known values` banner (secondary tone), glyph `.dashed` when any account stale or offline.
 4. Sidebar account rows reflect `needsKey` (`Key missing`).
 
-**Inventory** — Files: `Ledger/Freshness.swift`, `Dashboard/AccountDetailView.swift`, `Dashboard/{BadgesRow,SourcesStrip}.swift`. Settings: `tb.alerts.staleMultiplier` (read; Alerts tab UI in 5.3). Events: none new.
+**Inventory** — Files: `Ledger/Freshness.swift` (also `SourceStatus`, `FreshnessContext`), `Dashboard/AccountDetailView.swift`, `Dashboard/{BadgesRow,SourcesStrip}.swift`, `Components/BandDot.swift` (band colour shared by cards, sidebar and the band pill); edits to `AppModel` (stale re-evaluation, glyph, Dashboard selection), `PopoverView`/`AccountCardView` (banner, overlay, card → account page), `SidebarView`/`DashboardView` (selectable rows, toolbar `Refresh`), `MenuBarGlyph` (`glyph.<state>` identifier), `CoordinatorState` (`isLowPower`, `nextDue`), `Observation` (`PollStateSummary` error columns, PM-2.2-3), `AccountSummary`/`AccountSummaryBuilder`, `Capabilities` (`AccountBadges`), `PollError`/`Poller` (human message in `poll_state`, Q-036), `Formatters.untilNextRun`, `NetworkMonitor` (`FixedNetworkMonitor`, DEBUG). Settings: `tb.alerts.staleMultiplier` (read; Alerts tab UI in 5.3). Events: none new (`poll.failed` gains `ctx.detail`, 07).
 **Tests:** `FreshnessTests`, `TokenBeUITests/StaleOfflineUITests` (fixture transport set to fail → after 3× interval card dims and glyph identifier `glyph.dashed`).
 **Verify:** tests; E2E-5 of `11`.
 **Stage DoD:** D1–D12.

@@ -44,7 +44,10 @@ ui_check "SettingsGeneralUITests passed" grep -q "Test Suite 'SettingsGeneralUIT
 
 # 14 Verify, on the UI-test suite (Q-014): each value the test set last.
 suite_is() { [[ "$(defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>/dev/null)" == "$2" ]] || { echo "$1 is '$(defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>&1)', want '$2'"; return 1; }; }
-for pair in tb.general.launchAtLogin=1 tb.menubar.metric=todaySpend tb.popover.pinnedMetric=remaining \
+# `tb.general.launchAtLogin` is not read here: at launch it mirrors the login item, and every later suite launches on a
+# fresh test root without one, so it ends at 0 (4.2; PM-3.4-8's class). The test asserts it itself after its relaunch.
+check "the test asserts launch at login after its relaunch" grep -qF '"launch at login persisted"' Tests/TokenBeUITests/SettingsGeneralUITests.swift
+for pair in tb.menubar.metric=todaySpend tb.popover.pinnedMetric=remaining \
             tb.popover.sort=name tb.ui.hideCents=0 tb.ui.useSystemAccent=0 tb.ui.appearance=dark \
             tb.ui.shortcut=ctrl+alt+t tb.log.level=info; do
   ui_check "UI-test suite: ${pair%%=*} = ${pair#*=}" suite_is "${pair%%=*}" "${pair#*=}"

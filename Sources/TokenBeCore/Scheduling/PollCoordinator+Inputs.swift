@@ -7,11 +7,19 @@ public struct CoordinatorState: Sendable, Equatable {
   /// Jobs running now; the refresh button spins while this is above 0 (08).
   public var inFlightCount: Int
   public var isOnline: Bool
+  /// Low Power Mode: every interval × `tb.poll.lowPowerMultiplier` (04), so the stale threshold stretches too (4.2).
+  public var isLowPower: Bool
+  /// Account id → job → when the scheduler runs it next, on the wall clock, to the second (the Sources strip's
+  /// `next 3 min`, 14 § Stage 4.2).
+  public var nextDue: [String: [Job: Date]]
 
-  public init(pausedUntil: Date? = nil, inFlightCount: Int = 0, isOnline: Bool = true) {
+  public init(pausedUntil: Date? = nil, inFlightCount: Int = 0, isOnline: Bool = true, isLowPower: Bool = false,
+              nextDue: [String: [Job: Date]] = [:]) {
     self.pausedUntil = pausedUntil
     self.inFlightCount = inFlightCount
     self.isOnline = isOnline
+    self.isLowPower = isLowPower
+    self.nextDue = nextDue
   }
 
   public var isPaused: Bool { pausedUntil != nil }
@@ -48,6 +56,7 @@ extension PollCoordinator {
     log.emit(.info, .schedLowPower, cat: .sched, msg: enabled ? "low power mode on" : "low power mode off",
              ctx: ["enabled": .bool(enabled)])
     refreshIntervals()
+    emitState()
     wake()
   }
 
@@ -174,6 +183,19 @@ extension PollCoordinator {
     }
   }
 
+}
+
+extension PollCoordinator {
+  /// Each scheduled job's next run on the wall clock, rounded to the second so one schedule maps to one value.
+  func wallClockDue(at wall: Date) -> [String: [Job: Date]] {
+    let mono = clock.now
+    var due: [String: [Job: Date]] = [:]
+    for (key, slot) in schedule.entries {
+      let instant = wall.addingTimeInterval(Self.seconds(mono.duration(to: slot.nextDue)))
+      due[key.accountID, default: [:]][key.job] = Date(timeIntervalSince1970: instant.timeIntervalSince1970.rounded())
+    }
+    return due
+  }
 }
 
 extension PollCoordinator {

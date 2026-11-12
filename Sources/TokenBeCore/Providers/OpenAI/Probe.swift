@@ -130,17 +130,10 @@ struct OpenAIProbe {
     }
   }
 
-  /// The human message for a failure that ends the probe (CoreStrings, Q-029).
+  /// The human message for a failure that ends the probe (CoreStrings, Q-029). A 401/403 never gets here: `step`
+  /// returns `.refused` for it.
   static func message(for error: PollError) -> String {
-    switch error {
-    case .rateLimited: return CoreStrings.rateLimited(name)
-    case .server(let status, _): return CoreStrings.serverError(name, status: status)
-    case .transport, .cancelled: return CoreStrings.unreachable(name)
-    case .providerRule(let rule):
-      guard rule.hasPrefix("http "), let status = Int(rule.dropFirst(5)) else { return unreadable }
-      return CoreStrings.unexpectedStatus(name, status: status)
-    case .auth, .decode, .schemaDrift: return unreadable
-    }
+    error.humanMessage(provider: .openai)
   }
 
   func decoded<Value: Decodable>(_ type: Value.Type, _ body: Data, _ endpoint: String) -> Value? {

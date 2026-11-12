@@ -37,6 +37,8 @@ final class Startup {
   nonisolated static let testResetSettingsVariable = "TOKENBE_TEST_RESET_SETTINGS"
   /// Debug-only, with `TOKENBE_TEST_ROOT`: fixture cases for `FixtureTransport`, `openai/projects=401` (Q-030).
   nonisolated static let testFixtureCasesVariable = "TOKENBE_TEST_FIXTURE_CASES"
+  /// `1`: the scheduler sees a Mac that stays offline (DEBUG, test root only; the Offline UI test, Q-036).
+  nonisolated static let testOfflineVariable = "TOKENBE_TEST_OFFLINE"
 
   private let paths = Paths.current()
   private lazy var sentinel = RunningSentinel(directory: paths.support)
@@ -160,6 +162,16 @@ final class Startup {
     return [:]
   }
 
+  /// `NWPathMonitorAdapter`; under a DEBUG test root with `TOKENBE_TEST_OFFLINE=1`, a monitor that stays offline.
+  private func networkMonitor() -> any NetworkMonitor {
+    #if DEBUG
+    if paths.testRoot != nil, ProcessInfo.processInfo.environment[Self.testOfflineVariable] == "1" {
+      return FixedNetworkMonitor(online: false)
+    }
+    #endif
+    return NWPathMonitorAdapter()
+  }
+
   /// The login keychain; under a DEBUG test root, a file inside the root so UI tests never touch a keychain
   /// (PM-3.2-1, Q-030).
   private func makeKeyStore() -> any KeyStore {
@@ -217,7 +229,7 @@ final class Startup {
     environment.coordinator = coordinator
     self.environment = environment
     await coordinator.follow(repository.observeSummaryInputs())
-    await coordinator.follow(NWPathMonitorAdapter())
+    await coordinator.follow(networkMonitor())
     schedulerWatchers = [
       coordinator.follow(settings),
       Task {

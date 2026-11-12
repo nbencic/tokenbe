@@ -2,7 +2,8 @@ import Foundation
 
 /// Maps `SummaryInputs` to the `[AccountSummary]` the UI shows (04 I3: Core computes, the UI renders).
 /// Stage 2.2 fills the identity fields: id, provider, label, balance mode and currency (14 § Stage 2.2); 3.5 adds
-/// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3).
+/// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3); 4.2 adds the
+/// capabilities, the interval override and the Sources strip (`Freshness` then sets `isStale` at a given time).
 /// Later stages fill the rest from the inputs they add.
 public enum AccountSummaryBuilder {
   /// A stored value the model has no case for. 03's CHECKs rule this out for `provider` and `balance_mode`;
@@ -25,6 +26,8 @@ public enum AccountSummaryBuilder {
       switch summary(for: record) {
       case .success(var summary):
         apply(states[record.id] ?? [], to: &summary)
+        apply(record, to: &summary)
+        summary.sources = SourceStatus.all(capabilities: summary.capabilities, states: states[record.id] ?? [])
         summary.needsKey = missingKeys.contains(record.keychainRef)
         return summary
       case .failure(let invalid):
@@ -43,6 +46,13 @@ public enum AccountSummaryBuilder {
     summary.circuitOpenUntil = states.compactMap { $0.circuitOpenUntil.flatMap(DBTime.date) }.max()
   }
 
+  /// The stored capabilities and interval override. Unreadable capabilities stay nil: the coordinator logs them
+  /// once (`poll.failed`, "account capabilities unreadable"), so the summary does not log again.
+  static func apply(_ record: AccountRecord, to summary: inout AccountSummary) {
+    summary.capabilities = Result { try Capabilities.decode(json: record.capabilities) }.success
+    summary.intervalOverride = IntervalOverride.parse(record.intervalOverrideJson, provider: summary.provider).override
+  }
+
   public static func summary(for record: AccountRecord) -> Result<AccountSummary, InvalidRow> {
     guard let provider = ProviderID(rawValue: record.provider) else {
       return .failure(InvalidRow(column: "provider", value: record.provider))
@@ -55,5 +65,13 @@ public enum AccountSummaryBuilder {
     }
     return .success(AccountSummary(id: record.id, provider: provider, label: record.label, mode: mode,
                                    currency: currency, isPaused: record.paused))
+  }
+}
+
+extension Result {
+  /// The value, or nil for a failure the caller has accounted for.
+  var success: Success? {
+    if case .success(let value) = self { return value }
+    return nil
   }
 }

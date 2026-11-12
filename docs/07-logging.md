@@ -67,7 +67,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `poll.start` | info | acct, job |
 | `poll.ok` | info | acct, job, dur_ms, rows, cursor |
 | `poll.retry` | warn | acct, job, attempt, delay_ms, err |
-| `poll.failed` | error | acct, job, attempts, err |
+| `poll.failed` | error | acct, job, attempts, err, detail (the raw cause: status and body, redacted; `poll_state.last_error_message` holds the human message, Q-036) |
 | `poll.rate_limited` | warn | acct, job, retry_after_s |
 | `poll.auth_failed` | error | acct, job, http_status |
 | `poll.circuit_open` / `poll.circuit_close` | warn/info | acct, job, until |

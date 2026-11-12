@@ -20,8 +20,9 @@ check "popover footer Open dashboard is ⌘D" grep -qF '.keyboardShortcut("d")' 
 check "⌥-click reads NSEvent.modifierFlags (O-15)" grep -qF "NSEvent.modifierFlags.contains(.option)" Sources/TokenBeApp/Popover/PopoverView.swift
 check "no right-click context menu (D-context-menu)" bash -c "! grep -rqF 'contextMenu' Sources/TokenBeApp"
 check "no AppKit windows created (04)" bash -c "! grep -rqE 'NSWindow\\(|NSPanel\\(|NSWindowController' Sources/TokenBeApp"
-# A control appears only with its action (D6): Refresh arrives in 4.1, Export… in 8.3.
-for later in "Refresh" "Export"; do
+# A control appears only with its action (D6): Export… arrives in 8.3. (`Refresh` arrived with the account page in 4.2;
+# 4.2.sh checks it.)
+for later in "Export"; do
   check "Dashboard has no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/Dashboard Sources/TokenBeApp/Components/RangePicker.swift"
 done
 
@@ -30,10 +31,11 @@ for suite in DashboardRangeTests WindowFrameTests DebouncerTests SettingsSuiteRe
 done
 ui_check "DashboardShellUITests passed" grep -q "Test Suite 'DashboardShellUITests' passed" "$(ls -t build/logs/uitest-*.log | head -n 1)"
 
-# 14 Verify, on the UI-test suite (Q-014): the range the test picked persisted, and the frame was saved.
-suite_value() { defaults read "dev.bathyon.tokenbe.uitests" "$1" 2>/dev/null; }
-range_is_30d() { [[ "$(suite_value tb.ui.dashboardRange)" == "30d" ]]; }
-frame_saved() { [[ "$(suite_value tb.ui.dashboardFrame)" =~ ^\{\{-?[0-9.]+,\ -?[0-9.]+\},\ \{[0-9.]+,\ [0-9.]+\}\}$ ]]; }
-ui_check "tb.ui.dashboardRange = 30d in the UI-test suite after the test" range_is_30d
-ui_check "tb.ui.dashboardFrame saved in the UI-test suite" frame_saved
+# 14 Verify: the range the test picked and the frame persist across a relaunch. The test asserts both itself
+# ("range persists across relaunch", "frame restored from tb.ui.dashboardFrame"), so the check reads that test case's
+# own result, not the shared UI-test suite, which later suites may change (PM-3.4-8).
+ui_check "the Dashboard range and frame persist across a relaunch (DashboardShellUITests)" grep -q \
+  "Test Case '-\[TokenBeUITests.DashboardShellUITests testCommandDOpensDashboardAndRangePersists\]' passed" \
+  "$(ls -t build/logs/uitest-*.log | head -n 1)"
+check "the test asserts the range and the frame after the relaunch" bash -c "grep -qF 'range persists across relaunch' Tests/TokenBeUITests/DashboardShellUITests.swift && grep -qF 'frame restored from tb.ui.dashboardFrame' Tests/TokenBeUITests/DashboardShellUITests.swift"
 check "owner's real TokenBe settings (tb.*) unchanged after the Dashboard UI tests" real_tb_unchanged

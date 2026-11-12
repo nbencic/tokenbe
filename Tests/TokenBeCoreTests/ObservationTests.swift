@@ -112,6 +112,31 @@ actor StreamRecorder<Value: Sendable> {
     await recorder.cancel()
   }
 
+  @Test("a poll_state failure alone yields new inputs with that job's error class and message (4.2, PM-2.2-3)")
+  func pollStateErrors() async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("four jobs without errors") {
+      await recorder.last.map { $0.pollStates.count == 4 && $0.pollStates.allSatisfy { $0.lastErrorClass == nil } } == true
+    }
+    let message = CoreStrings.serverError("OpenAI", status: 500)
+    _ = try await repository.recordPollFailure(
+      accountID: openai.id, job: .usage, at: Date(timeIntervalSince1970: 1_794_312_000),
+      failure: PollFailure(errorClass: "server", message: message),
+      circuit: CircuitRule(threshold: 3, until: Date(timeIntervalSince1970: 1_794_315_600)))
+    await eventually("the usage failure") {
+      let usage = await recorder.last?.pollStates.first { $0.job == "usage" }
+      return usage?.lastErrorClass == "server" && usage?.lastErrorMessage == message
+    }
+    let summary = await recorder.last.map { AccountSummaryBuilder.summaries(from: $0)[0] }
+    #expect(summary?.sources.first { $0.job == .usage }?.state == .failed)
+    #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
+    await recorder.cancel()
+  }
+
   @Test("pausing an account yields new inputs whose summary is paused (4.1, PM-3.5-3, PM-2.2-3)")
   func pausedFlows() async throws {
     let harness = try StoreHarness()
@@ -161,7 +186,10 @@ actor StreamRecorder<Value: Sendable> {
     record.balanceMode = "direct"
     record.currency = "CNY"
     record.paused = true
-    let summaries = AccountSummaryBuilder.summaries(from: SummaryInputs(accounts: [record]))
+    var summaries = AccountSummaryBuilder.summaries(from: SummaryInputs(accounts: [record]))
+    // 4.2's fields (capabilities, override, sources) are covered by `FreshnessTests.builder`.
+    summaries[0].capabilities = nil
+    summaries[0].sources = []
     #expect(summaries == [AccountSummary(id: "acct-ds", provider: .deepseek, label: "DeepSeek", mode: .direct,
                                          currency: .cny, isPaused: true)])
   }

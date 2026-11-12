@@ -84,3 +84,21 @@ public final class NWPathMonitorAdapter: NetworkMonitor {
     return NetworkStatus(online: online, interface: name)
   }
 }
+
+#if DEBUG
+/// DEBUG UI tests (`TOKENBE_TEST_OFFLINE=1` under a test root, Q-036): a Mac that stays offline, so the Offline
+/// state (08) can be tested without touching the runner's network. Like `FixtureTransport`, never in Release.
+public struct FixedNetworkMonitor: NetworkMonitor {
+  public let status: NetworkStatus
+
+  public init(online: Bool) {
+    status = NetworkStatus(online: online, interface: online ? "other" : "none")
+  }
+
+  public func statuses() -> AsyncStream<NetworkStatus> {
+    let (stream, continuation) = AsyncStream.makeStream(of: NetworkStatus.self)
+    continuation.yield(status)
+    return stream
+  }
+}
+#endif

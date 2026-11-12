@@ -64,11 +64,11 @@ The user can:
   - the cadence run's setup.
 
 ## Carry-forward actions
-- PM-4.1-1 · agent · 11.3 · Check Settings → Sources (`YP-0`) and the two-row popover footer (`1-0`) against Paper; Paper Desktop was not running in 4.1.
+- PM-4.1-1 · agent · 11.3 · Check Settings → Sources (`YP-0`) and the two-row popover footer (`1-0`) against Paper; Paper Desktop was not running in 4.1. Status (4.2): looked at in Paper. `YP-0` holds only the Harness reports and Price book groups (7.2, 5.1). Paper's footer is a vertical menu list, label left and shortcut right, not two rows of buttons. Stays → 11.3 for the rework.
 - PM-4.1-2 · agent · process · A test that needs a job "in flight" waits for its observable effect (the request sent, the retry sleeper registered), never for the dispatch alone. Run the 50-loop on every new timing suite before the first full verify.
-- PM-4.1-3 · agent · 4.2 · `AppModel.isOffline` is now fed by `CoordinatorState`. 4.2's offline banner and dashed glyph read it; `Freshness` adds stale.
+- PM-4.1-3 · agent · 4.2 · `AppModel.isOffline` is now fed by `CoordinatorState`. 4.2's offline banner and dashed glyph read it; `Freshness` adds stale. Status: closed in 4.2 (3c2f844).
 - PM-4.1-4 · agent · process · If `DashboardShellUITests.testOptionClickOpensDashboard` fails again inside the full suite, capture `app.debugDescription` around the ⌥-click (PM-3.5-1) and look at the status item's frame (`inf` rect).
-- PM-4.1-5 · agent · 4.2 · An account with a missing key is still polled and logs `keychain.missing` (error) at most every 15 min (Q-034). 4.2, which owns `needsKey` on the sidebar, decides whether that is right for SOAK-1, or logs a Q.
+- PM-4.1-5 · agent · 4.2 · An account with a missing key is still polled and logs `keychain.missing` (error) at most every 15 min (Q-034). 4.2, which owns `needsKey` on the sidebar, decides whether that is right for SOAK-1, or logs a Q. Status: closed in 4.2, kept as is (Q-036).
 - **Earlier actions that targeted 4.1:**
   - PM-3.6-3: closed (7883667). Onboarding's `Done` defers to the coordinator; 3.5.sh's check follows.
   - PM-3.1-4: closed (dea2f74, 7883667). `ManualNetworkMonitor` (test seam), `NWPathMonitorAdapter` wired in startup, `sched.skip reason=offline`.

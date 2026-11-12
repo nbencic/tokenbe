@@ -1,3 +1,5 @@
+import TokenBeCore
+
 /// Every user-visible string (12 § R9, 08), exactly as 08 writes it. Views never contain inline copy.
 enum Strings {
   static let appName = "TokenBe"
@@ -181,4 +183,43 @@ enum Strings {
   static func times(_ factor: Int) -> String { "\u{00D7}\(factor)" }
   static let lowPowerCaption = "Intervals are multiplied by this while Low Power Mode is on."
   static func sourcesDefault(_ interval: String) -> String { "Sources setting (\(interval))" }
+
+  // Popover — Offline (08 § Popover states)
+  static let offlineBanner = "Offline \u{2014} showing last known values"
+
+  // Account page (08 § Account detail; 14 § Stage 4.2). Badge words are 08's; each help sentence follows 02 (Q-036).
+  static func badgeBalance(_ word: String) -> String { "Balance: \(word)" }
+  static func badgeUsage(_ word: String) -> String { "Usage: \(word)" }
+  static func badgeCost(_ word: String) -> String { "Cost: \(word)" }
+  static func badgeLag(_ interval: String) -> String { "Lag: \(interval)" }
+  static let helpBalanceDirect = "The provider reports the balance, so remaining is read directly."
+  static let helpBalanceAnchored =
+    "There is no balance endpoint, so remaining is your anchor plus top-ups minus spend since the anchor."
+  static let helpBalanceNone = "Without an anchor the account is spend only: no remaining and no runway until anchored."
+  static let helpUsagePerKey = "Usage is reported per provider key, so apps bound to a key are attributed from provider rows."
+  static let helpUsageOrgOnly = "Usage is reported for the whole organization only, so per-app numbers are split estimates."
+  static let helpUsageHarness = "There is no usage endpoint; per-app attribution comes only from harness reports."
+  static let helpCostProvider =
+    "The provider's cost report reconciles to the invoice: cost is the truth, usage \u{00D7} price is an estimate."
+  static let helpCostEstimated = "There is no cost endpoint, so spend is estimated as usage \u{00D7} price."
+  static func helpLag(_ provider: ProviderID) -> String {
+    switch provider {
+    case .openai: "Usage buckets less than 60 minutes old are provisional; OpenAI publishes no finalization window."
+    case .anthropic: "Usage typically appears within 5 minutes."
+    case .openrouter: "Balance and per-key spend update within seconds."
+    case .deepseek: "The balance updates within seconds to minutes."
+    case .xai: "The balance updates within seconds."
+    }
+  }
+
+  // Sources strip (08 `HP-0`): `Usage · ok · 2 min ago · next 3 min`, `Cost · ok · 02:10`, `Balance · n/a`.
+  static let sourceUsage = "Usage"
+  static let sourceCost = "Cost"
+  static let sourceBalance = "Balance"
+  static let sourceKeys = "Keys"
+  static let sourceOK = "ok"
+  static let sourceFailed = "failed"
+  static let sourceNotApplicable = "n/a"
+  static func next(_ interval: String) -> String { "next \(interval)" }
+  static func sourceLine(_ parts: [String]) -> String { parts.joined(separator: " \u{00B7} ") }
 }

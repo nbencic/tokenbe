@@ -140,6 +140,15 @@ public enum Formatters {
     return (hour < 10 ? "0" : "") + "\(hour):" + (minute < 10 ? "0" : "") + "\(minute)"
   }
 
+  /// Time until a job's next run, for the Sources strip's `next 3 min` (08 `HP-0`): whole minutes rounded up
+  /// (`3 min`, `1 h 5 min`), seconds under a minute (`42 s`), `now` once due (Q-036).
+  public static func untilNextRun(_ due: Date, now: Date) -> String {
+    let remaining = due.timeIntervalSince(now)
+    guard remaining >= 1 else { return "now" }
+    guard remaining >= 60 else { return "\(Int(remaining)) s" }
+    return interval(seconds: Int((remaining / 60).rounded(.up)) * 60)
+  }
+
   /// A polling period: `30 s`, `5 min`, `1 h`, `1 h 30 min` (Sources tab, Q-034).
   public static func interval(seconds: Int) -> String {
     guard seconds >= 60 else { return "\(seconds) s" }
