@@ -1,5 +1,5 @@
 # Postmortem — Stage 3.6 Verify OpenAI against the live API (H2)
-Date: 2026-11-12 · Branch: s3.6-openai-verify · PR: #17 · Planned size: S · Commits: 4
+Date: 2026-11-12 · Branch: s3.6-openai-verify · PR: #17 · Planned size: S · Commits: 6
 
 ## Outcome
 OpenAI is ready to be verified, but is **not verified yet**. H2 is open: the stage merges with its gate open (14 § 0.6 rule 4, Q-033), and the owner asked to move on to 4.1 while the gate waits.
@@ -35,7 +35,8 @@ DoD:
 
 ## Verify and CI failures
 - Static dry run of `3.6.sh`: `check-no-secrets.sh` failed on the literal above (What went wrong 4); fixed before the first verify.
-- Verify run 1 (`TB_UI_TESTS=0`): every stage check of 0.1–3.6 green; D13 failed only on the missing `stage-3.6.md`, as expected before this file existed.
+- Verify run 1 (`TB_UI_TESTS=0`, on 2091e9e): `STAGE 3.6 OK`, 689 checks across 0.1–3.6 and D13 on the first run. The UI suites printed `skip`, and so did 3.6's gate line (H2 open).
+- Verify run 2 (UI tests on, since 3.6 closes phase 3): `STAGE 3.6 OK`, 706 checks, every UI suite included, on the first run. The console was checked unlocked before the run (PM-1.1-1), and the run used `caffeinate -dims` (PM-3.1-5).
 
 ## Deviations from the docs
 - **14 § Stage 3.6:** steps 2–3 and the Verify line move to the PR that consumes H2. `3.6.sh` asserts the present state, and its gate checks wait for `openai/RECORDED` (Q-033, PM-3.6-2).
