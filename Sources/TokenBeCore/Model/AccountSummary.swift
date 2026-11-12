@@ -7,11 +7,6 @@ public enum BalanceMode: String, CaseIterable, Sendable, Codable {
   case spendOnly = "spend_only"
 }
 
-/// The polling jobs of an account (03 `poll_state`, 09 interval overrides).
-public enum Job: String, CaseIterable, Sendable {
-  case usage, cost, balance, keys
-}
-
 /// Spend attributed to one app today (08 popover row 4).
 public struct AppSpend: Sendable, Equatable, Hashable {
   public var appName: String
@@ -103,5 +98,12 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   /// Most recent successful poll of any job, nil before the first one ("No data yet", 08).
   public var lastSuccessAt: Date? {
     freshness.values.compactMap { $0 }.max()
+  }
+
+  /// The popover header's `Refreshed …` (14 § Stage 4.1 step 4): the oldest of the accounts' last successes, so
+  /// the header never claims fresher data than the stalest card. Accounts never polled are left out; nil when no
+  /// account has succeeded yet (Q-034).
+  public static func refreshedAt(_ accounts: [AccountSummary]) -> Date? {
+    accounts.compactMap(\.lastSuccessAt).min()
   }
 }

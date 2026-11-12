@@ -29,13 +29,18 @@ public enum RawBody {
 /// The last response body an adapter received during one job (14 § Stage 3.4 step 5), kept unredacted only for the
 /// length of that job. The poller stores it, redacted, as `poll_state.last_raw`, and samples it for
 /// `poll.schema_drift` when decoding fails (04 § Retry policy: "decode … last_raw holds the body").
+/// Receiving a body also moves the job's phase to `decode` (04 § Cancellation: `sched.overrun` names the phase).
 public final class ResponseTrace: Sendable {
   private let body = Mutex<Data?>(nil)
+  public let phase: PollPhaseBox
 
-  public init() {}
+  public init(phase: PollPhaseBox = PollPhaseBox()) {
+    self.phase = phase
+  }
 
   public func record(_ data: Data) {
     body.withLock { $0 = data }
+    phase.set(.decode)
   }
 
   public var lastBody: Data? { body.withLock { $0 } }

@@ -2,7 +2,7 @@ import Foundation
 
 /// Maps `SummaryInputs` to the `[AccountSummary]` the UI shows (04 I3: Core computes, the UI renders).
 /// Stage 2.2 fills the identity fields: id, provider, label, balance mode and currency (14 § Stage 2.2); 3.5 adds
-/// freshness, the circuit and `needsKey`.
+/// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3).
 /// Later stages fill the rest from the inputs they add.
 public enum AccountSummaryBuilder {
   /// A stored value the model has no case for. 03's CHECKs rule this out for `provider` and `balance_mode`;
@@ -54,6 +54,6 @@ public enum AccountSummaryBuilder {
       return .failure(InvalidRow(column: "currency", value: record.currency))
     }
     return .success(AccountSummary(id: record.id, provider: provider, label: record.label, mode: mode,
-                                   currency: currency))
+                                   currency: currency, isPaused: record.paused))
   }
 }

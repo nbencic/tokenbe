@@ -132,6 +132,27 @@ public enum Formatters {
     return stale ? "stale \(dot) \(text)" : text
   }
 
+  /// `HH:mm`, 24-hour, in the calendar's time zone: `Paused · resumes 14:30` (08).
+  public static func clockTime(_ date: Date, calendar: Calendar) -> String {
+    let parts = calendar.dateComponents([.hour, .minute], from: date)
+    let hour = parts.hour ?? 0
+    let minute = parts.minute ?? 0
+    return (hour < 10 ? "0" : "") + "\(hour):" + (minute < 10 ? "0" : "") + "\(minute)"
+  }
+
+  /// A polling period: `30 s`, `5 min`, `1 h`, `1 h 30 min` (Sources tab, Q-034).
+  public static func interval(seconds: Int) -> String {
+    guard seconds >= 60 else { return "\(seconds) s" }
+    let hours = seconds / 3600
+    let minutes = (seconds % 3600) / 60
+    let rest = seconds % 60
+    var parts: [String] = []
+    if hours > 0 { parts.append("\(hours) h") }
+    if minutes > 0 { parts.append("\(minutes) min") }
+    if rest > 0 { parts.append("\(rest) s") }
+    return parts.joined(separator: " ")
+  }
+
   private static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
   /// `MMM d` in the calendar's time zone (08), English month names (O-9).

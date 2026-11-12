@@ -2,8 +2,9 @@ import Foundation
 
 /// Runs one adapter job for one account (14 § Stage 3.4 step 6): reads the key, applies 04's retry policy, writes
 /// the rows, updates `poll_state` (attempt, success, failure, consecutive failures, circuit, cursor, last_raw) and
-/// logs the `poll.*` events of 07. Nothing schedules it yet: the scheduler (4.1) and onboarding's `Done` (3.5) call
-/// `runOnce`. `acct` in its records is the provider name, like 07's example (Q-029).
+/// logs the `poll.*` events of 07. One `Poller` serves every account; each account's `AccountPoller` (4.1) calls
+/// `runOnce` when `PollCoordinator` dispatches a job. `acct` in its records is the provider name, like 07's example
+/// (Q-029).
 public actor Poller {
   /// 04: three consecutive auth failures open the circuit for 24 h.
   public static let circuitThreshold = 3
@@ -52,17 +53,8 @@ public actor Poller {
     self.now = now
   }
 
-  /// Which jobs an account's capabilities allow (`keys` needs `keyNames`).
-  public static func applies(_ job: Job, to capabilities: Capabilities) -> Bool {
-    switch job {
-    case .usage: capabilities.usage
-    case .cost: capabilities.cost
-    case .balance: capabilities.balance
-    case .keys: capabilities.keyNames
-    }
-  }
-
-  public func runOnce(account: AccountRecord, job: Job) async -> Outcome {
+  /// `phase` is where the job is (`fetch`, `decode`, `write`), read by the coordinator for `sched.overrun` (04).
+  public func runOnce(account: AccountRecord, job: Job, phase: PollPhaseBox = PollPhaseBox()) async -> Outcome {
     let acct = account.provider
     let cat = Cat.poll(acct)
     guard let provider = ProviderID(rawValue: acct), let adapter = registry.adapter(for: provider) else {
@@ -76,7 +68,7 @@ public actor Poller {
                err: error, ctx: ["attempts": 0])
       return .failed("capabilities")
     }
-    guard Self.applies(job, to: capabilities) else { return skip("\(acct)_no_\(job.rawValue)_api", acct: acct, job: job) }
+    guard job.applies(to: capabilities) else { return skip("\(acct)_no_\(job.rawValue)_api", acct: acct, job: job) }
 
     let time = now()
     guard let key = await readKey(account, job: job, at: time) else { return .failed("keychain") }
@@ -86,7 +78,7 @@ public actor Poller {
 
     let started = ContinuousClock.now
     log.emit(.info, .pollStart, cat: cat, msg: "\(job.rawValue) poll started", acct: acct, job: job.rawValue)
-    let trace = ResponseTrace()
+    let trace = ResponseTrace(phase: phase)
     let context = PollContext(
       accountID: account.id, key: key, cursor: nil,
       window: DateInterval(start: time.addingTimeInterval(-Self.lookback(job)), end: time),
@@ -123,9 +115,10 @@ public actor Poller {
     let acct = adapter.id.rawValue
     switch job {
     case .keys:
-      let page = try await retrying(acct, job, attempts: &attempts) { () async throws(PollError) in
+      let page = try await retrying(acct, job, phase: context.trace.phase, attempts: &attempts) { () async throws(PollError) in
         try await adapter.pollKeys(context)
       }
+      context.trace.phase.set(.write)
       try await store.upsertProviderKeys(accountID: context.accountID, keys: page.keys, seenAt: context.window.end)
       return (page.keys.count, page.rawBody)
     case .usage:
@@ -135,10 +128,11 @@ public actor Poller {
       for _ in 0..<Self.maxPages {
         var pageContext = context
         pageContext.cursor = cursor
-        let page = try await retrying(acct, job, attempts: &attempts) { () async throws(PollError) in
+        let page = try await retrying(acct, job, phase: context.trace.phase, attempts: &attempts) { () async throws(PollError) in
           try await adapter.pollUsage(pageContext)
         }
         if let next = page.nextCursor, next == cursor { throw PollError.providerRule("\(acct)_usage_cursor_repeated") }
+        context.trace.phase.set(.write)
         try await store.writeUsagePage(UsagePageWrite(
           accountID: context.accountID, rows: page.rows, expected: page.expected, cursor: page.nextCursor,
           lastRaw: page.rawBody
@@ -149,9 +143,10 @@ public actor Poller {
       }
       throw PollError.providerRule("\(acct)_usage_more_than_\(Self.maxPages)_pages")
     case .cost:
-      let page = try await retrying(acct, job, attempts: &attempts) { () async throws(PollError) in
+      let page = try await retrying(acct, job, phase: context.trace.phase, attempts: &attempts) { () async throws(PollError) in
         try await adapter.pollCost(context)
       }
+      context.trace.phase.set(.write)
       try await store.replaceCostDays(accountID: context.accountID, rows: page.rows)
       return (page.rows.count, page.rawBody)
     case .balance:
@@ -162,12 +157,13 @@ public actor Poller {
 
   /// 04 § Retry policy within one attempt: transport/server ×3 (2/4/8 s ± 25 %), rate limit ×1 (`Retry-After`,
   /// cap 300 s, else 30 s), everything else at once.
-  private func retrying<T: Sendable>(_ acct: String, _ job: Job, attempts: inout Int,
+  private func retrying<T: Sendable>(_ acct: String, _ job: Job, phase: PollPhaseBox, attempts: inout Int,
                                      _ operation: () async throws(PollError) -> T) async throws(PollError) -> T {
     var tries = 0
     while true {
       tries += 1
       attempts += 1
+      phase.set(.fetch)
       do {
         return try await operation()
       } catch {

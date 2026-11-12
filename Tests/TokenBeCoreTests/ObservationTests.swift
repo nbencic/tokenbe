@@ -112,6 +112,23 @@ actor StreamRecorder<Value: Sendable> {
     await recorder.cancel()
   }
 
+  @Test("pausing an account yields new inputs whose summary is paused (4.1, PM-3.5-3, PM-2.2-3)")
+  func pausedFlows() async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    var openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the account") { await recorder.last?.accounts.count == 1 }
+    #expect(await recorder.last.map { AccountSummaryBuilder.summaries(from: $0).first?.isPaused } == false)
+    openai.paused = true
+    try await repository.updateAccount(openai)
+    await eventually("the paused summary") {
+      await recorder.last.map { AccountSummaryBuilder.summaries(from: $0).first?.isPaused } == true
+    }
+    await recorder.cancel()
+  }
+
   @Test("a read failure logs ui.error and ends the stream; cancelling logs nothing")
   func failureAndCancel() async throws {
     let harness = try StoreHarness()
@@ -138,7 +155,7 @@ actor StreamRecorder<Value: Sendable> {
 
 /// `AccountSummaryBuilder` (14 § Stage 2.2 step 1): identity fields only, in input order; bad rows are reported.
 @Suite struct AccountSummaryBuilderTests {
-  @Test("maps id, provider, label, mode and currency; everything else stays empty")
+  @Test("maps id, provider, label, mode, currency and paused (4.1, PM-3.5-3); everything else stays empty")
   func identity() {
     var record = FixtureDBBuilder.account(id: "acct-ds", provider: "deepseek", label: "DeepSeek")
     record.balanceMode = "direct"
@@ -146,7 +163,7 @@ actor StreamRecorder<Value: Sendable> {
     record.paused = true
     let summaries = AccountSummaryBuilder.summaries(from: SummaryInputs(accounts: [record]))
     #expect(summaries == [AccountSummary(id: "acct-ds", provider: .deepseek, label: "DeepSeek", mode: .direct,
-                                         currency: .cny)])
+                                         currency: .cny, isPaused: true)])
   }
 
   @Test("keeps input order and skips, and reports, a row it cannot read")
