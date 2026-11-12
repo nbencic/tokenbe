@@ -66,7 +66,7 @@ DoD:
   8. Append `## Addendum — H2 closed <date>` to this file.
 
   Status: open.
-- PM-3.6-3 · agent · 4.1 · The coordinator polls a new account at once, so onboarding's `Done` no longer runs its own `keys`/`usage` polls. Update `3.5.sh`'s "Done runs the first keys and usage polls" check in the same PR. Status: open.
+- PM-3.6-3 · agent · 4.1 · The coordinator polls a new account at once, so onboarding's `Done` no longer runs its own `keys`/`usage` polls. Update `3.5.sh`'s "Done runs the first keys and usage polls" check in the same PR. Status: closed in 4.1 (7883667).
 - Earlier actions that targeted 3.6:
   - PM-3.1-2: closed in 3.3 (the recorder writes the envelope).
   - PM-3.4-2: partly closed. The confirmed envelope keys are in 02 and the DTOs (4e42b3e), and the recorder records the 401 body (433da27). The error-body shape and `redacted_value` are re-targeted → PM-3.6-2 (they need the row-bearing recording).
