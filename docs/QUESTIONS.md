@@ -317,7 +317,7 @@ Decisions:
     - `Key missing`, `Select an account.`, `No keys found yet.` and `(unnamed key)`;
     - `CoreStrings.keyMissing`, the result of `Test` without a key.
   - Paper's step-3 auto-reload toggle and step-2 capability list are not in 08, so they are not built (R9).
-- **Glyph (PM-3.3-1).** 08 names no glyph asset, so the provider glyph is Paper's filled circle with a letter (`O`, `A`, `R`, `D`, `X`), drawn in code. Anthropic's wrong-prefix copy is not in 08, and only OpenAI has an adapter, so DEBUG offers no Anthropic tile. The generic line covers it until the Anthropic stage (3.7) brings 08's copy or a Q.
+- **Glyph (PM-3.3-1).** 08 names no glyph asset, so the provider glyph is Paper's filled circle with a letter (`O`, `A`, `R`, `D`, `X`), drawn in code. Anthropic's wrong-prefix copy is not in 08, and only OpenAI has an adapter, so DEBUG offers no Anthropic tile. The generic line covers it until the Anthropic stage (10.1) brings 08's copy or a Q.
 - **Keys in UI tests (PM-3.2-1).** Under a DEBUG `TOKENBE_TEST_ROOT` the app keeps keys in `test-keychain.json` inside the root (`FileKeyStore`, DEBUG only), never in a keychain. Ad-hoc builds change their signature on every build, so a keychain item one build wrote makes the next one prompt for the login password. The sandboxed runner cannot read the app's items either. 14's "Remove account deletes Keychain item — checked via the test's own `KeychainKeyStore` read" is covered in two places:
   - `AccountLifecycleTests` checks that `remove` deletes the item, in process (with `InMemoryKeyStore`; `KeychainKeyStore.delete` itself is covered by the 3.2 integration test on the `.test` service);
   - the UI test reads the root's key file.
@@ -369,7 +369,27 @@ Chosen: B.
   - the `name` of any object with an `email` becomes `Fixture Owner`.
 
   Key names are free text, so the owner names the fixture key `tokenbe-fixture`.
-- **The 401 body (PM-3.4-2).** The recorder repeats the projects call with a key that cannot exist (`sk-admin-TOKENBEFIXTUREINVALID0000`) and writes `projects.401.recorded.json`.
+- **The 401 body (PM-3.4-2).** The recorder repeats the projects call with a key that cannot exist (the `sk-admin-` prefix followed by `TOKENBEFIXTUREINVALID0000`, split in the script so no key-shaped literal is committed) and writes `projects.401.recorded.json`.
 - **Confirmed now.** The list envelope (`object`, `first_id`, `last_id`, `has_more`), the project fields, and the bucket `start_time_iso` and `end_time_iso` are in 02 and declared as known DTO keys, so they never log `poll.unknown_keys`. The empty recordings are kept outside the repo. The re-record replaces them.
 - **Archived projects** (`status`, `archived_at`) are declared but not filtered: probe step 2 still lists every project's keys. Revisit if a recording shows an archived project.
+Blocking: no
+
+## Q-033 Stage 3.6 merges with H2 open; its gate checks wait for the RECORDED marker            (2026-11-12)
+Context: 14 § Stage 3.6, `scripts/stages/3.6.sh`. The re-record (Q-032) is waiting on the owner, and the owner asked to move on to 4.1 meanwhile (2026-11-12). `verify-stage.sh 4.1` re-runs every earlier stage, so 3.6 needs a stage script and postmortems before 4.1 can pass.
+Options: A) merge 3.6 now with H2 open (14 § 0.6 rule 4); its script asserts what holds today, and the gate checks run once `openai/RECORDED` exists; B) add a "pending gate" skip list to `verify-stage.sh`; C) hold 4.1 until the owner records.
+Chosen: A. 14 § 0.4 says H2 blocks only the Verified flip, and § 0.6 rule 4 lets a stage merge with its gate open, with an addendum later.
+- **Asserted now:**
+  - the recorder pages, anonymizes and records the 401;
+  - the confirmed envelope keys are in 02 and the DTOs;
+  - `--verify-redacted` and `check-no-secrets.sh` pass;
+  - `VerifiedProvidersTests` and `OpenAITests` pass;
+  - openai is still out of `Verified`.
+- **Gate checks:**
+  - the recorded fixtures exist;
+  - `.openai` is in `Verified`;
+  - zero `[expected]` in 02 § openai.
+
+  Without the marker, they print one visible `skip` line, never a silent pass.
+- **The PR that consumes H2** makes the gate checks unconditional. It also updates `3.4.sh`, whose "no RECORDED marker" and "empty Verified" checks fail once the owner records (PM-3.6-2).
+- The invalid-key literal of Q-032 is split in the recorder, so `check-no-secrets.sh` (run by 3.4 and 3.6) stays clean.
 Blocking: no

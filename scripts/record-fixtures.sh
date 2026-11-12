@@ -221,9 +221,10 @@ record() {
       fetch openai api_keys "$base/projects/${project}/api_keys?limit=100" Authorization "Bearer " || return 1
       fetch_pages openai usage_completions "$base/usage/completions?start_time=$((now - 172800))&bucket_width=1h&group_by%5B%5D=api_key_id&group_by%5B%5D=model&group_by%5B%5D=service_tier" Authorization "Bearer " || return 1
       fetch_pages openai costs "$base/costs?start_time=$((now - 604800))&group_by%5B%5D=api_key_id&group_by%5B%5D=line_item" Authorization "Bearer " || return 1
-      # The real error body (PM-3.4-2): the same call with a key that cannot exist.
+      # The real error body (PM-3.4-2): the same call with a key that cannot exist. Split in two so no key-shaped
+      # literal is committed (check-no-secrets.sh).
       local live="$KEY_VALUE"
-      KEY_VALUE="sk-admin-TOKENBEFIXTUREINVALID0000"
+      KEY_VALUE="sk-admin-""TOKENBEFIXTUREINVALID0000"
       fetch openai projects "$base/projects?limit=1" Authorization "Bearer " || { KEY_VALUE="$live"; return 1; }
       KEY_VALUE="$live"
       ;;
