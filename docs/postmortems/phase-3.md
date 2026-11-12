@@ -56,7 +56,7 @@ Date: 2026-11-12 · Stages: 3.1 (#11), 3.2 (#12), 3.3 (#13), 3.4 (#14), 3.5 (#15
   - PM-3.1-4 · agent · 4.1 · `ManualNetworkMonitor`, the `NWPathMonitorAdapter` wiring, `sched.skip reason=offline`.
   - PM-3.5-3 · agent · 4.1 · The scheduler consumes `account.paused`; `SummaryInputs` carries it.
   - PM-2.2-3 · agent · 4.1–5.3 · Grow `SummaryInputs` per stage, with an observation test per added table.
-  - PM-3.4-8 · agent · 4.2 · Find what wrote `tb.ui.dashboardRange = 7d`; make `1.2.sh` independent of later suites.
+  - PM-3.4-8 · agent · 4.2 · Find what wrote `tb.ui.dashboardRange = 7d`; make `1.2.sh` independent of later suites. Closed in 4.2 (b4d82a1).
   - PM-3.4-3 · agent · 5.x pricing · Reprice provider rows (`price.repriced`).
   - PM-3.4-4 · agent · 6.1 · `Repository+Balance` and the poller's balance write.
   - PM-3.5-4 · agent · 10.1 · Anthropic's wrong-prefix copy.
