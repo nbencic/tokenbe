@@ -19,8 +19,9 @@ struct AppEnvironment {
   let keyStore: any KeyStore
   /// The store (03), set by startup step 2; nil only if that step failed, in which case the app quits.
   var repository: (any Repository)?
-  /// Runs adapter jobs (3.4); onboarding's `Done` asks it for the first `keys` and `usage` polls. Set with the store.
-  var poller: Poller?
+  /// Runs every account's jobs on their own (04 § Scheduler; 14 § Stage 4.1). Set by the `scheduler` startup step;
+  /// nil before it, or if step 2 failed.
+  var coordinator: PollCoordinator<ContinuousClock>?
 
   /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.
   var lifecycle: AccountLifecycle? {

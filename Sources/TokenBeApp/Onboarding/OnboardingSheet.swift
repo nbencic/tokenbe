@@ -62,14 +62,9 @@ struct OnboardingSheet: View {
     }
   }
 
-  /// `Done`: closes and starts the first `keys` and `usage` polls, fire-and-forget; the poller logs them (3.4).
+  /// `Done`: closes. The first poll has already started: the coordinator polls a new account as soon as the store
+  /// has it (04 step 6, PM-3.6-3), so `Done` adds no request of its own.
   private func finish() {
-    if let account = flow.created?.account, let poller = environment?.poller {
-      Task {
-        _ = await poller.runOnce(account: account, job: .keys)
-        _ = await poller.runOnce(account: account, job: .usage)
-      }
-    }
     close()
   }
 

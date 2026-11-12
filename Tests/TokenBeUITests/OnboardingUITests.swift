@@ -82,14 +82,14 @@ final class OnboardingUITests: XCTestCase {
     XCTAssertTrue(control(app, "onboarding.root").waitForNonExistence(timeout: 5), "Done closes onboarding")
   }
 
-  /// 1 account, 4 poll_state rows (14 Verify), 2 provider keys, 1 anchor; Done's first polls succeed.
+  /// 1 account, 4 poll_state rows (14 Verify), 2 provider keys, 1 anchor; the coordinator's first polls succeed.
   private func assertDatabaseAfterOnboarding() throws {
     XCTAssertEqual(try count("SELECT count(*) FROM account"), 1)
     XCTAssertEqual(try count("SELECT count(*) FROM poll_state"), 4, "14 Verify: 4 poll_state rows")
     XCTAssertEqual(try count("SELECT count(*) FROM provider_key"), 2)
     XCTAssertEqual(try count("SELECT count(*) FROM ledger_event WHERE kind = 'anchor' AND amount_cents = 20000"), 1)
     XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM poll_state WHERE last_success_at IS NOT NULL") == 2 },
-                  "Done runs the keys and usage polls")
+                  "the coordinator runs the keys and usage polls (PM-3.6-3)")
     XCTAssertTrue(try keyFileRefs().contains("openai"), "the key is stored under the provider's ref")
   }
 

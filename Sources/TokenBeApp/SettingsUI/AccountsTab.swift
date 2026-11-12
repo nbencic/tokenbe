@@ -2,7 +2,8 @@ import SwiftUI
 import TokenBeCore
 
 /// Settings → Accounts (08 § Settings, Paper `14Z-0`; 14 § Stage 3.5 step 2): the account list (184 pt) and the
-/// selected account's label, key status, `Replace key…`, `Test`, `Remove account…`, `Paused` and Keys & apps.
+/// selected account's label, key status, `Replace key…`, `Test`, `Remove account…`, `Paused`, the refresh-interval
+/// overrides (09 `account.interval_override_json`, 14 § Stage 4.1) and Keys & apps.
 struct AccountsTab: View {
   let model: AppModel
   let environment: AppEnvironment
@@ -93,6 +94,14 @@ private struct AccountDetail: View {
         Toggle(Strings.paused, isOn: Binding(get: { record.paused }, set: { setPaused($0) }))
           .accessibilityIdentifier("settings.accounts.paused")
       }
+      if !overridableJobs.isEmpty {
+        Section {
+          IntervalOverrides(record: record, provider: provider, jobs: overridableJobs,
+                            settings: environment.settings) { json in
+            update { $0.intervalOverrideJson = json }
+          }
+        }
+      }
       Section(Strings.keysAndApps) {
         if keys.isEmpty {
           Text(Strings.noKeysYet).foregroundStyle(.secondary)
@@ -140,6 +149,14 @@ private struct AccountDetail: View {
     } message: {
       Text(Strings.removeAccountDetail)
     }
+  }
+
+  /// The minute-cadence jobs this account runs (its capabilities, and a 09 interval for its provider).
+  private var overridableJobs: [Job] {
+    // An unreadable row runs no jobs; the coordinator logs it once (`poll.failed`), so a render does not.
+    guard case .success(let capabilities) = Result(catching: { try Capabilities.decode(json: record.capabilities) })
+    else { return [] }
+    return Job.minuteCadence.filter { $0.applies(to: capabilities) && $0.intervalKey(for: provider) != nil }
   }
 
   /// `Valid · tested <freshness>`: the last passed probe (creation, `Test`) or successful poll (08).
@@ -220,7 +237,10 @@ private struct AccountDetail: View {
 
   private func remove() {
     guard let lifecycle = environment.lifecycle else { return }
+    let coordinator = environment.coordinator
     Task {
+      // Its polls stop first, so none reads the key while it is being deleted (Q-034).
+      await coordinator?.stop(record.id)
       do {
         try await lifecycle.remove(record, settings: environment.settings)
         model.missingKeys.remove(record.keychainRef)
@@ -232,5 +252,76 @@ private struct AccountDetail: View {
 
   private func report(_ error: any Error, _ msg: String) {
     Log.error(.uiError, cat: .ui, msg: msg, acct: record.provider, err: error, ctx: ["view": "settings.accounts"])
+  }
+}
+
+/// 09 `account.interval_override_json` (14 § Stage 4.1 Inventory): per job, the Sources setting or this account's
+/// own period, within the same 09 range (Q-034).
+private struct IntervalOverrides: View {
+  let record: AccountRecord
+  let provider: ProviderID
+  let jobs: [Job]
+  let settings: TokenBeCore.Settings
+  let save: (String?) -> Void
+  @State private var expanded = false
+
+  private var current: IntervalOverride {
+    IntervalOverride.parse(record.intervalOverrideJson, provider: provider).override
+  }
+
+  var body: some View {
+    DisclosureGroup(Strings.refreshIntervals, isExpanded: $expanded) {
+      ForEach(jobs, id: \.self) { job in
+        row(job)
+      }
+    }
+    .accessibilityIdentifier("settings.accounts.intervals")
+  }
+
+  @ViewBuilder private func row(_ job: Job) -> some View {
+    let global = globalSeconds(job)
+    Toggle(Self.label(job), isOn: Binding(
+      get: { current.seconds[job] != nil },
+      set: { set(job, $0 ? global : nil) }
+    ))
+    .accessibilityIdentifier("settings.accounts.override.\(job.rawValue)")
+    if let value = current.seconds[job], let bounds = job.overrideBounds(for: provider) {
+      Stepper(value: Binding(get: { value }, set: { set(job, $0) }), in: bounds, step: Self.step(job)) {
+        LabeledContent(Self.label(job), value: Formatters.interval(seconds: value))
+      }
+      .accessibilityIdentifier("settings.accounts.override.\(job.rawValue).value")
+    } else {
+      Text(Strings.sourcesDefault(Formatters.interval(seconds: global)))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  private func set(_ job: Job, _ seconds: Int?) {
+    var next = current
+    next.seconds[job] = seconds
+    save(next.json())
+  }
+
+  private func globalSeconds(_ job: Job) -> Int {
+    let interval = job.interval(for: provider, settings: ScheduleSettings(settings), override: IntervalOverride(),
+                                lowPower: false)
+    return Int(interval?.components.seconds ?? 0)
+  }
+
+  static func label(_ job: Job) -> String {
+    switch job {
+    case .usage: Strings.usageEvery
+    case .balance: Strings.balanceEvery
+    case .keys, .cost: Strings.keysEvery
+    }
+  }
+
+  static func step(_ job: Job) -> Int {
+    switch job {
+    case .balance: 30
+    case .usage: 60
+    case .keys, .cost: 600
+    }
   }
 }
