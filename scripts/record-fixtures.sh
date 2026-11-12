@@ -11,7 +11,10 @@
 # Each response is written as Tests/Fixtures/providers/<provider>/<endpoint>.<case>.recorded.json in the envelope
 # {"status", "headers", "body"} (Q-026): case `ok` for 2xx, else the status code. Only Content-Type and Retry-After
 # are kept from the headers. Keys become sk-FIXTURE-<provider>-<last4>; org and project ids become org_fixture and
-# proj_fixture (11). The marker <provider>/RECORDED holds the date (YYYY-MM-DD) on its first line.
+# proj_fixture (11); key ids become key_fixture_<last4>, user ids user_fixture, emails owner@example.invalid and an
+# owner's name "Fixture Owner" (the repo is public). A paged endpoint is followed to its end: page 1 is case `ok`,
+# page n is `page<n>`, and each page's next_page is rewritten to the next case so FixtureTransport can serve the
+# chain (Q-029). The marker <provider>/RECORDED holds the date (YYYY-MM-DD) on its first line.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -60,12 +63,27 @@ def scrub(text):
     text = re.sub(BEARER, "Bearer «redacted:token»", text)
     text = re.sub(r"\borg[-_][A-Za-z0-9]{6,}", "org_fixture", text)
     text = re.sub(r"\bproj_[A-Za-z0-9]{6,}", "proj_fixture", text)
+    text = re.sub(r"\bkey_[A-Za-z0-9]{6,}", lambda m: "key_fixture_" + m.group(0)[-4:], text)
+    text = re.sub(r"\buser-[A-Za-z0-9]{6,}", "user_fixture", text)
+    text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "owner@example.invalid", text)
     return text
+
+def anonymize(node):
+    # A person (any object with an email) keeps its shape but loses its name.
+    if isinstance(node, dict):
+        if "email" in node and isinstance(node.get("name"), str):
+            node["name"] = "Fixture Owner"
+        for value in node.values():
+            anonymize(value)
+    elif isinstance(node, list):
+        for value in node:
+            anonymize(value)
+    return node
 
 raw = open(body_path, encoding="utf-8", errors="replace").read()
 clean = scrub(raw)
 try:
-    body = json.loads(clean)
+    body = anonymize(json.loads(clean))
 except ValueError:
     body = clean
 keep = {"content-type", "retry-after"}
@@ -98,8 +116,8 @@ self_test() {
   mkdir -p "$scratch/in" "$scratch/out/openai"
   printf 'HTTP/2 200\r\ncontent-type: application/json\r\nset-cookie: session=%s\r\nopenai-organization: org-%s\r\n' \
     "$random" "$random" > "$headers"
-  printf '{"data":[{"api_key_id":"key_1","note":"%s","other":"%s","auth":"Authorization: Bearer %s","project_id":"proj_%s","org":"org-%s"}]}' \
-    "$key" "$ant" "$random" "$random" "$random" > "$body"
+  printf '{"data":[{"api_key_id":"key_1","note":"%s","other":"%s","auth":"Authorization: Bearer %s","project_id":"proj_%s","org":"org-%s","id":"key_%s","owner":{"user":{"id":"user-%s","name":"Real Person","email":"real.person@mail.example"}}}]}' \
+    "$key" "$ant" "$random" "$random" "$random" "$random" "$random" > "$body"
   printf '%s' "$key" | redact openai 200 "$headers" "$body" "$out" || { echo "self-test: redact failed"; return 1; }
   local tail4="${random: -4}"
   python3 -I - "$out" "$tail4" <<'PY' || { echo "self-test: envelope check failed"; cat "$out"; return 1; }
@@ -114,6 +132,9 @@ assert row["other"] == "sk-FIXTURE-openai-" + tail, row
 assert row["auth"] == "Authorization: «redacted:header»", row
 assert row["project_id"] == "proj_fixture" and row["org"] == "org_fixture", row
 assert row["api_key_id"] == "key_1", row
+assert row["id"] == "key_fixture_" + tail, row
+user = row["owner"]["user"]
+assert user == {"id": "user_fixture", "name": "Fixture Owner", "email": "owner@example.invalid"}, user
 PY
   if grep -qF "$random" "$out"; then echo "self-test: random key body survived redaction"; return 1; fi
   verify_redacted "$scratch/out" || { echo "self-test: check-no-secrets flagged the redacted output"; return 1; }
@@ -125,9 +146,10 @@ PY
 }
 
 # --- recording ---------------------------------------------------------------------------------------------------
-# fetch <provider> <endpoint> <url> <header-name> <scheme>: one GET, written as an enveloped, redacted fixture.
+# fetch <provider> <endpoint> <url> <header-name> <scheme> [case]: one GET, written as an enveloped, redacted
+# fixture; a 2xx is case [case] (default ok), anything else its status code. LAST_OUT names the file written.
 fetch() {
-  local provider="$1" endpoint="$2" url="$3" header="$4" scheme="$5" tmp status case out
+  local provider="$1" endpoint="$2" url="$3" header="$4" scheme="$5" ok_case="${6:-ok}" tmp status case out
   tmp="$(mktemp -d)"
   # The auth header goes to curl on stdin (--config -), so it never appears in ps or the shell history.
   status="$(printf 'header = "%s: %s%s"\n' "$header" "$scheme" "$KEY_VALUE" |
@@ -135,11 +157,44 @@ fetch() {
       -H "User-Agent: TokenBe/record-fixtures (+https://github.com/nbencic/tokenbe)" \
       --dump-header "$tmp/headers" --output "$tmp/body" --write-out '%{http_code}' "$url")" || {
     echo "  $endpoint: request failed"; rm -rf "$tmp"; return 1; }
-  if [[ "$status" =~ ^2 ]]; then case="ok"; else case="$status"; fi
+  if [[ "$status" =~ ^2 ]]; then case="$ok_case"; else case="$status"; fi
   out="$FIXTURES/$provider/$endpoint.$case.recorded.json"
+  LAST_OUT="$out"; LAST_STATUS="$status"
   printf '%s' "$KEY_VALUE" | redact "$provider" "$status" "$tmp/headers" "$tmp/body" "$out" || { rm -rf "$tmp"; return 1; }
   echo "  $endpoint: HTTP $status → $out"
   rm -rf "$tmp"
+}
+
+# fetch_pages <provider> <endpoint> <url> <header-name> <scheme>: every page of a cursor-paged endpoint (02:
+# has_more + next_page). Page 1 is case ok, page n is page<n>; each written page's next_page names the next case.
+MAX_PAGES=8
+fetch_pages() {
+  local provider="$1" endpoint="$2" url="$3" header="$4" scheme="$5" n=1 token="" case="ok"
+  rm -f "$FIXTURES/$provider/$endpoint".page*.recorded.json
+  while :; do
+    local page_url="$url"
+    [[ -n "$token" ]] && page_url="$url&page=$token"
+    fetch "$provider" "$endpoint" "$page_url" "$header" "$scheme" "$case" || return 1
+    [[ "$LAST_STATUS" =~ ^2 ]] || { echo "  $endpoint: page $n returned HTTP $LAST_STATUS"; return 1; }
+    n=$((n + 1))
+    token="$(python3 -I - "$LAST_OUT" "page$n" <<'PAGE'
+import json, sys, urllib.parse
+path, next_case = sys.argv[1:3]
+env = json.load(open(path, encoding="utf-8"))
+body = env.get("body")
+token = body.get("next_page") if isinstance(body, dict) and body.get("has_more") else None
+if token:
+    body["next_page"] = next_case
+    with open(path, "w", encoding="utf-8") as out:
+        json.dump(env, out, indent=2, sort_keys=True, ensure_ascii=False)
+        out.write("\n")
+    print(urllib.parse.quote(token, safe=""))
+PAGE
+)" || return 1
+    [[ -n "$token" ]] || return 0
+    (( n <= MAX_PAGES )) || { echo "  $endpoint: more than $MAX_PAGES pages; the last page still says has_more"; return 0; }
+    case="page$n"
+  done
 }
 
 record() {
@@ -164,8 +219,13 @@ record() {
       project="$(curl_project_id "$base")"
       [[ -n "$project" ]] || { echo "  api_keys: no project found"; return 1; }
       fetch openai api_keys "$base/projects/${project}/api_keys?limit=100" Authorization "Bearer " || return 1
-      fetch openai usage_completions "$base/usage/completions?start_time=$((now - 172800))&bucket_width=1h&group_by%5B%5D=api_key_id&group_by%5B%5D=model&group_by%5B%5D=service_tier" Authorization "Bearer " || return 1
-      fetch openai costs "$base/costs?start_time=$((now - 604800))&group_by%5B%5D=api_key_id&group_by%5B%5D=line_item" Authorization "Bearer " || return 1
+      fetch_pages openai usage_completions "$base/usage/completions?start_time=$((now - 172800))&bucket_width=1h&group_by%5B%5D=api_key_id&group_by%5B%5D=model&group_by%5B%5D=service_tier" Authorization "Bearer " || return 1
+      fetch_pages openai costs "$base/costs?start_time=$((now - 604800))&group_by%5B%5D=api_key_id&group_by%5B%5D=line_item" Authorization "Bearer " || return 1
+      # The real error body (PM-3.4-2): the same call with a key that cannot exist.
+      local live="$KEY_VALUE"
+      KEY_VALUE="sk-admin-TOKENBEFIXTUREINVALID0000"
+      fetch openai projects "$base/projects?limit=1" Authorization "Bearer " || { KEY_VALUE="$live"; return 1; }
+      KEY_VALUE="$live"
       ;;
     anthropic)
       local base="https://api.anthropic.com/v1/organizations" hour week
