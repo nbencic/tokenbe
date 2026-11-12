@@ -19,7 +19,7 @@ struct SettingsView: View {
             AccountsTab(model: model, environment: environment)
           }
           Tab(Strings.tabSources, systemImage: "arrow.triangle.2.circlepath", value: SettingsTab.sources) {
-            SourcesTab(settings: environment.settings)
+            SourcesTab(settings: environment.settings, daily: environment.daily)
           }
           Tab(Strings.tabPrivacy, systemImage: "hand.raised", value: SettingsTab.privacy) {
             PrivacyTab(logsDirectory: environment.logsDirectory)

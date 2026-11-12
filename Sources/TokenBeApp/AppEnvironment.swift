@@ -22,6 +22,10 @@ struct AppEnvironment {
   /// Runs every account's jobs on their own (04 § Scheduler; 14 § Stage 4.1). Set by the `scheduler` startup step;
   /// nil before it, or if step 2 failed.
   var coordinator: PollCoordinator<ContinuousClock>?
+  /// The one `Poller` (set with the coordinator); the daily activity's cost polls use it too.
+  var poller: Poller?
+  /// The daily activity (04, 14 § Stage 4.3), set by startup step 7; `Run daily tasks now` calls it.
+  var daily: DailyActivityRegistration?
 
   /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.
   var lifecycle: AccountLifecycle? {

@@ -67,7 +67,8 @@ final class Startup {
       StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("accounts") { [self] in await checkAccounts() },
       StartupStep("login item") { [self] in startLoginItem() },
-      StartupStep("scheduler") { [self] in await startScheduler() }
+      StartupStep("scheduler") { [self] in await startScheduler() },
+      StartupStep("daily activity") { [self] in startDailyActivity() }
     ])
     let succeeded = await sequence.run()
     if succeeded, let recovery = databaseRecovery {
@@ -227,6 +228,7 @@ final class Startup {
     let coordinator = PollCoordinator(clock: clock, runner: runner, settings: ScheduleSettings(settings),
                                       lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
     environment.coordinator = coordinator
+    environment.poller = runner
     self.environment = environment
     await coordinator.follow(repository.observeSummaryInputs())
     await coordinator.follow(networkMonitor())
@@ -246,11 +248,21 @@ final class Startup {
     await coordinator.start()
   }
 
+  /// 04 step 7: register the daily activity (`NSBackgroundActivityScheduler`).
+  private func startDailyActivity() {
+    guard var environment, let repository = environment.repository, let poller = environment.poller else { return }
+    let daily = DailyActivityRegistration(settings: environment.settings, repository: repository, poller: poller)
+    daily.register()
+    environment.daily = daily
+    self.environment = environment
+  }
+
   /// `app.terminate {reason}`, sentinel removed, then the log drained (07).
   func terminate(reason: String) async {
     Log.info(.appTerminate, cat: .app, msg: "terminate", ctx: ["reason": .string(reason)])
     retentionWatcher?.cancel()
     for watcher in schedulerWatchers { watcher.cancel() }
+    environment?.daily?.invalidate()
     await environment?.coordinator?.shutdown()
     loginItem?.stop()
     do {

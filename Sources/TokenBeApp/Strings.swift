@@ -1,3 +1,4 @@
+import Foundation
 import TokenBeCore
 
 /// Every user-visible string (12 § R9, 08), exactly as 08 writes it. Views never contain inline copy.
@@ -222,4 +223,13 @@ enum Strings {
   static let sourceNotApplicable = "n/a"
   static func next(_ interval: String) -> String { "next \(interval)" }
   static func sourceLine(_ parts: [String]) -> String { parts.joined(separator: " \u{00B7} ") }
+
+  // Daily activity (08 § Settings: Sources `Run daily tasks now`, Advanced `Last daily run`; 14 § Stage 4.3)
+  static let runDailyTasksNow = "Run daily tasks now"
+  static let lastDailyRun = "Last daily run"
+  static let never = "never"
+  /// `MMM d` (08) plus the time of day, which 08 has no rule for (Q-025).
+  static func dateTime(_ date: Date) -> String {
+    "\(Formatters.date(date, calendar: .current)) \(date.formatted(date: .omitted, time: .shortened))"
+  }
 }
