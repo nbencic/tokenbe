@@ -16,11 +16,9 @@ check "≥ 6 accessibility identifiers in Popover/ (summed)" identifiers
 for copy in "No accounts yet" "Add a provider key to start tracking." "No data yet" "Quit"; do
   check "Strings has 08 copy: $copy" grep -qF "\"$copy\"" Sources/TokenBeApp/Strings.swift
 done
-# A control appears only with its action (D6): no later-stage controls in the popover yet.
-# `Open dashboard` arrived in 1.2, `Settings…` in 1.3 and `Add account…` in 3.5, each with its action.
-for later in "Pause polling" "arrow.clockwise"; do
-  check "popover has no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/Popover Sources/TokenBeApp/Strings.swift"
-done
+# A control appears only with its action (D6). `Open dashboard` arrived in 1.2, `Settings…` in 1.3, `Add account…`
+# in 3.5, and `Pause polling for 1 h` and the refresh button (`arrow.clockwise`) in 4.1, each with its action; 4.1.sh
+# checks the last two.
 for shape in "case solid" "case notched" "case dashed"; do
   check "glyph shape: $shape" grep -qF "$shape" Sources/TokenBeApp/Components/MenuBarGlyph.swift
 done
