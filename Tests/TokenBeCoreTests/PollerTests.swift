@@ -82,8 +82,10 @@ import Testing
     #expect(opened.first?.ctx["until"] == "2026-11-11T12:00:00.000Z")
     let state = try await env.state(.usage)
     #expect(state.circuitOpenUntil == "2026-11-11T12:00:00.000Z" && state.consecutiveFailures == 3)
-    #expect(state.lastErrorMessage?.hasPrefix("HTTP 401: ") == true)
-    #expect(state.lastErrorMessage?.contains("synthetic 401") == true)
+    // The human message (02 probe message, Q-036); the raw body stays in the log.
+    #expect(state.lastErrorMessage == CoreStrings.OpenAI.notAdminKey)
+    let detail = await env.records(.pollFailed).last?.ctx["detail"]
+    #expect(detail.map { "\($0)".contains("HTTP 401: ") && "\($0)".contains("synthetic 401") } == true)
 
     await env.transport.replace("GET", Harness.usage, .fixture(Harness.fixture("usage_completions.empty")))
     #expect(await env.run(.usage) == .succeeded(rows: 0))
@@ -243,6 +245,7 @@ import Testing
     let error = PollError.schemaDrift(unknownKeys: ["a", "b"])
     #expect(error.className == "schema_drift")
     #expect(error.summary == "unknown keys a,b")
+    #expect(error.humanMessage(provider: .openai) == CoreStrings.unexpectedResponse("OpenAI"))
   }
 
   @Test("cancelled before its store write (account removed, quit): skipped, no poll.failed, nothing recorded")

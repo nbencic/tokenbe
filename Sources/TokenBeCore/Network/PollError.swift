@@ -64,3 +64,25 @@ extension PollError {
     return formatter.date(from: text)
   }
 }
+
+extension PollError {
+  /// The human message onboarding (08 step 2) and the Sources strip (08 `HP-0`) show for this failure, never the
+  /// raw body (02 probe messages; authored where 02 has none, Q-029). `poll_state.last_error_message` stores it
+  /// (Q-036); the raw detail stays in the `poll.failed` record and `last_raw`.
+  public func humanMessage(provider: ProviderID) -> String {
+    let name = provider.displayName
+    switch self {
+    case .auth(let status, _) where provider == .openai:
+      return status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope
+    case .auth(let status, _):
+      return CoreStrings.unexpectedStatus(name, status: status)
+    case .rateLimited: return CoreStrings.rateLimited(name)
+    case .server(let status, _): return CoreStrings.serverError(name, status: status)
+    case .transport, .cancelled: return CoreStrings.unreachable(name)
+    case .providerRule(let rule):
+      guard rule.hasPrefix("http "), let status = Int(rule.dropFirst(5)) else { return CoreStrings.unexpectedResponse(name) }
+      return CoreStrings.unexpectedStatus(name, status: status)
+    case .decode, .schemaDrift: return CoreStrings.unexpectedResponse(name)
+    }
+  }
+}

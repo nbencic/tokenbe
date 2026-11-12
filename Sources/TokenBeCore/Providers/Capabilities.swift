@@ -72,3 +72,32 @@ public struct Capabilities: Sendable, Equatable, Codable {
     try JSONDecoder().decode(Capabilities.self, from: Data(json.utf8))
   }
 }
+
+/// The account page's badges row (08 `B1-0`): `Balance: direct|anchored|none` · `Usage: per key|org only|harness` ·
+/// `Cost: provider|estimated` · `Lag: 5 min`.
+public struct AccountBadges: Sendable, Equatable {
+  public enum BalanceSource: String, Sendable, Equatable { case direct, anchored, none }
+  public enum UsageSource: String, Sendable, Equatable {
+    case perKey = "per key"
+    case orgOnly = "org only"
+    case harness
+  }
+  public enum CostSource: String, Sendable, Equatable { case provider, estimated }
+
+  public var balance: BalanceSource
+  public var usage: UsageSource
+  public var cost: CostSource
+  public var lag: Duration
+
+  /// Balance follows the account's mode (a spend-only account has none); usage, cost and lag follow 02's matrix.
+  public init(mode: BalanceMode, capabilities: Capabilities) {
+    switch mode {
+    case .direct: balance = .direct
+    case .anchored: balance = .anchored
+    case .spendOnly: balance = .none
+    }
+    usage = !capabilities.usage ? .harness : capabilities.perKeyUsage ? .perKey : .orgOnly
+    cost = capabilities.cost ? .provider : .estimated
+    lag = capabilities.usageLag
+  }
+}

@@ -215,6 +215,7 @@ import Testing
     let reading = BalanceReading(snapshots: [], rawBody: "{}")
     #expect(reading.rawBody == "{}" && reading.snapshots.isEmpty)
     #expect(LenientDecoding.AnyKey(intValue: 3)?.stringValue == "3")
-    #expect(OpenAIProbe.message(for: .auth(http: 401, body: "")) == CoreStrings.unexpectedResponse("OpenAI"))
+    // Shared with the poller since 4.2 (Q-036): an auth failure gets 02's message.
+    #expect(OpenAIProbe.message(for: .auth(http: 401, body: "")) == CoreStrings.OpenAI.notAdminKey)
   }
 }

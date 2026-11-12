@@ -272,7 +272,8 @@ public actor PollCoordinator<C: Clock<Duration>> {
   func emitState() {
     let wall = now()
     let state = CoordinatorState(pausedUntil: settings.isPaused(at: wall) ? settings.pausedUntil : nil,
-                                 inFlightCount: running.count, isOnline: online)
+                                 inFlightCount: running.count, isOnline: online, isLowPower: lowPower,
+                                 nextDue: wallClockDue(at: wall))
     guard state != lastState else { return }
     lastState = state
     stateContinuation.yield(state)

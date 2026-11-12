@@ -58,6 +58,12 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var anchorAgeDays: Int?
   public var topApps: [AppSpend]
   public var unpricedCents: Int64
+  /// `account.capabilities`; nil when the stored JSON cannot be read (the coordinator logs that once).
+  public var capabilities: Capabilities?
+  /// `account.interval_override_json`, clamped (09); the stale threshold uses the same interval as the scheduler.
+  public var intervalOverride: IntervalOverride
+  /// The account page's Sources strip (08 `HP-0`), one per job, in `Job.allCases` order (14 § Stage 4.2).
+  public var sources: [SourceStatus]
 
   public init(
     id: String, provider: ProviderID, label: String, mode: BalanceMode, currency: Currency = .usd,
@@ -66,7 +72,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     runwayMin: TimeInterval? = nil, band: Band = .unknown, bandSince: Date? = nil, freshness: [Job: Date?] = [:],
     isStale: Bool = false, isPaused: Bool = false, needsKey: Bool = false, circuitOpenUntil: Date? = nil,
     todaySpendCents: Int64? = nil, spend30dCents: Int64? = nil, autoReload: AutoReload? = nil,
-    anchorAgeDays: Int? = nil, topApps: [AppSpend] = [], unpricedCents: Int64 = 0
+    anchorAgeDays: Int? = nil, topApps: [AppSpend] = [], unpricedCents: Int64 = 0, capabilities: Capabilities? = nil,
+    intervalOverride: IntervalOverride = IntervalOverride(), sources: [SourceStatus] = []
   ) {
     self.id = id
     self.provider = provider
@@ -93,6 +100,9 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     self.anchorAgeDays = anchorAgeDays
     self.topApps = topApps
     self.unpricedCents = unpricedCents
+    self.capabilities = capabilities
+    self.intervalOverride = intervalOverride
+    self.sources = sources
   }
 
   /// Most recent successful poll of any job, nil before the first one ("No data yet", 08).

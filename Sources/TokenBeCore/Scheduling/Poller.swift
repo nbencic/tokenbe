@@ -199,7 +199,7 @@ public actor Poller {
       log.emit(.error, .pollFailed, cat: .poll(account.provider), msg: "key unavailable", acct: account.provider,
                job: job.rawValue, err: error, ctx: ["attempts": 0])
     }
-    await record(PollFailure(errorClass: "keychain", message: "Keychain item missing or unreadable"),
+    await record(PollFailure(errorClass: "keychain", message: CoreStrings.keyMissing),
                  account: account, job: job, at: time)
     return nil
   }
@@ -224,8 +224,9 @@ public actor Poller {
     let acct = account.provider
     let cat = Cat.poll(acct)
     let redactor = log.redactor
-    var failure = PollFailure(errorClass: error.className, message: RawBody.truncated(redactor.redact(error.summary),
-                                                                                       limit: 512))
+    // The human message (08 `HP-0`, Q-036); the raw summary goes to the `poll.failed` record below.
+    var failure = PollFailure(errorClass: error.className,
+                              message: error.humanMessage(provider: ProviderID(rawValue: acct) ?? .openai))
     switch error {
     case .cancelled:
       return .skipped("cancelled")
@@ -251,8 +252,10 @@ public actor Poller {
       log.emit(.warn, .pollCircuitOpen, cat: cat, msg: "circuit open", acct: acct, job: job.rawValue,
                ctx: ["until": .string(until)])
     }
+    // `detail`: the raw cause (status and body), redacted and truncated by the record; `poll_state` keeps the human
+    // message (Q-036).
     log.emit(.error, .pollFailed, cat: cat, msg: "\(job.rawValue) poll failed", acct: acct, job: job.rawValue,
-             err: error, ctx: ["attempts": .int(attempts)])
+             err: error, ctx: ["attempts": .int(attempts), "detail": .string(error.summary)])
     return .failed(failure.errorClass)
   }
 
@@ -263,7 +266,7 @@ public actor Poller {
       log.emit(.error, .pollWriteIncomplete, cat: .poll(acct), msg: "usage rows do not add up to the page (V2)",
                acct: acct, job: job.rawValue, ctx: ["expected": .int(Int(expected)), "written": .int(Int(written))])
     }
-    await record(PollFailure(errorClass: "store", message: RawBody.truncated(log.redactor.redact("\(error)"), limit: 512)),
+    await record(PollFailure(errorClass: "store", message: CoreStrings.storeFailed),
                  account: account, job: job, at: time)
     log.emit(.error, .pollFailed, cat: .poll(acct), msg: "\(job.rawValue) poll failed", acct: acct, job: job.rawValue,
              err: error, ctx: ["attempts": .int(attempts)])
@@ -300,7 +303,7 @@ extension PollError {
     }
   }
 
-  /// `poll_state.last_error_message` before redaction.
+  /// The raw cause, for the `poll.failed` record's `detail` (redacted there).
   var summary: String {
     switch self {
     case .transport(let error): "URLError \(error.code.rawValue)"

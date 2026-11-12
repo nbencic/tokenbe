@@ -203,6 +203,7 @@ Roll-up is idempotent: it is keyed on bucket primary keys; re-running produces i
 ## Migrations
 
 - Forward-only. Numbered `001_initial.sql`, `002_….sql`. Applied inside one transaction each. `schema_version` appended on success.
+- **`poll_state.last_error_message`** holds the failure's human message (02 probe messages, `CoreStrings`), which the account page's Sources strip shows; the raw cause (status, redacted body) goes to the `poll.failed` record's `detail` (07, Q-036). A success clears both error columns.
 - **Seed rows in `001_initial.sql`:** `schema_version(version=1, applied_at=now)`; `app(id='app_unassigned', name='unassigned', display_name='Unassigned', created_at=now, is_auto=1)` — the V4 sentinel. Runtime seeds (not in the migration): `price_snapshot('bundled-<appversion>')` at first launch when no current snapshot exists; four `poll_state` rows (`usage`,`cost`,`balance`,`keys`) when an account is created, regardless of capabilities (jobs the provider lacks stay `last_attempt_at NULL`).
 - Columns are never dropped or renamed. Deprecated columns get a comment in the migration file and are ignored.
 - Every migration ships with a fixture DB produced by the previous version (`Fixtures/db/vNNN.sqlite`) and a test that migrates it and asserts row counts.

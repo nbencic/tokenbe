@@ -13,6 +13,9 @@ public enum CoreStrings {
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
   public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
 
+  /// A poll whose results could not be written (`poll_state` class `store`); authored (Q-036).
+  public static let storeFailed = "TokenBe could not save the latest results. Details are in the log."
+
   // The rest is authored (Q-029): 02 § Errors gives no copy for these classes.
 
   /// 429.
