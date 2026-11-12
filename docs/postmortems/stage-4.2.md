@@ -11,7 +11,7 @@ Date: 2026-11-12 · Branch: s4.2-freshness · PR: #20 · Planned size: M · Comm
 
 The Dashboard toolbar gained `Refresh`, and sidebar rows read `Key missing`.
 
-**DoD.** `verify-stage.sh 4.2`: VERIFY-SUMMARY. D1–D12 are met; E2E-5 is `StaleOfflineUITests`. Coverage is 97.35 % (gate 97 %). H2 is still open (Q-033) and does not block this stage.
+**DoD.** `verify-stage.sh 4.2` prints `STAGE 4.2 OK` on run 2. All 844 stage checks are `ok`, and the one `skip` is 3.6's H2 gate (Q-033). The full UI suite passed, 11 tests. D1–D12 are met; E2E-5 is `StaleOfflineUITests`. Coverage is 97.35 % (gate 97 %). H2 is still open (Q-033) and does not block this stage.
 
 ## What went as planned
 - **Advisor first.** The advisor's points shaped the design before any code:
@@ -42,7 +42,7 @@ The Dashboard toolbar gained `Refresh`, and sidebar rows read `Key missing`.
   - **Cause:** at launch the setting mirrors the login item (09), and a fresh test root has no login-item marker. `StaleOfflineUITests` sorts after `SettingsGeneralUITests`, so its launches left `0` in the shared UI-test suite that `1.3.sh` reads afterwards. 4.1's new suite (`RefreshPauseUITests`) sorts before it, which is why this did not show up earlier. This is the same class as PM-3.4-8.
   - **Fix:** `1.3.sh` no longer reads that key from the shared suite. The test asserts it after its own relaunch ("launch at login persisted"), and a static check pins that assertion. The other eight keys are not written by later suites and are still read.
   - **Cost:** one verify run (~35 min).
-- **Verify run 2:** VERIFY-RUN2.
+- **Verify run 2:** `STAGE 4.2 OK`, with D13 green because this postmortem was written before the run.
 - **CI:** see the PR.
 
 ## Deviations from the docs
