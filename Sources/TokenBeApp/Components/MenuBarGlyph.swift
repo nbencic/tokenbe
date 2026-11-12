@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// The glyph's three shapes (08 § Menu bar glyph). Colour is never used in the menu bar; the shape carries the state.
-enum GlyphState: CaseIterable {
+enum GlyphState: String, CaseIterable {
   /// All accounts healthy or watch.
   case solid
   /// Any account low or critical.
@@ -22,6 +22,9 @@ struct MenuBarGlyph: View {
   var body: some View {
     Image(nsImage: Self.image(for: state))
       .accessibilityLabel(Strings.appName)
+      // The shape, for VoiceOver and the UI tests (`glyph.dashed`, 14 § Stage 4.2).
+      .accessibilityValue(state.rawValue)
+      .accessibilityIdentifier("glyph.\(state.rawValue)")
   }
 
   static func image(for state: GlyphState) -> NSImage {

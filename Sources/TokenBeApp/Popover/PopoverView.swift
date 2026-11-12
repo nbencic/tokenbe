@@ -15,6 +15,7 @@ struct PopoverView: View {
     VStack(alignment: .leading, spacing: 0) {
       header
       Divider()
+      if model.isOffline { offlineBanner }
       content
       Divider()
       footer
@@ -104,8 +105,20 @@ struct PopoverView: View {
         ScrollView { cards }
           .frame(height: Self.maxCardsHeight)
       }
-      .accessibilityIdentifier("popover.cards")
+      // No identifier here: SwiftUI hands it to a lone card, which then loses `popover.card.<provider>` (4.2).
     }
+  }
+
+  /// 08 § Popover states, Offline: a single line in the secondary tone, not a band colour.
+  private var offlineBanner: some View {
+    Text(Strings.offlineBanner)
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+      .background(Color.secondary.opacity(0.12))
+      .accessibilityIdentifier("popover.banner.offline")
   }
 
   /// 560 pt (08) minus the header and the two-row footer.
@@ -114,9 +127,12 @@ struct PopoverView: View {
   private var cards: some View {
     VStack(spacing: 8) {
       ForEach(model.sortedAccounts) { summary in
-        AccountCardView(summary: summary) {
+        AccountCardView(summary: summary, dimmed: summary.isStale || model.isOffline) {
           model.settingsTab = .accounts
           showSettings()
+        } open: {
+          model.showAccount(summary.id)
+          dismiss()
         }
       }
     }
