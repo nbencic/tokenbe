@@ -12,9 +12,12 @@ public final class FileKeyStore: KeyStore {
 
   let url: URL
   private let lock = Mutex(())
+  private let log: EventLog
 
-  public init(directory: URL) {
+  /// `logPipeline` is for tests; the app logs through `Log`.
+  public init(directory: URL, logPipeline: LogPipeline? = nil) {
     url = directory.appendingPathComponent(Self.fileName)
+    log = EventLog(pipeline: logPipeline)
   }
 
   public func get(_ ref: String) async throws(KeyStoreError) -> String? {
@@ -46,8 +49,8 @@ public final class FileKeyStore: KeyStore {
     do {
       return try JSONDecoder().decode([String: String].self, from: Data(contentsOf: url))
     } catch {
-      Log.error(.keychainReadFailed, cat: .keychain, msg: "test key file unreadable", err: error,
-                ctx: ["osstatus": .int(Int(errSecIO))])
+      log.emit(.error, .keychainReadFailed, cat: .keychain, msg: "test key file unreadable", err: error,
+               ctx: ["osstatus": .int(Int(errSecIO))])
       throw .failed(op: .read, status: errSecIO)
     }
   }
@@ -58,8 +61,8 @@ public final class FileKeyStore: KeyStore {
       try JSONEncoder().encode(items).write(to: url, options: .atomic)
     } catch {
       let evt: Evt = op == .delete ? .keychainDeleteFailed : .keychainWriteFailed
-      Log.error(evt, cat: .keychain, msg: "test key file not written", err: error,
-                ctx: ["osstatus": .int(Int(errSecIO))])
+      log.emit(.error, evt, cat: .keychain, msg: "test key file not written", err: error,
+               ctx: ["osstatus": .int(Int(errSecIO))])
       throw .failed(op: op, status: errSecIO)
     }
   }

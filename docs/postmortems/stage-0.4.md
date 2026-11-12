@@ -69,7 +69,7 @@ Assets: 14 colour sets from 08 and a generated AppIcon. Verification: 67 Core te
 ## Carry-forward actions
 - PM-0.4-1 · agent · 0.5 · CI on `macos-15` / Xcode 16.x must open the objectVersion 77 project (introduced in Xcode 16) and build Release with `CODE_SIGNING_ALLOWED=NO`. If the runner's Xcode rejects it, record the minimum Xcode in 10. Status: closed in Stage 0.5 (Xcode 16.4 built the objectVersion 77 project in Release, unsigned).
 - PM-0.4-2 · agent · every stage · Launch checks and UI tests always set `TOKENBE_TEST_ROOT`; no script may delete or write the owner's real TokenBe folders or settings domain. `0.4.sh`'s "untouched" check keeps guarding this in every regression run. Status: open (process).
-- PM-0.4-3 · Nikola · now · `chmod 600 ~/tokenbe-app/.env` (the agent's attempt was denied). Status: open.
+- PM-0.4-3 · Nikola · now · `chmod 600 ~/tokenbe-app/.env` (the agent's attempt was denied). Status: closed 2026-11-12 (done by the owner).
 - Earlier actions targeting 0.4:
   - PM-0.2-1 closed (startup and terminate wiring);
   - PM-0.3-1 closed (retention wiring);

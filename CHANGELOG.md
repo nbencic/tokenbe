@@ -23,3 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Add an account: `Add account…` (or the first launch) opens onboarding — pick the provider, paste the key, `Test & continue`, then see the mode, keys found and currency, set the anchor and `Done`. The popover shows the account card (`No data yet`, or `Key missing · Fix…`), the Dashboard sidebar lists accounts, and Settings → Accounts edits the label, tests or replaces the key, pauses, lists Keys & apps and removes the account (Stage 3.5).
 - OpenAI verification, first part: the fixture recorder follows every page of usage and costs, anonymizes people and key ids, and records the real 401 body; the response envelope keys seen in the first live recording are now known. OpenAI stays unverified until the owner's row-bearing recording (H2) lands (Stage 3.6).
 - Polling runs on its own: usage every 5 min and key lists every hour for OpenAI, set in the new Settings → Sources tab (with the Low Power multiplier) or per account under Accounts → `Refresh intervals`. A new account is polled at once. The popover header shows `Refreshed …` and a refresh button; `Pause polling for 1 h` / `Resume` pause everything, and an account's `Paused` toggle pauses it. Offline, Low Power Mode, sleep/wake, clock jumps and stuck polls are handled and logged (Stage 4.1).
+
+### Changed
+- The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).
+
+### Fixed
+- A poll stopped while it was writing (account removed, app quitting, overrun) no longer logs a `poll.failed` error.

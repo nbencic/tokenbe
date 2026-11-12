@@ -234,3 +234,39 @@ struct HangingTransport: HTTPTransport {
     #expect(AccountSummaryBuilder.summaries(from: SummaryInputs(accounts: [account])).first?.lastSuccessAt == nil)
   }
 }
+
+/// `AccountLifecycle`'s refusals (PM-0.5-2): no adapter, an unknown provider row, an unreadable key, and a passed
+/// test whose circuit reset cannot be written.
+@Suite struct AccountLifecycleEdgeTests {
+  typealias Harness = OpenAIHarness
+
+  @Test("probe for a provider without an adapter, or test of an unknown provider row: unrecognized, no request")
+  func noAdapter() async throws {
+    let env = try await Harness()
+    let lifecycle = AccountLifecycleTests.lifecycle(env)
+    #expect(await lifecycle.probe(.xai, key: "x").humanMessage == CoreStrings.unexpectedResponse("xAI"))
+    var odd = Harness.account
+    odd.provider = "gemini"
+    #expect(await lifecycle.test(odd).humanMessage == CoreStrings.unexpectedResponse("gemini"))
+    #expect(await env.transport.calls.isEmpty)
+  }
+
+  @Test("test with a key that cannot be read: the key-missing message, no request")
+  func keyUnreadable() async throws {
+    let env = try await Harness()
+    await env.keys.fail(.read, with: .failed(op: .read, status: -25_300))
+    let result = await AccountLifecycleTests.lifecycle(env).test(Harness.account)
+    #expect(result.humanMessage == CoreStrings.keyMissing)
+    #expect(await env.transport.calls.isEmpty)
+  }
+
+  @Test("a passed test whose circuit reset fails logs ui.error and still reports the pass")
+  func resetFails() async throws {
+    let env = try await Harness()
+    await AccountLifecycleTests.passingProbe(env)
+    try env.database.close()
+    let result = await AccountLifecycleTests.lifecycle(env).test(Harness.account)
+    #expect(result.humanMessage == nil)
+    #expect(await env.records(.uiError).first?.msg == "circuit not reset")
+  }
+}

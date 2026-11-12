@@ -49,7 +49,7 @@ The guard has a self-test that plants a key, a bearer token and an off-list URL,
 
 ## Carry-forward actions
 - PM-0.5-1 · agent · every stage · Swift 6.1 is the compile gate. Avoid 6.2-only behaviour (implicitly nonisolated `static let` on `@MainActor` types, trailing commas in argument lists, exit tests). When CI and local disagree, fix the code, not the CI toolchain. Status: open (process).
-- PM-0.5-2 · Nikola · any time · Coverage beyond 85 %: the owner asked what 100 % takes. About 97–98 % is cheap (facade tests, failure injection with read-only folders, a test-only crash-probe executable). True 100 % would need a fake filesystem seam, which 14 § 0.3 forbids. Decide whether to schedule the cheap part; default: Stage 11.2. Status: open.
+- PM-0.5-2 · Nikola · any time · Coverage beyond 85 %: the owner asked what 100 % takes. About 97–98 % is cheap (facade tests, failure injection with read-only folders, a test-only crash-probe executable). True 100 % would need a fake filesystem seam, which 14 § 0.3 forbids. Decide whether to schedule the cheap part; default: Stage 11.2. Status: closed 2026-11-12: the owner chose 97 %; the gate is 97 % (Q-035).
 - Earlier actions targeting 0.5:
   - PM-0.1-1 closed;
   - PM-0.1-2 closed;

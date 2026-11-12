@@ -102,6 +102,9 @@ public actor Poller {
       return .succeeded(rows: rows)
     } catch let error as PollError {
       return await failed(error, Run(account: account, job: job, attempts: attempts, trace: trace, time: time))
+    } catch is CancellationError {
+      // Stopped by the coordinator (overrun, account removed, quit) while writing: not a failure, nothing recorded.
+      return .skipped("cancelled")
     } catch {
       return await storeFailed(error, Run(account: account, job: job, attempts: attempts, trace: trace, time: time))
     }

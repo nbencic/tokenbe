@@ -231,7 +231,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Goal:** `10 § CI` green on every PR. **Depends on:** 0.4. **Adds:** nothing visible. **Size:** S.
 
 **Steps**
-1. `.github/workflows/ci.yml` per `10`: `macos-15`, Xcode 16.x select, `swift build -c release -Xswiftc -warnings-as-errors`, `swift test --enable-code-coverage`, coverage gate ≥ 85 % lines in `TokenBeCore` (`xcrun llvm-cov report`, script `scripts/coverage-gate.sh`), `swiftlint --strict`, `check-log-events.sh`, `check-no-secrets.sh`, `xcodebuild -scheme TokenBe -configuration Release build CODE_SIGNING_ALLOWED=NO`.
+1. `.github/workflows/ci.yml` per `10`: `macos-15`, Xcode 16.x select, `swift build -c release -Xswiftc -warnings-as-errors`, `swift test --enable-code-coverage`, coverage gate ≥ 97 % lines in `TokenBeCore` (85 % until 2026-11-12, Q-035) (`xcrun llvm-cov report`, script `scripts/coverage-gate.sh`), `swiftlint --strict`, `check-log-events.sh`, `check-no-secrets.sh`, `xcodebuild -scheme TokenBe -configuration Release build CODE_SIGNING_ALLOWED=NO`.
 2. `scripts/check-no-secrets.sh`: greps the tree and (when present) `build/` products for the 7 key patterns of `07` and for `URL(string:` / `https://` literals outside the allowlist `api.openai.com`, `api.anthropic.com`, `openrouter.ai`, `api.deepseek.com`, `api.x.ai`, `raw.githubusercontent.com/BerriAI/litellm`, `api.github.com/repos/nbencic/tokenbe`, `github.com/nbencic/tokenbe` (User-Agent). `Tests/Fixtures` are scanned too (they must be redacted).
 
 **Inventory** — Files: `.github/workflows/ci.yml`, `scripts/{check-no-secrets,coverage-gate}.sh`, `scripts/stages/0.5.sh`.
