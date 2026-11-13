@@ -33,7 +33,7 @@ for later in "Alerts"; do
   check "SettingsView has no '$later' tab yet" bash -c "! grep -qF 'tab$later' Sources/TokenBeApp/SettingsUI/SettingsView.swift"
 done
 # "integrity" and "Back up" arrived in 2.2.
-for later in "Export" "Reset all" "Import" "Last daily run" "Check for updates"; do
+for later in "Export" "Reset all" "Import" "Check for updates"; do
   check "Settings tabs have no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/SettingsUI"
 done
 

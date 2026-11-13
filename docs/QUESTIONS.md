@@ -455,3 +455,18 @@ Options and choices (each the least code; none adds a dependency, screen, settin
 - **PM-3.4-8:** the write of `tb.ui.dashboardRange = 7d` could not be reproduced, and the logs of that run were in a deleted test root. `1.2.sh` no longer reads the shared UI-test suite. It requires `DashboardShellUITests.testCommandDOpensDashboardAndRangePersists` to pass, and that test asserts the range and the frame after its own relaunch.
 - **`run.sh uitest`** takes `TB_UI_ONLY=<Suite>[/<test>]` for single-suite reruns.
 Blocking: no
+
+## Q-037 Stage 4.3: daily-activity rules the docs leave open            (2026-11-12)
+Context: 14 § Stage 4.3; `Scheduling/DailyActivity.swift`, `TokenBeApp/DailyActivityRegistration.swift`, `SettingsUI/{SourcesTab,AdvancedTab}.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **A failing step** logs the new `sched.daily_step_failed {step, err}` at error (R5: every catch logs a 07 event; 07 had none for this). `sched.daily_end` adds `run` and `<step>_ms` per step (14: "each step's duration logged in ctx"), and is `warn` when a step failed.
+- **Retry at the next activity** (04). An ungated step runs every day anyway. A gated step (the weekly `integrity_check`) that failed runs again at the next run, whatever its gate. The retry set is kept in memory, so after a relaunch the gate decides.
+- **Run numbers:** a run is `tb.daily.runCount + 1`. `tb.daily.lastRunAt` and `tb.daily.runCount` are written after each completed run (09), whether or not a step failed.
+- **Overlap:** a run requested while one is running is skipped. That happens with `Run daily tasks now` during a scheduled run. It is logged `sched.overlap_skipped {job: daily}` (07's existing event) and writes nothing.
+- **Cost polls** run for every account whose stored capabilities include `cost`, through the same `Poller` as the scheduler. The global pause, a paused account and an open cost circuit are skipped with `sched.skip {reason}`, as the scheduler skips them. Offline is not checked: the poll fails, the step fails, and the next activity retries it. Any account's failed cost poll fails the step (`CostPolls.Failed`).
+- **The weekly integrity step** writes `tb.db.lastIntegrityCheckAt`, as Advanced's button does. It fails the step when the result is not `ok`; the check itself has logged `db.integrity_failed` and copied the database. The backup step writes `tb.db.lastBackupAt`.
+- **`Run daily tasks now`** is disabled while a run is in progress and shows a small spinner. This is transient, not an inert control (D6).
+- **`Last daily run`** reads `never`, or `MMM d` plus the time of day, as the backup sheet does (Q-025).
+- **PM-4.2-2:** the account page's cost source shows `ok · HH:mm` and no `next …`. `NSBackgroundActivityScheduler` does not expose its next run time.
+- **First run:** the system chooses when the first scheduled run happens (D-daily-no-fixed-time). Nothing runs at launch.
+Blocking: no

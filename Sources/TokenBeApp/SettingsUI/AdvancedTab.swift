@@ -2,7 +2,8 @@ import SwiftUI
 import TokenBeCore
 
 /// Advanced tab (08 § Settings, Paper `1WN-0`, `22Q-0`): log level (live, 07), log retention, `Open log folder`;
-/// `Run integrity check now` and `Back up now` (14 § Stage 2.2). Diagnostics and data rows arrive in 9.x.
+/// `Last daily run` (14 § Stage 4.3, 09 `tb.daily.lastRunAt`); `Run integrity check now` and `Back up now`
+/// (14 § Stage 2.2). Diagnostics and data rows arrive in 9.x.
 struct AdvancedTab: View {
   @Bindable var settings: TokenBeCore.Settings
   let logsDirectory: URL
@@ -28,11 +29,19 @@ struct AdvancedTab: View {
       }
       if let repository {
         Section {
+          LabeledContent(Strings.lastDailyRun, value: lastDailyRun)
+            .accessibilityIdentifier("settings.advanced.lastDailyRun")
           DatabaseMaintenanceRows(settings: settings, repository: repository)
         }
       }
     }
     .formStyle(.grouped)
+  }
+
+  /// `never`, or the date and time of the last run (`Nov 12 21:30`, as the backup sheet writes it, Q-025).
+  private var lastDailyRun: String {
+    guard settings.dailyLastRunAt > 0 else { return Strings.never }
+    return Strings.dateTime(Date(timeIntervalSince1970: settings.dailyLastRunAt))
   }
 }
 
@@ -95,8 +104,7 @@ struct DatabaseMaintenanceRows: View {
       settings.dbLastBackupAt = Date().timeIntervalSince1970
       let size = Int64(result.bytes).formatted(.byteCount(style: .file))
       // 08 § Formatting rules fixes dates (`MMM d`); the time of day is added, since 08 has no rule for it (Q-025).
-      let savedAt = Date(timeIntervalSince1970: settings.dbLastBackupAt)
-      let time = "\(Formatters.date(savedAt, calendar: .current)) \(savedAt.formatted(date: .omitted, time: .shortened))"
+      let time = Strings.dateTime(Date(timeIntervalSince1970: settings.dbLastBackupAt))
       return MaintenanceReport(title: Strings.backupTitle,
                                lines: [Strings.backupDetail(size: size, time: time), result.url.path])
     } catch {
