@@ -4,7 +4,7 @@ import XCTest
 /// 14 § Stage 5.1 Tests, `PriceBookUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT` (Q-014), so no
 /// request reaches the feed. First launch installs the bundled snapshot (`price.feed_ok source=bundled`, one
 /// `price_snapshot` row: 14 Verify). Settings → Sources → Price book: `+` adds an override (one `price_override` row,
-/// shown in the table), an incomplete one is refused, `Reset to feed` removes it. Settings are not reset
+/// shown in the list), an incomplete one is refused, `−` removes the selected one, `Reset to feed` removes all. Settings are not reset
 /// (PM-4.2-5); the test leaves General selected and changes no shared setting.
 final class PriceBookUITests: XCTestCase {
   private var root: URL!
@@ -62,6 +62,17 @@ final class PriceBookUITests: XCTestCase {
     XCTAssertTrue(control(app, "settings.sources.priceRow.\(model)").waitForExistence(timeout: 5), "the table shows it")
     XCTAssertTrue(waitFor { self.text(caption).contains(" 1 override ") }, text(caption))
 
+    // `−` removes the selected override; `+` adds it again for the reset below.
+    control(app, "settings.sources.priceRow.\(model)").click()
+    control(app, "settings.sources.priceRemove").click()
+    XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM price_override") == 0 }, "− removes it")
+    control(app, "settings.sources.priceAdd").click()
+    try type(app, "settings.price.model", model)
+    try type(app, "settings.price.input", "2")
+    try type(app, "settings.price.output", "8")
+    control(app, "settings.price.save").click()
+    XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM price_override") == 1 }, "+ adds it again")
+
     // `Reset to feed` (confirmed) removes every override.
     control(app, "settings.sources.priceReset").click()
     let confirm = confirmButton(app)
@@ -76,7 +87,7 @@ final class PriceBookUITests: XCTestCase {
 
     let actions = try logRecords().filter { $0["evt"] as? String == "price.override_set" }
       .compactMap { ($0["ctx"] as? [String: Any])?["action"] as? String }
-    XCTAssertEqual(actions, ["set", "reset"])
+    XCTAssertEqual(actions, ["set", "removed", "set", "reset"])
     let failures = try logLines().filter { $0.contains("\"lvl\":\"error\"") || $0.contains("\"lvl\":\"fault\"") }
     XCTAssertEqual(failures, [], "no error or fault records")
   }

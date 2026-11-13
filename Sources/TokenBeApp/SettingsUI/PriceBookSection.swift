@@ -3,7 +3,7 @@ import TokenBeCore
 
 /// Settings → Sources → **Price book** (08 § Settings; Paper `10V-0`; 14 § Stage 5.1 step 6): the feed toggle with
 /// the snapshot line and `Refresh now`, the staleness threshold (09 `tb.price.staleAfterDays`), and the overrides
-/// table (model, input/output/cache rates in USD per 1M tokens) with `+`/`−` and `Reset to feed` (Q-038).
+/// list (model, input/output/cache rates in USD per 1M tokens) with `+`/`−` and `Reset to feed` (Q-038).
 struct PriceBookSection: View {
   @Bindable var settings: TokenBeCore.Settings
   let prices: PriceBookModel
@@ -89,24 +89,52 @@ struct PriceBookSection: View {
     }
   }
 
+  /// Plain rows rather than a `Table`: a table nested in a grouped `Form` lays out and exposes itself poorly on
+  /// macOS. A click selects a row for `−`.
   private var overridesTable: some View {
-    Table(prices.status.overrides, selection: $selection) {
-      TableColumn(Strings.priceModel) { row in
-        Text(row.model)
+    VStack(alignment: .leading, spacing: 0) {
+      overrideRow(Strings.priceModel, [Strings.priceInput, Strings.priceOutput, Strings.priceCacheRead,
+                                       Strings.priceCacheWrite], header: true)
+      Divider()
+      if prices.status.overrides.isEmpty {
+        Text(Strings.priceNoOverrides)
+          .foregroundStyle(.secondary)
+          .padding(.vertical, 6)
+      }
+      ForEach(prices.status.overrides) { row in
+        overrideRow(row.model, [row.entry.input, row.entry.output, row.entry.cacheRead, row.entry.cacheWrite]
+          .map(rate), header: false)
+          .background(selection == row.model ? Color.accentColor.opacity(0.18) : Color.clear,
+                      in: RoundedRectangle(cornerRadius: 4))
+          .contentShape(Rectangle())
+          .onTapGesture { selection = selection == row.model ? nil : row.model }
+          .accessibilityElement(children: .combine)
+          .accessibilityAddTraits(selection == row.model ? [.isButton, .isSelected] : .isButton)
           .accessibilityIdentifier("settings.sources.priceRow.\(row.model)")
       }
-      TableColumn(Strings.priceInput) { row in rate(row.entry.input) }
-      TableColumn(Strings.priceOutput) { row in rate(row.entry.output) }
-      TableColumn(Strings.priceCacheRead) { row in rate(row.entry.cacheRead) }
-      TableColumn(Strings.priceCacheWrite) { row in rate(row.entry.cacheWrite) }
     }
-    .frame(minHeight: 110)
-    .accessibilityIdentifier("settings.sources.priceOverrides")
   }
 
-  private func rate(_ value: Int64?) -> some View {
-    Text(value.map { "$" + Formatters.perMillion($0, locale: .current) } ?? "\u{2014}")
-      .monospacedDigit()
+  private func overrideRow(_ model: String, _ rates: [String], header: Bool) -> some View {
+    HStack(spacing: 8) {
+      Text(model)
+        .lineLimit(1)
+        .truncationMode(.middle)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      ForEach(Array(rates.enumerated()), id: \.offset) { _, value in
+        Text(value)
+          .monospacedDigit()
+          .frame(width: 64, alignment: .trailing)
+      }
+    }
+    .font(header ? .caption.weight(.semibold) : .body)
+    .foregroundStyle(header ? .secondary : .primary)
+    .padding(.vertical, 4)
+    .padding(.horizontal, 4)
+  }
+
+  private func rate(_ value: Int64?) -> String {
+    value.map { "$" + Formatters.perMillion($0, locale: .current) } ?? "\u{2014}"
   }
 
   private func caption(now: Date) -> String {
