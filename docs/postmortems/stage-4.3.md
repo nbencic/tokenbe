@@ -10,7 +10,7 @@ Once a day, at a time macOS picks (`NSBackgroundActivityScheduler` `dev.bathyon.
 
 A step that fails is logged (`sched.daily_step_failed`) and retried at the next activity, and the remaining steps still run. Each run logs `sched.daily_start` / `sched.daily_end {dur_ms, steps_ok, steps_failed, <step>_ms}` and writes `tb.daily.lastRunAt` and `tb.daily.runCount`. The backup and integrity steps write `tb.db.last*`. Settings → Sources → `Run daily tasks now` runs the same function out of band, Advanced shows `Last daily run`, and the account page's cost source reads `Cost · ok · HH:mm`.
 
-`verify-stage.sh 4.3`: VERIFY-SUMMARY. D1–D12 are met. Coverage is 97.38 % (gate 97 %). H2 is still open (Q-033); it does not block the stage.
+`verify-stage.sh 4.3` printed `STAGE 4.3 OK` on its first run: 883 stage checks `ok`, D13 for this file and `phase-4.md` included. The one `skip` is 3.6's H2 gate (Q-033). The full UI suite passed: 12 tests, 0 failures. D1–D12 are met. Coverage is 97.38 % (gate 97 %). H2 is still open (Q-033); it does not block the stage.
 
 ## What went as planned
 - **The runner is a small Core actor.** `DailyActivity` holds an ordered registry, a gate per step and a retry set; `CostPolls` reuses the scheduler's `Poller` and skip rules. Both were tested before any UI: 8 tests, all green on the first run, at 99 % line coverage for the file.
@@ -34,7 +34,9 @@ A step that fails is logged (`sched.daily_step_failed`) and retried at the next 
    - **Cost:** four builds.
 
 ## Verify and CI failures
-VERIFY-FAILURES
+- **Verify run 1:** `STAGE 4.3 OK`; no check failed. Both postmortems were written before the run.
+- **Before verify:** single-suite runs failed while the Mac could not open the popover (What went wrong 1), and one coverage run failed `LogFacadeTests` (What went wrong 2). Neither touched a stage check.
+- **CI:** see the PR.
 
 ## Deviations from the docs
 - **07 § Mandatory events:**

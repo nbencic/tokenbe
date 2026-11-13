@@ -75,6 +75,5 @@ Date: 2026-11-13 · Stages: 4.1 (#18), 4.2 (#20), 4.3 (#21); process PR #19 (cov
 - **Phase 0:**
   - PM-0.1-3 (11.5);
   - PM-0.2-3 (9.5);
-  - process: PM-0.3-2, PM-0.4-2, PM-0.5-1;
-  - PM-0.4-3 (owner, `.env` permissions);
-  - PM-0.5-2 (owner, coverage, 11.2; the gate is now 97 %, Q-035).
+  - process: PM-0.3-2, PM-0.4-2, PM-0.5-1.
+  - Closed in PR #19: PM-0.5-2 (coverage gate 97 %, Q-035) and PM-0.4-3.
