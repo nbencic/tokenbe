@@ -5,8 +5,9 @@ import TokenBeCore
 /// 04 § Daily activity in the app (14 § Stage 4.3 step 1, startup step 7). It registers
 /// `NSBackgroundActivityScheduler` (`dev.bathyon.tokenbe.daily`, interval 86400 s, tolerance 3600 s, `.utility`,
 /// repeating) over Core's `DailyActivity`, with the steps of 04 that exist so far, in 04's order:
-/// `cost polls` → `db backup` → `weekly integrity_check` (every 7th run) → `incremental_vacuum`. Roll-ups (9.1), the
-/// price refresh (5.1) and the update check (9.4) register at their 04 positions in their stages.
+/// `cost polls` → `price refresh` (5.1) → `db backup` → `weekly integrity_check` (every 7th run) →
+/// `incremental_vacuum`. Roll-ups (9.1, between cost polls and the price refresh) and the update check (9.4, after
+/// the price refresh) register at their 04 positions in their stages.
 /// `Run daily tasks now` (Settings → Sources) runs the same function out of band. After each run it writes
 /// `tb.daily.lastRunAt` and `tb.daily.runCount` (09); the backup and the integrity check write `tb.db.last*`.
 @MainActor @Observable
@@ -30,13 +31,15 @@ final class DailyActivityRegistration {
     var description: String { "integrity_check: \(result)" }
   }
 
-  init(settings: TokenBeCore.Settings, repository: any Repository, poller: Poller) {
+  init(settings: TokenBeCore.Settings, repository: any Repository, poller: Poller, prices: PriceBookModel?) {
     self.settings = settings
     let costPolls = CostPolls(store: repository, poller: poller, isPaused: {
       await MainActor.run { ScheduleSettings(settings).isPaused(at: Date()) }
     })
     activity = DailyActivity(steps: [
       DailyStep("cost polls") { _ in try await costPolls.run() },
+      // A feed failure is logged by the fetcher and keeps the snapshot; only a store failure fails the step.
+      DailyStep("price refresh") { _ in try await prices?.refresh() },
       DailyStep("db backup") { _ in
         _ = try await repository.backup()
         await MainActor.run { settings.dbLastBackupAt = Date().timeIntervalSince1970 }

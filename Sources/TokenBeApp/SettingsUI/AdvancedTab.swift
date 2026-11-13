@@ -3,7 +3,8 @@ import TokenBeCore
 
 /// Advanced tab (08 § Settings, Paper `1WN-0`, `22Q-0`): log level (live, 07), log retention, `Open log folder`;
 /// `Last daily run` (14 § Stage 4.3, 09 `tb.daily.lastRunAt`); `Run integrity check now` and `Back up now`
-/// (14 § Stage 2.2). Diagnostics and data rows arrive in 9.x.
+/// (14 § Stage 2.2); the price feed URL (09 `tb.price.feedURL`, 14 § Stage 5.1). Diagnostics and data rows arrive in
+/// 9.x.
 struct AdvancedTab: View {
   @Bindable var settings: TokenBeCore.Settings
   let logsDirectory: URL
@@ -27,6 +28,9 @@ struct AdvancedTab: View {
         OpenLogFolderButton(logsDirectory: logsDirectory)
           .accessibilityIdentifier("settings.advanced.openLogFolder")
       }
+      Section {
+        PriceFeedURLField(settings: settings)
+      }
       if let repository {
         Section {
           LabeledContent(Strings.lastDailyRun, value: lastDailyRun)
@@ -42,6 +46,23 @@ struct AdvancedTab: View {
   private var lastDailyRun: String {
     guard settings.dailyLastRunAt > 0 else { return Strings.never }
     return Strings.dateTime(Date(timeIntervalSince1970: settings.dailyLastRunAt))
+  }
+}
+
+/// 09 `tb.price.feedURL`, "editable in Advanced only": committed on Return. A value that is not an https URL falls
+/// back to the default under the setting's rule (09), and the field then shows the value in effect.
+struct PriceFeedURLField: View {
+  @Bindable var settings: TokenBeCore.Settings
+  @State private var text = ""
+
+  var body: some View {
+    TextField(Strings.priceFeedURL, text: $text)
+      .onSubmit {
+        settings.priceFeedURL = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        text = settings.priceFeedURL
+      }
+      .onAppear { text = settings.priceFeedURL }
+      .accessibilityIdentifier("settings.advanced.priceFeedURL")
   }
 }
 

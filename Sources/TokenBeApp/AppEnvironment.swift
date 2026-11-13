@@ -26,6 +26,8 @@ struct AppEnvironment {
   var poller: Poller?
   /// The daily activity (04, 14 § Stage 4.3), set by startup step 7; `Run daily tasks now` calls it.
   var daily: DailyActivityRegistration?
+  /// The price book (05, 14 § Stage 5.1), set by startup step 4; nil before it, or if step 2 failed.
+  var prices: PriceBookModel?
 
   /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.
   var lifecycle: AccountLifecycle? {

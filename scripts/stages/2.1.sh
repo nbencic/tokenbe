@@ -70,9 +70,9 @@ logged_open() { db_log | grep '"evt":"db.open"' | grep -q '"journal_mode":"wal"'
 logged_migrate() { db_log | grep '"evt":"db.migrate"' | grep -q '"from":0,"to":1'; }
 logged_quick_check() { db_log | grep '"evt":"db.quick_check"' | grep -q '"result":"ok"'; }
 steps_in_order() {
-  # 3.5 added 04 step 3, `accounts`, after the database.
-  local steps; steps="$(db_log | grep -oE '"startup_step":"[a-z ]+"' | head -n 4 | cut -d'"' -f4 | paste -sd, -)"
-  [[ "$steps" == "logging,database,accounts,login item" ]] || { echo "first launch's steps: $steps"; return 1; }
+  # 3.5 added 04 step 3, `accounts`, after the database; 5.1 added step 4, `prices`, after accounts.
+  local steps; steps="$(db_log | grep -oE '"startup_step":"[a-z ]+"' | head -n 5 | cut -d'"' -f4 | paste -sd, -)"
+  [[ "$steps" == "logging,database,accounts,prices,login item" ]] || { echo "first launch's steps: $steps"; return 1; }
 }
 no_db_errors() { ! db_log | grep -E '"lvl":"(error|fault)"'; }
 

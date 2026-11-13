@@ -37,9 +37,10 @@ check "app.network_changed is logged by NWPathMonitorAdapter" grep -qF '.appNetw
 check "no Timer, DispatchQueue or Thread in Scheduling (R6)" bash -c "! grep -rnE '\\b(Timer|DispatchQueue|Thread)\\b' $sched"
 check "check-log-events.sh (07 ↔ Evt)" scripts/check-log-events.sh
 
-# Step 2: startup step 6 (04), after the login item, which 04 does not order (2.1.sh's first four steps unchanged).
+# Step 2: startup step 6 (04), after the login item, which 04 does not order (2.1.sh checks the first five).
 check "startup runs the scheduler step after the login item" bash -c "grep -A1 'StartupStep(\"login item\")' $app/Startup.swift | grep -qF 'StartupStep(\"scheduler\")'"
-check "StartupSequenceTests lists the scheduler step (D7)" grep -qF '"logging", "database", "accounts", "scheduler"' Tests/TokenBeCoreTests/StartupSequenceTests.swift
+# Later stages insert steps before the scheduler (5.1: `prices`), so any steps may sit between accounts and scheduler.
+check "StartupSequenceTests lists the scheduler step (D7)" grep -qE '"logging", "database", "accounts", ("[a-z ]+", )*"scheduler"' Tests/TokenBeCoreTests/StartupSequenceTests.swift
 # 4.2 routes the monitor through `networkMonitor()` (a DEBUG offline seam for its UI test, Q-036); production stays
 # `NWPathMonitorAdapter`.
 check "Startup's network monitor is NWPathMonitorAdapter outside DEBUG test roots" bash -c "grep -A7 'private func networkMonitor()' $app/Startup.swift | grep -qF 'return NWPathMonitorAdapter()'"

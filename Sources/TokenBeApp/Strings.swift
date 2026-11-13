@@ -232,4 +232,39 @@ enum Strings {
   static func dateTime(_ date: Date) -> String {
     "\(Formatters.date(date, calendar: .current)) \(date.formatted(date: .omitted, time: .shortened))"
   }
+
+  // Settings → Sources → Price book (08 § Settings; Paper `10V-0`; 14 § Stage 5.1, Q-038)
+  static let priceBook = "Price book"
+  static let priceFeedTitle = "Refresh rates daily from the LiteLLM price map"
+  static let refreshNow = "Refresh now"
+  static let priceFeedToggle = "Refresh rates daily"
+  /// `Snapshot v2026-11-08 · 412 models · 2 overrides · refreshed 3 h ago · the only other network call`.
+  static func priceSnapshotCaption(version: String?, models: Int, overrides: Int, refreshed: String) -> String {
+    let snapshot = version.map { $0.first?.isNumber == true ? "Snapshot v\($0)" : "Snapshot \($0)" } ?? "No snapshot"
+    return sourceLine([snapshot, count(models, "model"), count(overrides, "override"), "refreshed \(refreshed)",
+                       "the only other network call"])
+  }
+  static let priceStaleAfter = "Stale after"
+  static let priceOverridesTitle = "Your overrides win over the feed"
+  static let priceOverridesCaption = "Kept across refreshes and exports. Rates in USD per 1M tokens."
+  static let priceModel = "Model"
+  static let priceInput = "Input"
+  static let priceOutput = "Output"
+  static let priceCacheRead = "Cache read"
+  static let priceCacheWrite = "Cache write"
+  static let priceAddOverride = "Add override"
+  static let priceRemoveOverride = "Remove override"
+  static let resetToFeed = "Reset to feed"
+  static let resetToFeedConfirm = "Remove every override and use the feed's rates?"
+  static let priceOverrideSheetTitle = "Override a model's rates"
+  static let priceOverrideSheetCaption = "USD per 1M tokens. Input and output are required; cache rates are optional."
+  static let priceOverrideInvalid = "Enter a model and positive input and output rates."
+  static let save = "Save"
+  static let priceNoOverrides = "No overrides"
+  static let priceFeedURL = "Price feed URL"
+  static func count(_ value: Int, _ noun: String) -> String { value == 1 ? "1 \(noun)" : "\(value) \(noun)s" }
+
+  // Sources strip: the price snapshot's chip, `Prices · Nov 8 · ok` (14 § Stage 5.1 step 6)
+  static let sourcePrices = "Prices"
+  static let sourceStale = "stale"
 }

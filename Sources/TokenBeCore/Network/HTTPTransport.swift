@@ -6,12 +6,16 @@ public struct HTTPRequest: Sendable, Equatable {
   public var url: URL
   public var headers: [String: String]
   public var body: Data?
+  /// Seconds without data before the request fails; nil keeps the session's 15 s (02: the price feed uses 10 s).
+  public var timeout: TimeInterval?
 
-  public init(method: String = "GET", url: URL, headers: [String: String] = [:], body: Data? = nil) {
+  public init(method: String = "GET", url: URL, headers: [String: String] = [:], body: Data? = nil,
+              timeout: TimeInterval? = nil) {
     self.method = method
     self.url = url
     self.headers = headers
     self.body = body
+    self.timeout = timeout
   }
 }
 
