@@ -15,7 +15,7 @@ struct AccountDetailView: View {
         if let capabilities = summary.capabilities {
           BadgesRow(provider: summary.provider, badges: AccountBadges(mode: summary.mode, capabilities: capabilities))
         }
-        SourcesStrip(sources: summary.sources)
+        SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status)
       }
       .padding(24)
       .frame(maxWidth: .infinity, alignment: .leading)

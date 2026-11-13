@@ -27,13 +27,15 @@ check "terminate invalidates the activity" grep -qF 'environment?.daily?.invalid
 check "no Timer, DispatchQueue or Thread (R6)" bash -c "! grep -nE '\\b(Timer|DispatchQueue|Thread)\\b' $core/Scheduling/DailyActivity.swift $app/DailyActivityRegistration.swift"
 
 # Step 2: the steps, in 04's order, and the weekly gate.
+# Later stages register at their 04 positions (PM-4.3-3): 5.1's price refresh sits between cost polls and backup.
 order() {
-  local f=$app/DailyActivityRegistration.swift a b c d
+  local f=$app/DailyActivityRegistration.swift a p b c d
   a="$(grep -n 'DailyStep("cost polls")' $f | cut -d: -f1)"; b="$(grep -n 'DailyStep("db backup")' $f | cut -d: -f1)"
+  p="$(grep -n 'DailyStep("price refresh")' $f | cut -d: -f1)"
   c="$(grep -n 'DailyStep("weekly integrity_check"' $f | cut -d: -f1)"; d="$(grep -n 'DailyStep("incremental_vacuum")' $f | cut -d: -f1)"
-  [[ -n "$a" && -n "$b" && -n "$c" && -n "$d" && "$a" -lt "$b" && "$b" -lt "$c" && "$c" -lt "$d" ]]
+  [[ -n "$a" && -n "$p" && -n "$b" && -n "$c" && -n "$d" && "$a" -lt "$p" && "$p" -lt "$b" && "$b" -lt "$c" && "$c" -lt "$d" ]]
 }
-check "steps in 04's order: cost polls, backup, weekly integrity, vacuum" order
+check "steps in 04's order: cost polls, price refresh, backup, weekly integrity, vacuum" order
 check "integrity every 7th run (04)" bash -c "grep -qF 'integrityEvery = 7' $app/DailyActivityRegistration.swift && grep -qF 'gate: .everyNthRun(Self.integrityEvery)' $app/DailyActivityRegistration.swift"
 check "cost polls run for accounts with capabilities.cost" grep -qF 'capabilities.cost else { continue }' $core/Scheduling/DailyActivity.swift
 

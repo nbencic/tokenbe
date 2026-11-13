@@ -66,6 +66,7 @@ final class Startup {
       StartupStep("logging") { [self] in try await startLogging() },
       StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("accounts") { [self] in await checkAccounts() },
+      StartupStep("prices") { [self] in await loadPrices() },
       StartupStep("login item") { [self] in startLoginItem() },
       StartupStep("scheduler") { [self] in await startScheduler() },
       StartupStep("daily activity") { [self] in startDailyActivity() }
@@ -197,6 +198,21 @@ final class Startup {
     }
   }
 
+  /// 04 step 4: load the current price snapshot, or install the bundled one (`price.feed_ok {source: bundled}`).
+  /// Never stops launch: without prices every model is unpriced (05) and the scheduler still starts.
+  private func loadPrices() async {
+    guard var environment, let repository = environment.repository else { return }
+    let book = PriceBook(store: repository)
+    let model = PriceBookModel(book: book, transport: environment.transport, settings: environment.settings)
+    environment.prices = model
+    self.environment = environment
+    do {
+      try await book.load(bundled: PriceBookModel.bundled(), staleAfterDays: environment.settings.priceStaleAfterDays)
+    } catch {
+      Log.error(.uiError, cat: .ui, msg: "price book not loaded", err: error, ctx: ["view": "startup"])
+    }
+  }
+
   /// 09 `tb.general.launchAtLogin`: the setting mirrors the system's login item, then drives it. UI tests get a
   /// marker file in the test root instead of the owner's real login item (Q-023).
   private func startLoginItem() {
@@ -251,7 +267,8 @@ final class Startup {
   /// 04 step 7: register the daily activity (`NSBackgroundActivityScheduler`).
   private func startDailyActivity() {
     guard var environment, let repository = environment.repository, let poller = environment.poller else { return }
-    let daily = DailyActivityRegistration(settings: environment.settings, repository: repository, poller: poller)
+    let daily = DailyActivityRegistration(settings: environment.settings, repository: repository, poller: poller,
+                                          prices: environment.prices)
     daily.register()
     environment.daily = daily
     self.environment = environment
@@ -263,6 +280,7 @@ final class Startup {
     retentionWatcher?.cancel()
     for watcher in schedulerWatchers { watcher.cancel() }
     environment?.daily?.invalidate()
+    environment?.prices?.stop()
     await environment?.coordinator?.shutdown()
     loginItem?.stop()
     do {

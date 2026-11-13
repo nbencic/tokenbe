@@ -79,13 +79,13 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `normalize.negative` | warn | provider, field, value |
 | `normalize.failed` | error | provider, missing_key, request_id? |
 | `normalize.unknown_keys` | info | provider, keys |
-| `price.feed_ok` | info | entries, etag, bytes |
+| `price.feed_ok` | info | source (`bundled`,`feed`), entries, etag, bytes, changed (feed: false on 304 or same sha256), version (Q-038) |
 | `price.feed_failed` | warn | err, reason (`transport`,`shape`,`size`), using_cached_from |
-| `price.parse_failed` | warn | err, bytes |
-| `price.stale` | warn | snapshot_age_days |
+| `price.parse_failed` | warn | err, bytes, version or model (the snapshot or override that did not parse; Q-038) |
+| `price.stale` | warn | snapshot_age_days, version |
 | `price.unpriced` | warn | provider, model (once per model per day) |
 | `price.fallback_multiplier` | info | provider, model, field |
-| `price.override_set` | info | model |
+| `price.override_set` | info | model, action (`set`,`removed`,`reset`; Q-038) |
 | `price.repriced` | info | acct, rows, snapshot_version |
 | `ledger.anchor_set` / `ledger.topup` / `ledger.reconcile` | info | acct, amount_cents, source |
 | `ledger.auto_zero` | warn | acct, http_status |

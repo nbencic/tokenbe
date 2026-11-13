@@ -171,6 +171,36 @@ public enum Formatters {
     return "\(month) \(parts.day ?? 1)"
   }
 
+  // MARK: - Price book rates (Q-038)
+
+  /// A typed rate in USD per 1M tokens (`1.25`, `0,075` in `locale`) → picodollars per token (`PriceEntry.Rate`),
+  /// rounded half up; nil when it is not a non-negative number or does not fit.
+  public static func rate(fromPerMillion text: String, locale: Locale) -> Int64? {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    formatter.generatesDecimalNumbers = true
+    guard let number = formatter.number(from: trimmed) as? NSDecimalNumber else { return nil }
+    var scaled = number.decimalValue * 1_000_000
+    guard scaled >= 0, scaled < 9_000_000_000_000_000 else { return nil }
+    var rounded = Decimal()
+    NSDecimalRound(&rounded, &scaled, 0, .plain)
+    return NSDecimalNumber(decimal: rounded).int64Value
+  }
+
+  /// Picodollars per token → USD per 1M tokens with up to 4 decimals and no trailing zeros (`1.25`, `0.075`, `10`).
+  public static func perMillion(_ rate: Int64, locale: Locale) -> String {
+    let tenThousandths = roundedQuotient(absolute(rate), 100)       // 10^-4 USD per 1M tokens
+    let whole = tenThousandths / 10_000
+    var fraction = String(String(tenThousandths % 10_000 + 10_000).dropFirst())
+    while fraction.hasSuffix("0") { fraction.removeLast() }
+    let sign = rate < 0 ? "-" : ""
+    let integer = grouped(whole, locale: locale)
+    return fraction.isEmpty ? sign + integer : sign + integer + decimalSeparator(locale) + fraction
+  }
+
   // MARK: - Integer helpers
 
   /// `value / divisor` rounded half up, for non-negative values, without overflow.

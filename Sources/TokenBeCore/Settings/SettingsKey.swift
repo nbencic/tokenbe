@@ -86,7 +86,7 @@ public enum SettingsKey: String, CaseIterable, Sendable {
     case .ingestMoveWhenDone: SettingSpec(type: .bool, defaultValue: .bool(true), rule: .none, tab: .sources)
     case .ingestFolderPath: SettingSpec(type: .string, defaultValue: .string(SettingSpec.ingestFolderPath), rule: .fixed, tab: .sources)
     case .priceFeedEnabled: SettingSpec(type: .bool, defaultValue: .bool(true), rule: .none, tab: .sources)
-    case .priceFeedURL: SettingSpec(type: .string, defaultValue: .string("https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"), rule: .pattern(.httpsURL), tab: .sources)
+    case .priceFeedURL: SettingSpec(type: .string, defaultValue: .string("https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"), rule: .pattern(.httpsURL), tab: .advanced)
     case .priceStaleAfterDays: SettingSpec(type: .int, defaultValue: .int(7), rule: .intRange(1...60), tab: .sources)
     case .alertsWatchDays: SettingSpec(type: .int, defaultValue: .int(14), rule: .threshold(2...365), tab: .alerts)
     case .alertsLowDays: SettingSpec(type: .int, defaultValue: .int(7), rule: .threshold(1...364), tab: .alerts)

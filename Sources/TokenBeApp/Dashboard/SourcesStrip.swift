@@ -4,15 +4,33 @@ import TokenBeCore
 /// 08 `HP-0`: one entry per data source with its state, last success and next run, e.g.
 /// `Usage · ok · 2 min ago · next 3 min`, `Cost · ok · 02:10`, `Balance · n/a`. A failed source is in `HealthLow`
 /// with its last error's human message (Q-036). Laid out as Paper's strip: a grey panel of columns, each a caption
-/// title over its line. `Harness · …` joins in 7.2.
+/// title over its line. The last column is the price snapshot's chip, `Prices · Nov 8 · ok` or `· stale` in
+/// `HealthWatch` (14 § Stage 5.1 step 6). `Harness · …` joins in 7.2.
 struct SourcesStrip: View {
   let sources: [SourceStatus]
+  /// Nil before startup step 4 (no chip).
+  var prices: PriceBook.Status?
 
   var body: some View {
     TimelineView(.periodic(from: .now, by: 30)) { context in
       HStack(alignment: .top, spacing: 28) {
         ForEach(sources) { source in
           column(source, now: context.date)
+        }
+        if let prices, let line = Self.pricesLine(prices) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(Strings.sourcePrices)
+              .font(.caption2.weight(.semibold))
+              .textCase(.uppercase)
+              .foregroundStyle(.tertiary)
+            Text(line)
+              .font(.caption.monospacedDigit())
+              .foregroundStyle(prices.isStale ? Color(.healthWatch) : Color.primary)
+          }
+          .frame(width: 140, alignment: .leading)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(Strings.sourceLine([Strings.sourcePrices, line]))
+          .accessibilityIdentifier("dashboard.account.source.prices")
         }
         Spacer(minLength: 0)
       }
@@ -55,6 +73,14 @@ struct SourcesStrip: View {
     case .balance: Strings.sourceBalance
     case .keys: Strings.sourceKeys
     }
+  }
+
+  /// `Nov 8 · ok`: the day of the snapshot's last successful fetch or check, and whether it is stale; nil without a
+  /// snapshot.
+  static func pricesLine(_ status: PriceBook.Status) -> String? {
+    guard let fetched = status.fetchedAt else { return nil }
+    return Strings.sourceLine([Formatters.date(fetched, calendar: .current),
+                               status.isStale ? Strings.sourceStale : Strings.sourceOK])
   }
 
   /// `ok · 2 min ago · next 3 min`; the daily `cost` job shows the time of its last success (`ok · 02:10`).

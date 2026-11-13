@@ -3,12 +3,14 @@ import TokenBeCore
 
 /// Settings → Sources (08 § Settings, Paper `YP-0`; 14 § Stage 4.1 step 3): the minute-cadence intervals and the
 /// Low Power multiplier (09 § Sources). Each change reaches the coordinator through `Settings.changes`.
-/// `Run daily tasks now` (4.3) runs the daily activity out of band (04). Harness reports (7.2) and Price book (5.1)
-/// join with their stages.
+/// `Run daily tasks now` (4.3) runs the daily activity out of band (04). Price book (5.1) is `PriceBookSection`;
+/// Harness reports (7.2) joins with its stage.
 struct SourcesTab: View {
   @Bindable var settings: TokenBeCore.Settings
   /// Nil only when startup did not reach step 7 (the database failed, and the app quits).
   let daily: DailyActivityRegistration?
+  /// Nil only when startup did not reach step 4.
+  let prices: PriceBookModel?
 
   var body: some View {
     Form {
@@ -46,6 +48,9 @@ struct SourcesTab: View {
             }
           }
         }
+      }
+      if let prices {
+        PriceBookSection(settings: settings, prices: prices)
       }
     }
     .formStyle(.grouped)

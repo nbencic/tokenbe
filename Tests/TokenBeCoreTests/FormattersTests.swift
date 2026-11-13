@@ -204,4 +204,23 @@ import Testing
     if case .int(let millis) = records.last?.ctx["dur_ms"] { #expect(millis >= 20) } else { Issue.record("dur_ms missing") }
     #expect((records.last?.durMs ?? 0) >= 20)
   }
+
+  @Test("price book rates: USD per 1M tokens in and out, as picodollars per token (Q-038)")
+  func rates() {
+    #expect(Formatters.rate(fromPerMillion: "1.25", locale: Self.posix) == 1_250_000)
+    #expect(Formatters.rate(fromPerMillion: " 10 ", locale: Self.posix) == 10_000_000)
+    #expect(Formatters.rate(fromPerMillion: "0,075", locale: Self.german) == 75_000)
+    #expect(Formatters.rate(fromPerMillion: "0.0000005", locale: Self.posix) == 1)
+    #expect(Formatters.rate(fromPerMillion: "0", locale: Self.posix) == 0)
+    #expect(Formatters.rate(fromPerMillion: "", locale: Self.posix) == nil)
+    #expect(Formatters.rate(fromPerMillion: "abc", locale: Self.posix) == nil)
+    #expect(Formatters.rate(fromPerMillion: "-1", locale: Self.posix) == nil)
+    #expect(Formatters.rate(fromPerMillion: "99999999999999", locale: Self.posix) == nil)
+    #expect(Formatters.perMillion(1_250_000, locale: Self.posix) == "1.25")
+    #expect(Formatters.perMillion(10_000_000, locale: Self.posix) == "10")
+    #expect(Formatters.perMillion(75_000, locale: Self.german) == "0,075")
+    #expect(Formatters.perMillion(15_000_000_000, locale: Self.posix) == "15,000")
+    #expect(Formatters.perMillion(-2_500_000, locale: Self.posix) == "-2.5")
+    #expect(Formatters.perMillion(49, locale: Self.posix) == "0")
+  }
 }

@@ -156,6 +156,55 @@ actor MemoryRepository: Repository {
     )
   }
 
+  // MARK: - Prices (5.1): plain storage, enough for code above the store
+
+  private(set) var snapshots: [PriceSnapshotRecord] = []
+  private(set) var priceOverrides: [String: PriceOverrideRecord] = [:]
+
+  func fetchCurrentPriceSnapshot() async throws -> PriceSnapshotRecord? { snapshots.first { $0.isCurrent } }
+
+  func fetchPriceSnapshotVersions() async throws -> [String] {
+    snapshots.sorted { ($0.fetchedAt, $0.version) > ($1.fetchedAt, $1.version) }.map(\.version)
+  }
+
+  func insertCurrentPriceSnapshot(_ snapshot: PriceSnapshotRecord) async throws {
+    snapshots.removeAll { $0.version == snapshot.version }
+    for index in snapshots.indices { snapshots[index].isCurrent = false }
+    var row = snapshot
+    row.isCurrent = true
+    snapshots.append(row)
+  }
+
+  func touchPriceSnapshot(version: String, fetchedAt: String, etag: String?) async throws {
+    for index in snapshots.indices where snapshots[index].version == version {
+      snapshots[index].fetchedAt = fetchedAt
+      if let etag { snapshots[index].etag = etag }
+    }
+  }
+
+  func prunePriceSnapshots(keep: Int) async throws -> Int {
+    let kept = Set(snapshots.sorted { ($0.isCurrent ? 1 : 0, $0.fetchedAt) > ($1.isCurrent ? 1 : 0, $1.fetchedAt) }
+      .prefix(keep).map(\.version))
+    let before = snapshots.count
+    snapshots.removeAll { !kept.contains($0.version) }
+    return before - snapshots.count
+  }
+
+  func fetchPriceOverrides() async throws -> [PriceOverrideRecord] {
+    priceOverrides.values.sorted { $0.model < $1.model }
+  }
+
+  func upsertPriceOverride(_ override: PriceOverrideRecord) async throws { priceOverrides[override.model] = override }
+
+  func deletePriceOverride(model: String) async throws {
+    guard priceOverrides.removeValue(forKey: model) != nil else { throw StoreError.notFound(model) }
+  }
+
+  func deleteAllPriceOverrides() async throws -> Int {
+    defer { priceOverrides = [:] }
+    return priceOverrides.count
+  }
+
   // MARK: - Observation (like `ValueObservation`: the current value first, then one value per change)
 
   nonisolated func observeSummaryInputs() -> AsyncStream<SummaryInputs> {
