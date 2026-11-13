@@ -29,6 +29,18 @@ case "$task" in
   *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint build-app build-app-release uitest" >&2; exit 2 ;;
 esac
 
+# A UI run on a nearly full disk gets its runner killed by macOS's cache purge (`Test crashed with signal kill`,
+# Q-039). Refuse to start it, since it would waste ~35 min. `TB_UI_MIN_FREE_GB` overrides the minimum.
+if [[ "$task" == uitest ]]; then
+  min_free_gb="${TB_UI_MIN_FREE_GB:-20}"
+  free_gb=$(( $(df -k . | awk 'NR == 2 { print $4 }') / 1024 / 1024 ))
+  if (( free_gb < min_free_gb )); then
+    echo "run.sh: only ${free_gb} GiB free; a UI run needs ≥ ${min_free_gb} GiB, or macOS's cache purge kills the" \
+         "test runner (Q-039). Free disk space, or set TB_UI_MIN_FREE_GB." >&2
+    exit 4
+  fi
+fi
+
 state="build/run"; logs="build/logs"
 mkdir -p "$state" "$logs" build/results
 if [[ -f "$state/$task.pid" ]] && kill -0 "$(cat "$state/$task.pid")" 2>/dev/null && [[ ! -f "$state/$task.exit" ]]; then

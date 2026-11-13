@@ -18,6 +18,10 @@ finish() {
   echo "----- last 40 lines of $log -----"
   tail -n 40 "$log" || true
   echo "----- $task exit $1 -----"
+  # A failed UI run: say whether macOS killed the runner, and why (Q-039).
+  if [[ "$task" == uitest && "$1" != 0 ]] && grep -q "Test crashed with signal kill" "$log"; then
+    scripts/ui-kill-reason.sh || true
+  fi
   exit "$1"
 }
 
