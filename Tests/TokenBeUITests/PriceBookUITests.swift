@@ -45,6 +45,33 @@ final class PriceBookUITests: XCTestCase {
     XCTAssertTrue(control(app, "settings.sources.priceRefresh").exists, "Refresh now exists")
     XCTAssertFalse(control(app, "settings.sources.priceReset").isEnabled, "Reset to feed waits for an override")
 
+    try addAndRemoveOverride(app, caption: caption)
+
+    // `Reset to feed` (confirmed) removes every override.
+    control(app, "settings.sources.priceReset").click()
+    let confirm = confirmButton(app)
+    XCTAssertTrue(confirm.waitForExistence(timeout: 5), "Reset to feed asks first")
+    confirm.click()
+    XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM price_override") == 0 }, "Reset to feed removes it")
+    XCTAssertTrue(control(app, "settings.sources.priceRow.\(model)").waitForNonExistence(timeout: 5))
+
+    try selectTab(app, "General")
+    app.typeKey("w", modifierFlags: .command)
+    XCTAssertTrue(quitThroughPopover(app), "the app quits")
+
+    let actions = try logRecords().filter { $0["evt"] as? String == "price.override_set" }
+      .compactMap { ($0["ctx"] as? [String: Any])?["action"] as? String }
+    XCTAssertEqual(actions, ["set", "removed", "set", "reset"])
+    let failures = try logLines().filter { $0.contains("\"lvl\":\"error\"") || $0.contains("\"lvl\":\"fault\"") }
+    XCTAssertEqual(failures, [], "no error or fault records")
+  }
+
+  // MARK: - Helpers
+
+  /// `+` refuses an incomplete override, stores a complete one (feed keys) and lists it; `−` removes the selected
+  /// row; `+` adds it again for `Reset to feed`.
+  @MainActor
+  private func addAndRemoveOverride(_ app: XCUIApplication, caption: XCUIElement) throws {
     // An override without an output rate is refused, and nothing is stored.
     control(app, "settings.sources.priceAdd").click()
     try type(app, "settings.price.model", model)
@@ -72,27 +99,7 @@ final class PriceBookUITests: XCTestCase {
     try type(app, "settings.price.output", "8")
     control(app, "settings.price.save").click()
     XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM price_override") == 1 }, "+ adds it again")
-
-    // `Reset to feed` (confirmed) removes every override.
-    control(app, "settings.sources.priceReset").click()
-    let confirm = confirmButton(app)
-    XCTAssertTrue(confirm.waitForExistence(timeout: 5), "Reset to feed asks first")
-    confirm.click()
-    XCTAssertTrue(waitFor { self.countOrNone("SELECT count(*) FROM price_override") == 0 }, "Reset to feed removes it")
-    XCTAssertTrue(control(app, "settings.sources.priceRow.\(model)").waitForNonExistence(timeout: 5))
-
-    try selectTab(app, "General")
-    app.typeKey("w", modifierFlags: .command)
-    XCTAssertTrue(quitThroughPopover(app), "the app quits")
-
-    let actions = try logRecords().filter { $0["evt"] as? String == "price.override_set" }
-      .compactMap { ($0["ctx"] as? [String: Any])?["action"] as? String }
-    XCTAssertEqual(actions, ["set", "removed", "set", "reset"])
-    let failures = try logLines().filter { $0.contains("\"lvl\":\"error\"") || $0.contains("\"lvl\":\"fault\"") }
-    XCTAssertEqual(failures, [], "no error or fault records")
   }
-
-  // MARK: - Helpers
 
   private func bundledFeedOK() -> Bool {
     do {
