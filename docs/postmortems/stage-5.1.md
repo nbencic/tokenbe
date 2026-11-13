@@ -1,5 +1,5 @@
 # Postmortem — Stage 5.1 Price book
-Date: 2026-11-13 · Branch: s5.1-price-book · PR: #22 · Planned size: M · Commits: 5
+Date: 2026-11-13 · Branch: s5.1-price-book · PR: #22 · Planned size: M · Commits: 8
 
 ## Outcome
 TokenBe now prices models from a bundled snapshot of the LiteLLM price map. 3,563 chat entries ship, 3,326 of them priced. The snapshot is installed at first launch (`price.feed_ok source=bundled`, one `price_snapshot` row) and refreshed once a day by the daily activity's `price refresh` step, placed after `cost polls` and before `db backup`.
@@ -29,10 +29,15 @@ D1–D13 are met. Gate H2 is still open (PM-3.6-1); it does not block this stage
 2. **A swiftlint false positive.** `tokenbe_no_silent_catch`'s regex `try\?` matched `PriceEntry?` in a return type. **Root cause:** the regex has no word boundary. **Fix:** `PriceBook.lookup` returns `Lookup.Hit?`, which also exposes the step. The regex is left alone (PM-5.1-2). Cost: one lint cycle.
 3. **A test in the wrong type.** Rate cases appended at the end of `FormattersTests.swift` landed inside `PopoverTrackerTests`, which shares the file, and the build failed. **Fix:** moved them inside `FormattersTests` (6026477). Cost: one test run.
 4. **The UI test runner was killed (`signal kill`) when it queried the overrides `Table`.** The table sat inside a grouped `Form`. No crash report was written, and the runner died within a second of the query. **Root cause:** not fully proven. The SwiftUI `Table` inside a `Form` section is the only new element in that step, and removing it fixed the run. **Fix:** plain selectable rows (6f0ffd5). Cost: two UI-suite runs (about 2 min).
+5. **Two older stage checks broke, and nothing caught them until late.** `2.1.sh` expected the first four startup steps to be `logging,database,accounts,login item`, and `4.1.sh` grepped `StartupSequenceTests` for the literal `"logging", "database", "accounts", "scheduler"`. 5.1 correctly inserts step 4, `prices`. **Root cause:** both checks hard-coded the full step list instead of the order they own. Every UI-on verify died at check 0.4, and the verify stops at the first failure, so no check after 0.4 ran on this branch until a `TB_UI_TESTS=0` run. **Fix:** 2.1 checks the first five steps, and 4.1 allows any steps between `accounts` and `scheduler` (bd12f6b). Cost: two no-UI verify runs (about 10 min).
+6. **The XCUITest runner was killed (`Test crashed with signal kill`) at random clicks, in suites the branch does not touch.** It happened in runs 2–4 (5, 5 and 6 of 13 tests), and in a full UI run on unchanged `main` (1 of 12, `RefreshPauseUITests`). No crash report was written. The screen recording showed Terminal frontmost, the menu bar full with its `»` overflow, and an onboarding test's keystrokes typed into the agent's Terminal prompt. `StaleOfflineUITests.testStaleOverlayAccountPageAndRecovery` crashed four times in a row on the branch, and passed twice on `main`. It then passed on the branch, both with the `prices` startup step disabled and unchanged, so the branch was not the cause. **Root cause:** not proven. The evidence points to the Mac's session state (crowded menu bar, a frontmost window taking events), not to 5.1's code. Cost: about 2.5 h of UI runs and diagnosis.
 
 ## Verify and CI failures
 - Verify run 1 (6f0ffd5, UI on: the branch changes app code): failed at `0.1 swiftlint --strict`. `PriceBookUITests`'s test body was 53 lines (limit 50) after `−` was added. **Fix:** the add and remove steps moved into a helper.
-- Verify run 2: see the PR body for the summary lines.
+- Verify runs 2, 3 and 4 (UI on): failed at `0.4`, with `Test crashed with signal kill` in 5, 5 and 6 UI tests (item 6). Control: unchanged `main`'s full UI run had 1 signal kill.
+- Verify runs 5 and 6 (`TB_UI_TESTS=0`): failed at `2.1` and then `4.1` (item 5). Run 7 (`TB_UI_TESTS=0`): `STAGE 5.1 OK`, 919 `ok`, 22 `skip`.
+- Verify run 8 (UI on): failed at `0.4` with signal kills in the same 5 tests as runs 2 and 3. The first kill each time: `OnboardingUITests.testHappyPathMissingKeyAndRemove` relaunches the app and clicks the status item; the next 3 tests then die within seconds. No TokenBe process was left running.
+- **Merged on the owner's waiver (2026-11-13):** every UI test passed in at least one branch run, and all UI failures are runner signal kills, which unchanged `main` also showed. Lint, `swift test`, coverage and every non-UI stage check are green (run 7).
 
 ## Deviations from the docs
 - **07:** ctx additions for `price.feed_ok` (`source`, `changed`, `version`), `price.override_set` (`action`), `price.parse_failed` (`version` or `model`) and `price.stale` (`version`). Q-038.
@@ -50,6 +55,9 @@ D1–D13 are met. Gate H2 is still open (PM-3.6-1); it does not block this stage
 - PM-5.1-2 · agent · 11.2 · `tokenbe_no_silent_catch` uses `try\?` with no word boundary, so it flags any identifier ending in `try` followed by `?` (`PriceEntry?`, `Registry?`). Change it to `\btry\?` with a lint self-test.
 - PM-5.1-3 · agent · process · Do not nest a SwiftUI `Table` in a grouped `Form` in Settings; use plain rows. When a UI test runner dies with `signal kill`, suspect the accessibility tree of the newest view first.
 - PM-5.1-4 · agent · process · Network fetches (`curl`) are denied in agent sessions. A step that needs a download goes in a script the owner runs with `! <script>`; ask for it at the start of the stage, not at the end.
+- PM-5.1-5 · agent · process · When a UI-on verify fails at `0.4`, run `TB_UI_TESTS=0 scripts/verify-stage.sh <id>` at once. A `0.4` failure hides every later stage's checks. Stage checks own an order, not a full list: assert the neighbours the stage adds, so later insertions don't break them.
+- PM-5.1-6 · owner · process · Before a full UI run, put the Mac in a test-friendly state: no window over the screen centre, nothing typing, and room in the menu bar (the `»` overflow hides status items). A run that crashes with `signal kill` in untouched suites is the Mac first (PM-4.3-1). Confirm with one run on `main` before suspecting the branch.
+- PM-5.1-7 · agent · 5.2 · Open item from the waiver: before 5.2's first UI run, run `OnboardingUITests` alone 5 times on the branch and on `main`. If only the branch kills the runner at the relaunch click, bisect 5.1's app changes (startup step 4, `PriceBookModel`, the strip chip). Otherwise record it as the Mac (PM-5.1-6).
 - Earlier actions that targeted this stage:
   - PM-4.3-3: closed for 5.1 (6026477; `4.3.sh`'s order check now includes `price refresh`). Re-targeted → 9.1 (roll-ups) and 9.4 (update check), as planned.
   - PM-3.4-3 (reprice provider rows): re-targeted → 5.2, where `repriceUsage` lives (14 § Stage 5.2 step 2).
