@@ -30,7 +30,8 @@ extension IngestTailerTests {
   @MainActor
   @Test("IngestSettings mirrors 09's tb.ingest.* and tb.retention.hourlyDays")
   func settingsMirror() {
-    let settings = Settings(store: InMemorySettingsStore())
+    // Its own pipeline, so the setting writes' records never reach the global `Log` (LogFacadeTests reads it).
+    let settings = Settings(store: InMemorySettingsStore(), logPipeline: LogPipeline(sinks: [], version: "test"))
     settings.ingestEnabled = false
     settings.ingestMoveWhenDone = false
     settings.retentionHourlyDays = 45
