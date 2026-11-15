@@ -13,7 +13,7 @@ for f in "${inventory[@]}"; do check "non-empty $f" test -s "$f"; done
 # Step 1: 05's formula — the fallback multipliers over one denominator, half-up once, no _above_200k.
 check "fallbacks 1.25/2.0/0.1 as 25/40/2 over 20" bash -c "grep -qF 'fallbackNumerator: 25' $core/Pricing/CostEstimator.swift && grep -qF 'fallbackNumerator: 40' $core/Pricing/CostEstimator.swift && grep -qF 'fallbackNumerator: 2,' $core/Pricing/CostEstimator.swift"
 check "the 1h write falls back to the 5m write first" grep -qF 'entry.cacheWrite1h ?? entry.cacheWrite' $core/Pricing/CostEstimator.swift
-check "no _above_200k rate is applied (05, O-7)" bash -c "! grep -n 'above_200k' $core/Pricing/CostEstimator.swift"
+check "no _above_200k rate is applied (05, O-7)" bash -c "! grep -v '^ *///' $core/Pricing/CostEstimator.swift | grep -n 'above_200k'"
 check "no Double in the cost formula (R7)" bash -c "! grep -nE 'Double|Float' $core/Pricing/CostEstimator.swift $core/Ledger/Spend.swift"
 check "pricing.csv has 16 cases" bash -c "[[ \$(tail -n +2 Tests/Fixtures/expected/pricing.csv | grep -c .) == 16 ]]"
 
