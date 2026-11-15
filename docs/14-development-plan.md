@@ -546,13 +546,13 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Goal:** direct balance, CNY/USD, `balance` job live. **Depends on:** 5.5. **Adds:** DeepSeek tile (Release only after `RECORDED`), direct cards without `≈`, `CN¥` formatting, Overview `+ N non-USD`. **Size:** M.
 
 **Steps**
-1. Synthetic fixtures `deepseek/balance.{ok,cny,unavailable}.synthetic.json`, `auth.401`.
-2. `Providers/DeepSeek/{DTOs,Probe,Client}.swift`: `GET /user/balance`; strings → cents via `Decimal`; one `balance_snapshot` per currency entry; account currency = first entry; `is_available == false` → remaining shown, band forced `critical`, header chip `Provider reports account unavailable` (D-deepseek-unavailable).
+1. Synthetic fixtures `deepseek/balance.{ok,cny,unavailable,401}.synthetic.json` (the 401 case is named by its endpoint, like the recorder and `FixtureTransport` name it; Q-045).
+2. `Providers/DeepSeek/DeepSeek{DTOs,Probe,Client}.swift` (SwiftPM needs file names unique within a module, so the provider prefixes them; Q-045): `GET /user/balance`; strings → cents via `Decimal`; one `balance_snapshot` per currency entry; account currency = first entry; `is_available == false` → remaining shown, band forced `critical`, header chip `Provider reports account unavailable` (D-deepseek-unavailable).
 3. `balance` job scheduled (60 s); direct mode in `Remaining` (band `±` = 0); Formatters `CN¥`.
 4. H3 (deepseek): record, reconcile `02`, `Verified += .deepseek`.
 
-**Inventory** — Files: `Providers/DeepSeek/*.swift`, `Store/Repository+Balance.swift`, fixtures. DB: `balance_snapshot`. Events: `poll.*` for `deepseek`. Settings: `tb.poll.balanceIntervalS` (consumed).
-**Tests:** `AdapterTests/DeepSeekTests` (string parsing incl. `"110.00"`, two currencies, unavailable), `FormattersTests` (CN¥), `OverviewTotalsTests` (USD-only sum + suffix).
+**Inventory** — Files: `Providers/DeepSeek/*.swift`, `Store/Repository+Balance.swift` (and `Repository.swift`: `BalanceRepository` in `Repository` and `PollStore`), `Scheduling/Poller.swift` (the balance write, PM-3.4-4), `Model/Money.swift` (`MinorUnits`: strict amount strings, cents half up; `OpenAI/Client.swift` reuses it), `Network/PollError.swift` + `Core/CoreStrings.swift` (DeepSeek's key message, the unavailable notification), `Network/FixtureTransport.swift` (routes), `Ledger/{Remaining,BandEvaluator,AccountSummaryBuilder,AlertPolicy}.swift` + `Model/AccountSummary.swift` (remaining in the account's currency; `providerUnavailable` forces `critical` first), `Presentation/AccountPresentation.swift` + `Popover/AlertBanner.swift` (banner `DeepSeek: account unavailable`), `Dashboard/AccountDetailView.swift` + `Strings.swift` (header chip), `Startup.swift` (registry), `scripts/stages/6.1.sh`, fixtures. DB: `balance_snapshot`. Events: `poll.*` for `deepseek`; `ui.band_change` inputs add `unavailable`. Settings: `tb.poll.balanceIntervalS` (consumed).
+**Tests:** `AdapterTests/DeepSeekTests` (string parsing incl. `"110.00"`, two currencies, unavailable), `FormattersTests` (CN¥), `OverviewTotalsTests` (USD-only sum + suffix; direct remaining in the account's currency; unavailable → `critical`), `Support/DeepSeekHarness.swift`.
 **Verify:** tests; `VerifiedProvidersTests` after H3.
 **Stage DoD:** D1–D12.
 

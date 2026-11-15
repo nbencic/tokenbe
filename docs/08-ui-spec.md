@@ -42,7 +42,7 @@ All text/background pairs must meet WCAG AA 4.5:1 (health colors above were adju
 ## Popover (Paper `1-0`; width 360 pt, max height 560 pt, scrolls)
 Order top→bottom:
 1. **Header row**: title `TokenBe` (headline), right: `Refreshed 2 min ago` (caption, secondary) and a refresh button (`arrow.clockwise`, spins while any poll in flight).
-2. **Alert banner** (only when any account is `low`/`critical`/`unknown` with anchor missing): single line, band color background at 12 % alpha, text ≤ 60 chars: `Anthropic: ~1 d left` / `OpenAI: set an anchor to see runway`. Tapping opens that account's detail.
+2. **Alert banner** (only when any account is `low`/`critical`/`unknown` with anchor missing): single line, band color background at 12 % alpha, text ≤ 60 chars: `Anthropic: ~1 d left` / `OpenAI: set an anchor to see runway` / `DeepSeek: account unavailable` (a `critical` forced by D-deepseek-unavailable, which has no runway to quote; Q-045). Tapping opens that account's detail.
 3. **Account cards** (nodes `A-0`,`10-0`,`1N-0`,`2A-0`), sorted by `tb.popover.sort` ∈ `runway | remaining | name | manual` (default `runway` ascending; `unknown` sorts last). Each card:
    - Row 1: provider glyph + account label (`OpenAI`) + mode chip (`direct` none; `anchored` → `≈`; `spend_only` → `spend`) ; right: band dot 8 pt.
    - Row 2: **remaining** (`N-0` etc.) 20 pt semibold mono; `± M` 13 pt secondary beside it when anchored.
@@ -70,7 +70,7 @@ Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Ap
 5. **Cache savings tile**: `Saved $12 via cache (net of writes)`; shows `—` for providers where not computable (05).
 
 ### Account detail (Paper `8T-0`)
-1. **Header** (`AM-0`,`AR-0`): provider glyph, label, mode chip, freshness, band pill. Right-aligned buttons: `Set anchor…` (anchored mode), `Add top-up…`, `Refresh`.
+1. **Header** (`AM-0`,`AR-0`): provider glyph, label, mode chip, freshness, band pill; when the provider reports the account unavailable (13 § D-deepseek-unavailable), a chip `Provider reports account unavailable` in `HealthCritical` beside the band pill. Right-aligned buttons: `Set anchor…` (anchored mode), `Add top-up…`, `Refresh`.
 2. **Badges row** (`B1-0`): `Balance: direct|anchored|none` · `Usage: per key|org only|harness` · `Cost: provider|estimated` · `Lag: 5 min`. Each badge has a help popover with one sentence from 02.
 3. **Numbers strip**: Remaining (with ±), Runway (two paces), Burn 7 d, Spend today, Spend in range, Unpriced in range (shown only if > 0, in `HealthWatch`).
 4. **By app** table (`20N-0`; rows `210-0`,`21A-0`,`21J-0`): App | Key (hint `…a9f2` or `—`) | Attribution badge | Requests | Tokens (stacked mini-bar by class, class colors) | Spend | Share %. Footer row `Total` MUST equal provider total for the range (06 precedence). Unbound provider keys appear as `(unnamed key …a9f2)` with `Name…` link → creates an app.
