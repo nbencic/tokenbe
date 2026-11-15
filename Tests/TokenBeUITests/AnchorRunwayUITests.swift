@@ -49,6 +49,8 @@ final class AnchorRunwayUITests: XCTestCase {
     XCTAssertTrue(control(again, "dashboard.account.numbers.remaining").waitForExistence(timeout: 10),
                   "the banner opens the account page")
     XCTAssertTrue(control(again, "dashboard.ledger.row.anchor").exists, "the ledger lists the anchor")
+    // PM-4.2-1: the header's band pill names the band (08 § Accessibility: colour is never the only carrier).
+    XCTAssertTrue(control(again, "dashboard.account.band").label.contains("critical"), "the pill says critical")
     again.typeKey("q", modifierFlags: .command)
     XCTAssertTrue(waitFor { self.logLinesOrNone().contains { $0.contains("\"evt\":\"ui.band_change\"") } },
                   "the change to critical is logged")

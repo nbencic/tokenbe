@@ -39,7 +39,7 @@ check "the anchor sheet cannot date the future and caps the note at 140" bash -c
 # Step 4: cards, banner, keyboard.
 check "popover shows the alert banner" grep -qF 'AlertBannerPick.pick(model.sortedAccounts)' $app/Popover/PopoverView.swift
 check "↑/↓/⏎ move and open cards" bash -c "grep -qF '.onKeyPress(.downArrow)' $app/Popover/PopoverView.swift && grep -qF '.onKeyPress(.upArrow)' $app/Popover/PopoverView.swift && grep -qF '.onKeyPress(.return)' $app/Popover/PopoverView.swift"
-check "unknown sorts last in runway order (08)" grep -qF '\$0.band == .unknown ? nil : \$0.runwayMin' $core/Presentation/AccountOrder.swift
+check "unknown sorts last in runway order (08)" grep -qF '$0.band == .unknown ? nil : $0.runwayMin' $core/Presentation/AccountOrder.swift
 
 # Step 5: Overview.
 check "Overview: headline and runway board" bash -c "grep -qF 'OverviewHeadline(accounts:' $app/Dashboard/OverviewView.swift && grep -qF 'RunwayBoard(model: model' $app/Dashboard/OverviewView.swift"
