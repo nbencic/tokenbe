@@ -1,6 +1,6 @@
 import Foundation
 
-/// One `GET https://<host><path>` with 02's `Authorization: Bearer <key>` header, for the providers whose API is a
+/// One HTTPS `GET` of a host and path with 02's `Authorization: Bearer <key>` header, for the providers whose API is a
 /// single key-authenticated endpoint (DeepSeek, xAI). The transport adds 02's User-Agent. A non-2xx status becomes
 /// its `PollError` (04).
 enum BearerRequest {
