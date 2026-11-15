@@ -36,7 +36,14 @@ actor StreamRecorder<Value: Sendable> {
     let subject = try await RepositoryAccountTests.make(kind)
     let repository = subject.repository
     let recorder = StreamRecorder(repository.observeSummaryInputs())
-    await eventually("the initial, empty value") { await recorder.last == SummaryInputs(accounts: []) }
+    // Empty but for the migration's seed: the `unassigned` app (V4; MemoryRepository does not publish apps).
+    await eventually("the initial, empty value") {
+      await recorder.last.map { inputs in
+        var empty = inputs
+        empty.apps.removeAll { $0.id == Attribution.unassignedID }
+        return empty
+      } == SummaryInputs(accounts: [])
+    }
 
     let openai = RepositoryAccountTests.openai
     try await repository.insertAccount(openai)
@@ -151,6 +158,59 @@ actor StreamRecorder<Value: Sendable> {
     await eventually("the paused summary") {
       await recorder.last.map { AccountSummaryBuilder.summaries(from: $0).first?.isPaused } == true
     }
+    await recorder.cancel()
+  }
+
+  /// 7.1 (PM-2.2-3): each table the By-app table reads, changed alone, yields new inputs that carry the change.
+  enum AppTable: String, CaseIterable, Sendable { case app, binding, providerKey, usage, cost }
+
+  @Test("a change to one app-attribution table alone yields new inputs with it (7.1, PM-2.2-3)",
+        arguments: AppTable.allCases)
+  func appTables(_ table: AppTable) async throws {
+    let harness = try StoreHarness()
+    let database = try await harness.open().database
+    let repository = GRDBRepository(database: database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the sentinel app only") { await recorder.last?.apps.map(\.name) == ["unassigned"] }
+    let day = DBTime.string(Date()).prefix(10)
+    switch table {
+    case .app:
+      _ = try await repository.upsertApp(displayName: "Weather", binding: nil)
+      await eventually("the new app") { await recorder.last?.apps.map(\.name) == ["unassigned", "weather"] }
+    case .binding:
+      try await repository.bind(appID: Attribution.unassignedID,
+                                key: ProviderKeyRef(accountID: openai.id, providerKeyID: "key_a"))
+      await eventually("the binding") { await recorder.last?.bindings.map(\.value) == ["key_a"] }
+    case .providerKey:
+      try await repository.upsertProviderKeys(accountID: openai.id, keys: [DiscoveredKey(providerKeyID: "key_a")],
+                                              seenAt: Date())
+      await eventually("the key") { await recorder.last?.providerKeys.map(\.providerKeyId) == ["key_a"] }
+    case .usage:
+      try await database.write("test") { db in
+        try db.execute(sql: """
+          INSERT INTO usage_bucket (account_id, bucket_start, bucket_width, model, provider_key_id, source,
+            input_uncached, requests, est_cost_cents, fetched_at)
+          VALUES (?, ?, '1h', 'gpt-4o', 'key_a', 'provider', 10, 2, 7, ?)
+          """, arguments: [openai.id, "\(day)T00:00:00.000Z", "\(day)T01:00:00.000Z"])
+      }
+      await eventually("the key's usage") {
+        await recorder.last?.keyUsageDays == [KeyUsageDay(accountId: openai.id, day: String(day), providerKeyId: "key_a",
+                                                         source: "provider", estCents: 7,
+                                                         classes: TokenClasses(inputUncached: 10, requests: 2))]
+      }
+    case .cost:
+      try await repository.replaceCostDays(accountID: openai.id, rows: [
+        CostBucketRecord(accountId: openai.id, day: String(day), groupKind: "api_key_id", groupKey: "key_a",
+                         amountCents: 12, currency: "USD", provisional: false, fetchedAt: "\(day)T01:00:00.000Z")
+      ])
+      await eventually("the key's cost") {
+        await recorder.last?.keyCostDays == [KeyCostDay(accountId: openai.id, day: String(day),
+                                                       providerKeyId: "key_a", amountCents: 12)]
+      }
+    }
+    #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
     await recorder.cancel()
   }
 

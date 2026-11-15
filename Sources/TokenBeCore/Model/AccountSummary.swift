@@ -7,17 +7,6 @@ public enum BalanceMode: String, CaseIterable, Sendable, Codable {
   case spendOnly = "spend_only"
 }
 
-/// Spend attributed to one app today (08 popover row 4).
-public struct AppSpend: Sendable, Equatable, Hashable {
-  public var appName: String
-  public var cents: Int64
-
-  public init(appName: String, cents: Int64) {
-    self.appName = appName
-    self.cents = cents
-  }
-}
-
 /// Auto-reload configuration (09 `account.auto_reload_*`).
 public struct AutoReload: Sendable, Equatable, Hashable {
   public var belowCents: Int64
@@ -59,7 +48,10 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var spend30dCents: Int64?
   public var autoReload: AutoReload?
   public var anchorAgeDays: Int?
-  public var topApps: [AppSpend]
+  /// The By-app table over the Dashboard range (08 `20N-0`; `Attribution.rows`); Σ spend == `rangeSpend`.
+  public var byApp: [AppRow] = []
+  /// Popover row 4 (08): the rows by today's spend.
+  public var todayApps: [AppRow] = []
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
   public var unpriced: UnpricedFigure?
   /// 09 `tb.alerts.dollarFloorCents` at evaluation (logged with a band change, 03 `inputs_json`).
@@ -86,7 +78,7 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     runwayMin: TimeInterval? = nil, band: Band = .unknown, bandSince: Date? = nil, freshness: [Job: Date?] = [:],
     isStale: Bool = false, isPaused: Bool = false, needsKey: Bool = false, circuitOpenUntil: Date? = nil,
     todaySpend: SpendFigure? = nil, rangeSpend: SpendFigure? = nil, spend30dCents: Int64? = nil, autoReload: AutoReload? = nil,
-    anchorAgeDays: Int? = nil, topApps: [AppSpend] = [], unpriced: UnpricedFigure? = nil, capabilities: Capabilities? = nil,
+    anchorAgeDays: Int? = nil, unpriced: UnpricedFigure? = nil, capabilities: Capabilities? = nil,
     intervalOverride: IntervalOverride = IntervalOverride(), sources: [SourceStatus] = []
   ) {
     self.id = id
@@ -113,7 +105,6 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     self.spend30dCents = spend30dCents
     self.autoReload = autoReload
     self.anchorAgeDays = anchorAgeDays
-    self.topApps = topApps
     self.unpriced = unpriced
     self.capabilities = capabilities
     self.intervalOverride = intervalOverride

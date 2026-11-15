@@ -191,7 +191,6 @@ import Testing
     #expect(summary.lastSuccessAt == nil)
     summary.freshness = [.usage: Self.date(2026, 11, 9, 10), .cost: nil, .keys: Self.date(2026, 11, 9, 11)]
     #expect(summary.lastSuccessAt == Self.date(2026, 11, 9, 11))
-    #expect(AppSpend(appName: "harness", cents: 40) == AppSpend(appName: "harness", cents: 40))
     #expect(AutoReload(belowCents: 1000, toCents: 5000).toCents == 5000)
   }
 
