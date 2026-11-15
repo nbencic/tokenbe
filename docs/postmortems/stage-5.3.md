@@ -1,5 +1,5 @@
 # Postmortem — Stage 5.3 Ledger, runway, bands; Alerts tab; cards and Overview complete
-Date: 2026-11-15 · Branch: s5.3-ledger-runway-bands · PR: #25 · Planned size: L · Commits: 3
+Date: 2026-11-15 · Branch: s5.3-ledger-runway-bands · PR: #25 · Planned size: L · Commits: 7
 
 ## Outcome
 TokenBe now computes the product's core numbers per 05:
@@ -58,7 +58,11 @@ D1–D13 are met, with the UI part deferred. Per the owner's instruction (Q-041)
 ## Verify and CI failures
 - Stage-only run 1 (`5.3.sh` alone, Q-041 practice from 5.2): failed at `5.3 unknown sorts last`. The check's single-quoted pattern kept the `\$` escapes. **Fix:** a plain `$0` in single quotes.
 - Stage-only run 2: every 5.3 check ok; only D13 (this file) failed, as expected.
-- Full verify (`TB_UI_TESTS=0`): see the PR body.
+- Full verify run 1 (`TB_UI_TESTS=0`): failed at `1.3 SettingsView has no 'Alerts' tab yet`, a D6 guard for tabs that had not arrived. **Fix:** Alerts left the guard list; 5.3.sh checks the tab.
+- Full verify run 2: failed at `3.5 the anchor is ledger_event(kind=anchor)`. The check grepped the literal `kind: "anchor"`, which the shared insert helper replaced. **Fix:** the check follows `UserEntry` (anchor, topup).
+- Full verify run 3 (in a separate git worktree, so 5.4 work could go on): failed at `4.2 Dashboard has no 'Set anchor' yet`, the same kind of guard. A run from 4.2 onward then also failed `4.2 a card opens its account page`: cards now open through the shared `openAccount`. **Fix:** both 4.2 checks, found in one stage-range run before the next full run.
+- Full verify run 4: `STAGE 5.3 OK`, 1032 `ok`, 23 `skip` (22 UI, Q-041; 1 H2).
+- **Lesson:** earlier stages' "not yet" guards (D6) and literal greps break when a later stage legitimately adds the control or refactors the line. Before a stage's first full verify, run `grep -n "yet\|no '" scripts/stages/*.sh` and the stage range from the oldest touched stage (PM-5.3-4).
 
 ## Deviations from the docs
 - **07 `ui.band_change`:** adds `trigger`, plus floor and estimate_band in `inputs`. It is not logged for an account's first evaluation (Q-042).
@@ -77,6 +81,7 @@ D1–D13 are met, with the UI part deferred. Per the owner's instruction (Q-041)
 ## Carry-forward actions
 - PM-5.3-1 · agent · 5.4 · `AlertPolicy` should consume `ui.band_change`'s transitions through `BandRecorder` (the one place a change is known). It should not notify on `launch` changes that only restore a persisted band, and should define whether a `launch` change into `low` notifies.
 - PM-5.3-2 · agent · 5.5 · Run `AnchorRunwayUITests` (with E2E-9 on its log) and the existing suites whose card text changed: `OnboardingUITests` now accepts `≈ $200` or `No data yet` in row 2.
+- PM-5.3-4 · agent · process · Before a stage's first full verify, grep earlier stage scripts for D6 "not yet" guards and literal greps on the files the stage touched, and run the stage range from the oldest affected stage (a local copy of `verify-stage.sh` started at that index). Three of 5.3's four verify failures were such checks.
 - PM-5.3-3 · agent · 5.5 · Startup step 8 renders the glyph from persisted `band_state`. `BandRecorder` already seeds from it; the glyph must not wait for the first evaluation.
 - Earlier actions that targeted this stage:
   - PM-5.2-1: closed (`Spend.daily` feeds burn, since-anchor and the strip).
