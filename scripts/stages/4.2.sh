@@ -46,7 +46,8 @@ check "glyph state is exposed as glyph.<state>" grep -qF '.accessibilityIdentifi
 check "Offline banner while offline" bash -c "grep -qF 'if model.isOffline { offlineBanner }' $app/Popover/PopoverView.swift"
 check "offline puts every card under the overlay" grep -qF 'dimmed: summary.isStale || model.isOffline' $app/Popover/PopoverView.swift
 check "overlay: opacity 0.6, freshness HealthLow and stale text (08)" bash -c "grep -qF '.opacity(dimmed ? 0.6 : 1)' $app/Popover/AccountCardView.swift && grep -qF 'stale: dimmed' $app/Popover/AccountCardView.swift"
-check "a card opens its account page (08)" grep -qF 'model.showAccount(summary.id)' $app/Popover/PopoverView.swift
+# 5.3: cards, the banner and ⏎ share `openAccount`, which shows the page.
+check "a card opens its account page (08)" bash -c "grep -qF 'openAccount(summary.id)' $app/Popover/PopoverView.swift && grep -A1 'private func openAccount' $app/Popover/PopoverView.swift | grep -qF 'model.showAccount(id)'"
 
 # Step 4: sidebar rows reflect needsKey.
 check "sidebar rows read Key missing" bash -c "grep -B1 -A2 'if account.needsKey' $app/Dashboard/SidebarView.swift | grep -qF 'Strings.keyMissing'"
