@@ -74,6 +74,22 @@ extension AttributionTests {
     #expect(Attribution.total(rows)?.spend.cents == 100)
   }
 
+  @Test("substitute edge cases: a day with harness spend but no lines is Unassigned; zero estimates split by tokens")
+  func substituteEdges() {
+    var inputs = Self.deepseekInputs
+    inputs.harnessDays = [Self.harness("2026-11-09", "weather", est: 0, account: "ds", lines: 3),
+                          Self.harness("2026-11-09", "news", est: 0, account: "ds", lines: 1)]
+    inputs.usageDays.append(UsageDay(accountId: "ds", day: "2026-11-10", source: "harness", estCents: 9))
+    inputs.apps.append(AppRecord(id: Attribution.unassignedID, name: "unassigned", displayName: "Unassigned",
+                                 createdAt: "", isAuto: true))
+    let rows = Attribution.rows(Self.deepseek(), days: Self.days, today: Self.today, inputs: inputs)
+    #expect(rows.first { $0.appTag == "weather" }?.spend.cents == 75)
+    #expect(rows.first { $0.appTag == "news" }?.spend.cents == 25)
+    let unassigned = rows.first { $0.appTag == nil }
+    #expect(unassigned?.spend.cents == 9 && unassigned?.appID == Attribution.unassignedID && unassigned?.kind == .harness)
+    #expect(rows.first { $0.appTag == "news" }?.id == "ds//news/harness")
+  }
+
   @Test("inferred: one harness app, no lines and no top-up on a closed day → the balance delta, badge inferred")
   func inferred() {
     var inputs = Self.deepseekInputs

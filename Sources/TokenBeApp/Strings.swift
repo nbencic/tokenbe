@@ -442,7 +442,9 @@ extension Strings {
     "Today: \(inserted) ok \u{00B7} \(duplicate) duplicate \u{00B7} \(rejected) rejected"
   }
   /// O-12.
-  static func harnessWithoutAccount(_ lines: Int) -> String { "\(lines) lines for providers you haven\u{2019}t added" }
+  static func harnessWithoutAccount(_ lines: Int) -> String {
+    "\(lines) \(lines == 1 ? "line" : "lines") for providers you haven\u{2019}t added"
+  }
   static func harnessRotate(_ file: String) -> String { "\(file) is over 512 MiB. Start a new file to rotate it." }
   /// 08: the empty By-app table, which opens Settings → Sources.
   static let reportAppsFromHarness = "Report apps from your harness \u{2192}"
