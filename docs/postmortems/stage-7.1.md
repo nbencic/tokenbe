@@ -56,6 +56,12 @@ The stage opened with Q-047, the owner's change-based UI-test selection (the fir
   - **Fix:** the holder keeps the writer until the test releases it, 300 ms after the waiting write starts. The test passed 20 of 20 alone and 50 of 50 full Core runs (PM-1.2-3). It ships in the follow-up PR #31 (`s7.1-busy-test-flake`), merged only on a green CI read without a pipe.
   - **Cost:** one red merge on `main`, and one follow-up PR.
 
+- **CI's Release app build crashed the compiler** (PR #31's first CI run). Run 43759630052 on `main` after #30 hit it too.
+  - **Symptom:** Xcode 16.4's `swift-frontend` crashed in IRGen (`While emitting IR SIL function "@$sSSScA_pSgIeAghgg_SSIeAghn_TR"`, `SmallVector` capacity). The crash was in a reabstraction thunk for a `String` function with an `isolated (any Actor)?` parameter, during the whole-module Release build of `TokenBeApp`.
+  - **Root cause:** `BoundAppPicker` passed a main-actor method reference as a `Binding` setter (`set: choose`). The local toolchain (Xcode 27) compiles it. The CI toolchain (Swift 6.1) crashes on it.
+  - **Fix:** the setter is a closure, `{ choose($0) }`, like every other setter in the app.
+  - **Lesson:** the local verify's `build-app-release` uses the local toolchain, so only CI exercises Xcode 16.4 (PM-7.1-7).
+
 ## Deviations from the docs
 - **08:**
   - an unbound key shows the provider's key name, per 01 A2 ("human key names"); `(unnamed key …a9f2)` only without a name. 01 wins over 08 (R1).
@@ -88,4 +94,5 @@ The stage opened with Q-047, the owner's change-based UI-test selection (the fir
 - PM-7.1-4 · agent · 11.3 · Check the Dashboard's other pages at the 920 pt minimum width against Paper (the Sources strip was one overflow). The By-app table's look follows 08's text; Paper Desktop was not used. 11.3 is a copy-heavy branch, and Q-047 selects no copy-asserting suite for `Strings.swift`, so its verify runs with `TB_UI_TESTS=1`.
 - PM-7.1-5 · agent · 11.5 · Run the full UI suite once (`TB_UI_TESTS=1 scripts/verify-stage.sh 11.5`, Q-047).
 - PM-7.1-6 · agent · every stage · Read CI's result before merging: `gh pr checks <n> --watch` without a pipe, then `gh pr view <n> --json statusCheckRollup` must show every check `SUCCESS`. After a merge, check `main`'s push run too (6.2's failed unseen). Status: open (process).
+- PM-7.1-7 · agent · every stage · CI builds with Xcode 16.4 (Swift 6.1); the Mac has only the newer Xcode. Avoid passing actor-isolated method references as closures (write `{ f($0) }`). Treat a CI-only compiler crash as a toolchain difference. Status: open (process).
 - Earlier actions that targeted 7.1: none. PM-6.1-3 and PM-6.2-2 target 7.2. Process actions applied here: PM-5.3-4 (the guard sweep), PM-1.3-5 (dry run of the static checks), PM-1.1-1 (screen unlocked), Q-039 (99 GiB free).

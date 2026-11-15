@@ -19,7 +19,9 @@ struct BoundAppPicker: View {
   }
 
   var body: some View {
-    Picker(Strings.boundApp, selection: Binding(get: { bound }, set: choose)) {
+    // A closure, not the method reference `set: choose`: Swift 6.1 (CI's Xcode 16.4) crashed in IRGen on the
+    // reabstraction thunk of a main-actor method passed as the setter (PM-7.1-7).
+    Picker(Strings.boundApp, selection: Binding(get: { bound }, set: { choose($0) })) {
       Text(Strings.noApp).tag("")
       ForEach(model.apps.filter { $0.id != Attribution.unassignedID }, id: \.id) { app in
         Text(app.displayName).tag(app.id)
