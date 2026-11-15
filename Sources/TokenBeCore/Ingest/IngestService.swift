@@ -50,7 +50,8 @@ public struct IngestStatus: Sendable, Equatable {
 /// 2 s is moved to `ingested/` when `tb.ingest.moveWhenDone` is on and nobody holds it; a file whose first line is
 /// not v1 JSON goes to `rejected/`.
 public actor IngestService {
-  public let folder: URL
+  /// Immutable and Sendable, so readable from any isolation (Settings shows it; Swift 6.1 needs `nonisolated`).
+  public nonisolated let folder: URL
   var ingestedFolder: URL { folder.appendingPathComponent("ingested", isDirectory: true) }
   var rejectedFolder: URL { folder.appendingPathComponent("rejected", isDirectory: true) }
 
