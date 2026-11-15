@@ -73,9 +73,10 @@ public struct UnpricedFigure: Sendable, Equatable {
 /// provider's cost (truth); the open day, and closed days without a cost row, use the usage estimate (Q-040).
 public enum Spend {
   /// The usage sources that count as `spend_est` (05): provider rows and their retention roll-ups; harness rows only
-  /// for an account without a usage API.
-  static func counts(_ source: String, usageAPI: Bool) -> Bool {
-    source == "harness" ? !usageAPI : true
+  /// for an account without a usage API, and only in USD: a harness estimate is priced in dollars, and nothing is
+  /// converted (05 § Currency, R13; Q-049).
+  static func counts(_ source: String, usageAPI: Bool, currency: Currency = .usd) -> Bool {
+    source == "harness" ? !usageAPI && currency == .usd : true
   }
 
   /// The UTC days of a Dashboard range ending today: `Today` is today, `7 d` today and the 6 days before (Q-040).
@@ -102,8 +103,12 @@ public enum Spend {
     let truthDays = Set(result.keys)
     let usageAPI = account.capabilities?.usage ?? true
     for row in inputs.usageDays where row.accountId == account.id && !truthDays.contains(row.day)
-      && counts(row.source, usageAPI: usageAPI) {
+      && counts(row.source, usageAPI: usageAPI, currency: account.currency) {
       result[row.day, default: SpendFigure(cents: 0, isEstimate: true)].cents += row.estCents
+    }
+    // D-deepseek-single-app: a closed day with no harness lines may take its balance delta (06; Q-049).
+    for (day, cents) in Attribution.inferredDays(account, today: today, inputs: inputs) where result[day] == nil {
+      result[day] = SpendFigure(cents: cents, isEstimate: true)
     }
     return result
   }
@@ -126,7 +131,7 @@ public enum Spend {
     let after = daily(account, today: today, inputs: inputs).filter { $0.key > anchorDay }.map(\.value)
     let usageAPI = account.capabilities?.usage ?? true
     let remainder = inputs.anchorDayUsage.filter {
-      $0.accountId == account.id && counts($0.source, usageAPI: usageAPI)
+      $0.accountId == account.id && counts($0.source, usageAPI: usageAPI, currency: account.currency)
     }.map { SpendFigure(cents: $0.estCents, isEstimate: true) }
     return sum(after + remainder)
   }
@@ -138,7 +143,8 @@ public enum Spend {
     let (accountID, provider, usage) = (account.id, account.provider, inputs.usageDays)
     let usageAPI = account.capabilities?.usage ?? true
     let wanted = Set(days)
-    let tokens = usage.filter { $0.accountId == accountID && wanted.contains($0.day) && counts($0.source, usageAPI: usageAPI) }
+    let tokens = usage.filter { $0.accountId == accountID && wanted.contains($0.day)
+      && counts($0.source, usageAPI: usageAPI, currency: account.currency) }
       .reduce(Int64(0)) { $0 + $1.unpricedTokens }
     guard tokens > 0 else { return UnpricedFigure(tokens: 0, cents: 0) }
     let models = Set(inputs.pricedModels.filter { $0.accountId == accountID && wanted.contains($0.day) }.map(\.model))

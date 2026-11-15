@@ -54,6 +54,10 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var byAppTotal: AppRowsTotal?
   /// Popover row 4 (08): the rows by today's spend.
   public var todayApps: [AppRow] = []
+  /// The account has harness lines in the window (7.2): its spend is known even with no polled job (xAI anchored).
+  public var hasHarness = false
+  /// Harness lines for this account today (UTC), for the Sources strip's `Harness · … · 12 lines today` (08).
+  public var harnessLinesToday = 0
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
   public var unpriced: UnpricedFigure?
   /// 09 `tb.alerts.dollarFloorCents` at evaluation (logged with a band change, 03 `inputs_json`).

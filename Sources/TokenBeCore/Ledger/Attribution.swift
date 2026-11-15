@@ -56,16 +56,22 @@ public struct KeyCostDay: Sendable, Equatable {
   }
 }
 
-/// How a row's spend was attributed (08 By-app badge). 7.1 has only `key`; 7.2 adds split, harness and inferred.
+/// How a row's spend was attributed (08 By-app badge, 06 precedence): a provider key (`key`), a key's total split
+/// among the harness apps that used it (`split`), harness lines as the only spend (`harness`), a balance delta
+/// (`inferred`).
 public enum AttributionKind: String, Sendable, Equatable {
-  case key
+  case key, split, harness, inferred
 }
 
 /// One row of the By-app table (08 `20N-0`), of popover row 4 and of Apps this period: one provider key of one
 /// account, and the app it is bound to (14 § 0.3 `AppRow`).
 public struct AppRow: Sendable, Equatable, Identifiable {
-  /// `<account id>/<provider key id>`.
-  public var id: String { "\(accountID)/\(providerKeyID)" }
+  /// `<account id>/<provider key id>[/<app tag>/<kind>]`.
+  public var id: String {
+    appTag.map { "\(accountID)/\(providerKeyID)/\($0)/\(kind.rawValue)" } ?? "\(accountID)/\(providerKeyID)"
+  }
+  /// What the UI names the row's elements by: the key for a key row, else the app tag (7.2).
+  public var elementID: String { appTag ?? providerKeyID }
   public var accountID: String
   /// `''` for the usage the provider did not group by key (the `Unassigned` row, Q-048).
   public var providerKeyID: String
@@ -75,6 +81,8 @@ public struct AppRow: Sendable, Equatable, Identifiable {
   public var appName: String?
   /// The provider's name for the key (`provider_key.name`).
   public var keyName: String?
+  /// The harness app tag of a `split`, `harness` or `inferred` row (06); nil for a key row.
+  public var appTag: String?
   /// The last 4 characters of the provider's redacted key (`…a9f2`); nil when unknown.
   public var keyHint: String?
   public var kind: AttributionKind
@@ -85,7 +93,7 @@ public struct AppRow: Sendable, Equatable, Identifiable {
 
   public init(accountID: String, providerKeyID: String, appID: String?, appName: String?, keyName: String?,
               keyHint: String?, kind: AttributionKind = .key, tokens: TokenClasses, spend: SpendFigure,
-              sharePercent: Int = 0) {
+              sharePercent: Int = 0, appTag: String? = nil) {
     self.accountID = accountID
     self.providerKeyID = providerKeyID
     self.appID = appID
@@ -96,6 +104,7 @@ public struct AppRow: Sendable, Equatable, Identifiable {
     self.tokens = tokens
     self.spend = spend
     self.sharePercent = sharePercent
+    self.appTag = appTag
   }
 }
 
@@ -130,42 +139,61 @@ public struct AppTotal: Sendable, Equatable, Identifiable {
 /// - the open day and days without cost rows: each key's estimate.
 /// Whatever the per-key figures leave of the day's spend (rounding, rows without a key) goes to the day's largest
 /// key, so Σ rows == the account's spend for the range, always (08 `Total`). Keys map to apps through
-/// `app_binding(kind = provider_key)`. Split, substitute and inferred (harness) arrive in 7.2.
+/// `app_binding(kind = provider_key)`. A key's day that harness lines reported for is split among their apps
+/// (`split`, 7.2); an account without a usage API takes its rows from harness lines (`Attribution+Harness`).
 public enum Attribution {
   /// The rows of one account over `days`, by spend (largest first), then name.
   public static func rows(_ account: AccountSummary, days: [String], today: String,
                           inputs: SummaryInputs) -> [AppRow] {
-    guard account.capabilities?.perKeyUsage == true else { return [] }
-    let usageAPI = account.capabilities?.usage ?? true
-    let daily = Spend.daily(account, today: today, inputs: inputs)
-    let wanted = Set(days)
-    let usage = Dictionary(grouping: inputs.keyUsageDays.filter {
-      $0.accountId == account.id && wanted.contains($0.day) && Spend.counts($0.source, usageAPI: usageAPI)
-    }, by: \.day)
-    let costs = Dictionary(grouping: inputs.keyCostDays.filter { $0.accountId == account.id && wanted.contains($0.day) },
-                           by: \.day)
-    var cents: [String: Int64] = [:]
-    var estimate: [String: Bool] = [:]
-    var tokens: [String: TokenClasses] = [:]
-    for day in days {
-      guard let figure = daily[day] else { continue }
-      let dayUsage = usage[day] ?? []
-      for row in dayUsage { tokens[row.providerKeyId, default: TokenClasses()] += row.classes }
-      let shares = dayShares(figure: figure, usage: dayUsage, costs: costs[day] ?? [])
-      for (key, amount) in shares {
-        cents[key, default: 0] += amount
-        estimate[key] = (estimate[key] ?? false) || figure.isEstimate
-      }
+    let rows: Accumulator
+    if account.capabilities?.perKeyUsage == true {
+      rows = keyRows(account, days: days, today: today, inputs: inputs)
+    } else if account.capabilities?.usage == false {
+      rows = harnessRows(account, days: days, today: today, inputs: inputs)
+    } else {
+      return []
     }
-    let total = cents.values.reduce(0, +)
-    let keys = Set(cents.keys).union(tokens.keys)
-    return keys.map { key in
-      let spend = SpendFigure(cents: cents[key] ?? 0, isEstimate: estimate[key] ?? false)
-      var row = describe(key, accountID: account.id, inputs: inputs, tokens: tokens[key] ?? TokenClasses(),
+    let total = rows.cents.values.reduce(0, +)
+    return Set(rows.cents.keys).union(rows.tokens.keys).map { key in
+      let spend = SpendFigure(cents: rows.cents[key] ?? 0, isEstimate: rows.estimate[key] ?? false)
+      var row = describe(key, accountID: account.id, inputs: inputs, tokens: rows.tokens[key] ?? TokenClasses(),
                          spend: spend)
       row.sharePercent = percent(spend.cents, of: total)
       return row
     }.sorted(by: order)
+  }
+
+  /// The key path: each day's share per key, split among the key's harness apps when they reported that day.
+  static func keyRows(_ account: AccountSummary, days: [String], today: String, inputs: SummaryInputs) -> Accumulator {
+    let usageAPI = account.capabilities?.usage ?? true
+    let daily = Spend.daily(account, today: today, inputs: inputs)
+    let wanted = Set(days)
+    let usage = Dictionary(grouping: inputs.keyUsageDays.filter {
+      $0.accountId == account.id && wanted.contains($0.day)
+        && Spend.counts($0.source, usageAPI: usageAPI, currency: account.currency)
+    }, by: \.day)
+    let costs = Dictionary(grouping: inputs.keyCostDays.filter { $0.accountId == account.id && wanted.contains($0.day) },
+                           by: \.day)
+    let harness = Dictionary(grouping: inputs.harnessDays.filter {
+      $0.accountId == account.id && wanted.contains($0.day) && !$0.providerKeyId.isEmpty
+    }) { "\($0.day)/\($0.providerKeyId)" }
+    var rows = Accumulator()
+    for day in days {
+      guard let figure = daily[day] else { continue }
+      let dayUsage = usage[day] ?? []
+      for (key, amount) in dayShares(figure: figure, usage: dayUsage, costs: costs[day] ?? []) {
+        if let lines = harness["\(day)/\(key)"] {
+          for (app, cents) in splitByApp(amount, lines: lines) {
+            let classes = lines.filter { $0.appTag == app }.reduce(TokenClasses()) { $0 + $1.classes }
+            rows.add(RowKey(key: key, app: app, kind: .split), cents: cents, estimate: true, tokens: classes)
+          }
+        } else {
+          let classes = dayUsage.filter { $0.providerKeyId == key }.reduce(TokenClasses()) { $0 + $1.classes }
+          rows.add(RowKey(key: key, app: nil, kind: .key), cents: amount, estimate: figure.isEstimate, tokens: classes)
+        }
+      }
+    }
+    return rows
   }
 
   /// One day's spend per key; Σ == `figure.cents`.
@@ -214,23 +242,29 @@ public enum Attribution {
     return Int((Int128(part) * 200 + Int128(total)) / (Int128(total) * 2))
   }
 
-  static func describe(_ key: String, accountID: String, inputs: SummaryInputs, tokens: TokenClasses,
+  static func describe(_ row: RowKey, accountID: String, inputs: SummaryInputs, tokens: TokenClasses,
                        spend: SpendFigure) -> AppRow {
+    let key = row.key
     let providerKey = inputs.providerKeys.first { $0.accountId == accountID && $0.providerKeyId == key }
-    let appID = key.isEmpty ? unassignedID : inputs.bindings.first {
-      $0.accountId == accountID && $0.kind == "provider_key" && $0.value == key
-    }?.appId
+    let appID: String? = if let tag = row.app {
+      inputs.apps.first { $0.name == tag }?.id
+    } else if key.isEmpty {
+      unassignedID
+    } else {
+      inputs.bindings.first { $0.accountId == accountID && $0.kind == "provider_key" && $0.value == key }?.appId
+    }
     let app = appID.flatMap { id in inputs.apps.first { $0.id == id } }
     let hint = providerKey?.redacted.flatMap { $0.count >= 4 ? String($0.suffix(4)) : nil }
-    return AppRow(accountID: accountID, providerKeyID: key, appID: app?.id, appName: app?.displayName,
-                  keyName: providerKey?.name, keyHint: hint, tokens: tokens, spend: spend)
+    return AppRow(accountID: accountID, providerKeyID: key, appID: app?.id, appName: app?.displayName ?? row.app,
+                  keyName: providerKey?.name, keyHint: hint, kind: row.kind, tokens: tokens, spend: spend,
+                  appTag: row.app)
   }
 
   /// Largest spend first, then the name the UI shows, then the key id.
   static func order(_ lhs: AppRow, _ rhs: AppRow) -> Bool {
     if lhs.spend.cents != rhs.spend.cents { return lhs.spend.cents > rhs.spend.cents }
     let lhsName = lhs.appName ?? lhs.keyName ?? "", rhsName = rhs.appName ?? rhs.keyName ?? ""
-    return (lhsName, lhs.providerKeyID) < (rhsName, rhs.providerKeyID)
+    return (lhsName, lhs.providerKeyID, lhs.kind.rawValue) < (rhsName, rhs.providerKeyID, rhs.kind.rawValue)
   }
 
   /// The `Total` row of `rows`; nil when there are none.
@@ -258,7 +292,7 @@ public enum Attribution {
     var seen: [String] = []
     for account in accounts {
       for row in account.byApp {
-        let id = "\(row.appID ?? row.id)/\(account.currency.rawValue)"
+        let id = "\(row.appID ?? row.id)/\(row.kind.rawValue)/\(account.currency.rawValue)"
         if totals[id] == nil {
           seen.append(id)
           totals[id] = AppTotal(id: id, row: row, currency: account.currency,

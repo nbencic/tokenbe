@@ -120,7 +120,7 @@ struct AccountCardView: View {
 
   /// Rows 2 and 3. Before the first successful poll row 2 reads "No data yet" and row 3 is empty (08).
   private var rows: (row2: String?, row3: [String]) {
-    guard summary.lastSuccessAt != nil else { return (nil, []) }
+    guard summary.lastSuccessAt != nil || summary.hasHarness else { return (nil, []) }
     let hideCents = environment?.settings.uiHideCents ?? true
     func money(_ cents: Int64) -> String {
       Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)

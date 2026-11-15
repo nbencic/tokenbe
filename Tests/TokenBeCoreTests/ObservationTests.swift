@@ -162,7 +162,7 @@ actor StreamRecorder<Value: Sendable> {
   }
 
   /// 7.1 (PM-2.2-3): each table the By-app table reads, changed alone, yields new inputs that carry the change.
-  enum AppTable: String, CaseIterable, Sendable { case app, binding, providerKey, usage, cost }
+  enum AppTable: String, CaseIterable, Sendable { case app, binding, providerKey, usage, cost, harness, balance }
 
   @Test("a change to one app-attribution table alone yields new inputs with it (7.1, PM-2.2-3)",
         arguments: AppTable.allCases)
@@ -209,8 +209,42 @@ actor StreamRecorder<Value: Sendable> {
         await recorder.last?.keyCostDays == [KeyCostDay(accountId: openai.id, day: String(day),
                                                        providerKeyId: "key_a", amountCents: 12)]
       }
+    case .harness:
+      try await repository.applyIngestBatch(IngestBatch(
+        file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
+                               linesOk: 0, linesBad: 0, linesDup: 0),
+        lines: [IngestLine(line: try #require(LineParser.parse(Data(IngestHarness.line("o1",
+          ts: "\(day)T01:00:00Z").replacingOccurrences(of: "deepseek", with: "openai").utf8)).get()),
+                           lineNo: 1, estCents: 5)],
+        ingestedAt: "\(day)T02:00:00.000Z"))
+      await eventually("the harness day") {
+        let days = await recorder.last?.harnessDays
+        return days?.map(\.appTag) == ["weather-collector"] && days?.first?.estCents == 5
+      }
+    case .balance:
+      try await repository.insertBalanceSnapshots([
+        BalanceSnapshotRecord(accountId: openai.id, ts: "\(day)T01:00:00.000Z", currency: "USD", amountCents: 900,
+                              grantedCents: nil, toppedUpCents: nil, isAvailable: nil)
+      ])
+      await eventually("the balance day") { await recorder.last?.balanceDays.map(\.amountCents) == [900] }
     }
     #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
+    await recorder.cancel()
+  }
+
+  @Test("a harness line for a provider with no account is counted (O-12)")
+  func harnessWithoutAccount() async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the initial value") { await recorder.last?.harnessWithoutAccount == 0 }
+    _ = try await repository.applyIngestBatch(IngestBatch(
+      file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
+                             linesOk: 0, linesBad: 0, linesDup: 0),
+      lines: [IngestLine(line: try #require(LineParser.parse(Data(IngestHarness.line("x1").utf8)).get()), lineNo: 1,
+                         estCents: nil)],
+      ingestedAt: "2026-11-10T02:00:00.000Z"))
+    await eventually("one line without an account") { await recorder.last?.harnessWithoutAccount == 1 }
     await recorder.cancel()
   }
 
