@@ -3,11 +3,13 @@ import SwiftUI
 import TokenBeCore
 
 /// 08 § Dashboard window sidebar: `Overview`, then one row per account (glyph, label, band dot; 3.5), each opening
-/// its account page (4.2); `Apps` follows in 7.1. A row whose key is missing reads `Key missing` (14 § Stage 4.2).
+/// its account page (4.2); then `Apps` (7.1), the Apps page. A row whose key is missing reads `Key missing` (14 § Stage
+/// 4.2).
 struct SidebarView: View {
   enum Item: Hashable {
     case overview
     case account(String)
+    case apps
   }
 
   let accounts: [AccountSummary]
@@ -36,6 +38,9 @@ struct SidebarView: View {
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("dashboard.sidebar.account.\(account.provider.rawValue)")
       }
+      Label(Strings.apps, systemImage: "square.stack.3d.up")
+        .tag(Item.apps)
+        .accessibilityIdentifier("dashboard.sidebar.apps")
     }
     .navigationSplitViewColumnWidth(min: 180, ideal: 200)
     .accessibilityIdentifier("dashboard.sidebar")

@@ -1,5 +1,10 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Dashboard/DashboardView.swift Sources/TokenBeApp/Dashboard/SidebarView.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/OverviewView.swift Sources/TokenBeApp/Components/RangePicker.swift
+// ui-covers: Sources/TokenBeApp/Components/WindowFrameKeeper.swift Sources/TokenBeApp/Components/MenuBarGlyph.swift
+// ui-covers: Sources/TokenBeApp/AppDelegate.swift Sources/TokenBeCore/Model/DashboardRange.swift
+// ui-covers: Sources/TokenBeCore/Presentation/WindowFrame.swift
 /// 11 `DashboardShellUITests` (Stage 1.2): ⌘D from the popover opens the Dashboard with its empty Overview;
 /// the range picker's choice and the window frame persist across a relaunch; ⌥-click on the glyph opens it.
 final class DashboardShellUITests: XCTestCase {

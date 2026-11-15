@@ -47,7 +47,7 @@ Order top→bottom:
    - Row 1: provider glyph + account label (`OpenAI`) + mode chip (`direct` none; `anchored` → `≈`; `spend_only` → `spend`) ; right: band dot 8 pt.
    - Row 2: **remaining** (`N-0` etc.) 20 pt semibold mono; `± M` 13 pt secondary beside it when anchored.
    - Row 3: **runway** (`K-0` etc.) caption: `~12 d · ~9 d today` ; `spend_only` shows `today $3.10 · 30 d $84`.
-   - Row 4 (collapsed by default, chevron toggles, remembered per account `tb.popover.expanded.<provider>`): top 3 apps by today's spend as `weather-collector $1.20 · harness $0.40 · other $0.10`.
+   - Row 4 (collapsed by default, chevron toggles, remembered per account `tb.popover.expanded.<provider>`): top 3 apps by today's spend as `weather-collector $1.20 · harness $0.40 · other $0.10`; with more than 3 apps, the third entry is `other`, the rest summed; shown only when an app spent something today (Q-048).
    - Stale overlay: card opacity 0.6, freshness in `HealthLow`.
    - Click → Dashboard account detail.
 4. **Footer**: `Open dashboard` (⌘D), `Settings…` (⌘,), `Pause polling for 1 h` / `Resume`, `Quit` (⌘Q). Keyboard: ↑/↓ moves card focus, ⏎ opens.
@@ -60,7 +60,7 @@ Order top→bottom:
 - **Paused**: header replaces freshness with `Paused · resumes 14:30` and a `Resume` link.
 
 ## Dashboard window (`NavigationSplitView`, min 920×600, remembers frame `tb.ui.dashboardFrame`)
-Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Apps` (all apps flattened). Toolbar: range picker `Today | 7 d | 30 d | 90 d` (default `7 d`, remembered), `Refresh`, `Export…` (CSV of current view).
+Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Apps` (all apps flattened: each app's editable display name, its name as `Harness tag`, its bound keys; empty `No apps yet`; Q-048). Toolbar: range picker `Today | 7 d | 30 d | 90 d` (default `7 d`, remembered), `Refresh`, `Export…` (CSV of current view).
 
 ### Overview (Paper `OA-0`)
 1. **Headline** (`Q1-0`,`Q2-0`): the account with the SHORTEST `runway_min`: `Shortest runway: Anthropic · ~1 d` in band color; subline `Total remaining ≈ $312 ± 9 across 3 USD accounts + 1 non-USD`.
@@ -73,7 +73,7 @@ Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Ap
 1. **Header** (`AM-0`,`AR-0`): provider glyph, label, mode chip, freshness, band pill; when the provider reports the account unavailable (13 § D-deepseek-unavailable), a chip `Provider reports account unavailable` in `HealthCritical` beside the band pill. Right-aligned buttons: `Set anchor…` (anchored mode), `Add top-up…`, `Refresh`.
 2. **Badges row** (`B1-0`): `Balance: direct|anchored|none` · `Usage: per key|org only|harness` · `Cost: provider|estimated` · `Lag: 5 min`. Each badge has a help popover with one sentence from 02.
 3. **Numbers strip**: Remaining (with ±), Runway (two paces), Burn 7 d, Spend today, Spend in range, Unpriced in range (shown only if > 0, in `HealthWatch`).
-4. **By app** table (`20N-0`; rows `210-0`,`21A-0`,`21J-0`): App | Key (hint `…a9f2` or `—`) | Attribution badge | Requests | Tokens (stacked mini-bar by class, class colors) | Spend | Share %. Footer row `Total` MUST equal provider total for the range (06 precedence). Unbound provider keys appear as `(unnamed key …a9f2)` with `Name…` link → creates an app.
+4. **By app** table (`20N-0`; rows `210-0`,`21A-0`,`21J-0`): App | Key (hint `…a9f2` or `—`) | Attribution badge | Requests | Tokens (stacked mini-bar by class, class colors) | Spend | Share %. Footer row `Total` MUST equal provider total for the range (06 precedence). Unbound provider keys appear under the provider's key name (01 A2), or as `(unnamed key …a9f2)` when the provider gives none, with `Name…` link → creates an app; usage the provider did not group by key is the `Unassigned` row (Q-048).
 5. **By model** table (`G7-0`): Model | Requests | Input | Cache write | Cache read | Output | Reasoning | Est. cost | Provider cost | Drift. Drift column `—` when no provider cost row; flagged cell in `HealthWatch` when `|drift| > threshold`.
 6. **Sources strip** (`HP-0`): one chip per data source with last success and next due: `Usage · ok · 2 min ago · next 3 min`, `Cost · ok · 02:10`, `Balance · n/a`, `Harness · 3 files · 12 lines today`. Failed source → chip in `HealthLow` with the last error's human message (02 probe messages).
 7. **Ledger** (anchored only): list of `ledger_event` rows newest first: date, kind, amount, note, source; swipe/⌫ to delete a user row (system rows cannot be deleted).

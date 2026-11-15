@@ -3,7 +3,8 @@ import TokenBeCore
 
 /// One account card (08 § Popover 3). Row 1: label, mode chip, band dot. Row 2: the pinned metric
 /// (09 `tb.popover.pinnedMetric`), or "No data yet"; row 3: the other two metrics (`CardRows`), Day-1's
-/// `Collecting…`, `reloads at $X`, or a spend-only account's `today $3.10 · 30 d $84` (5.3). Row 4 arrives in 7.1.
+/// `Collecting…`, `reloads at $X`, or a spend-only account's `today $3.10 · 30 d $84` (5.3). Row 4 (7.1): the top
+/// apps by today's spend behind a chevron, collapsed by default, remembered in 09 `tb.popover.expanded.<provider>`.
 /// The stale overlay (08: opacity 0.6, freshness `stale · 3 h ago` in `HealthLow`) covers a stale account, and every
 /// card while offline, so the state is in the text too, not only in the opacity (08 § Accessibility). A click opens
 /// the account's page in the Dashboard (08).
@@ -17,6 +18,7 @@ struct AccountCardView: View {
   let fixKey: () -> Void
   let open: () -> Void
   @Environment(\.appEnvironment) private var environment
+  @State private var appsExpanded = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -51,6 +53,9 @@ struct AccountCardView: View {
             .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).row3")
         }
       }
+      if let apps = appsText {
+        appsRow(apps)
+      }
       Text(Formatters.freshness(summary.lastSuccessAt, now: Date(), calendar: .current, stale: dimmed))
         .font(.caption.monospacedDigit())
         .foregroundStyle(dimmed ? Color(.healthLow) : Color.secondary)
@@ -67,6 +72,42 @@ struct AccountCardView: View {
     .onTapGesture(perform: open)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("popover.card.\(summary.provider.rawValue)")
+    .onAppear { appsExpanded = environment?.settings.isPopoverExpanded(summary.provider) ?? false }
+  }
+
+  /// Row 4 (08): the chevron, then `Apps` collapsed or `weather-collector $1.20 · harness $0.40 · other $0.10`.
+  private func appsRow(_ apps: String) -> some View {
+    Button {
+      appsExpanded.toggle()
+      environment?.settings.setPopoverExpanded(summary.provider, appsExpanded)
+    } label: {
+      HStack(spacing: 4) {
+        Image(systemName: appsExpanded ? "chevron.down" : "chevron.right")
+          .font(.caption2.weight(.semibold))
+        Text(appsExpanded ? apps : Strings.apps)
+          .font(.caption.monospacedDigit())
+          .lineLimit(1)
+      }
+      .foregroundStyle(.secondary)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(appsExpanded ? apps : Strings.showApps)
+    .accessibilityHint(appsExpanded ? Strings.hideApps : Strings.showApps)
+    .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).appsToggle")
+  }
+
+  /// The top 3 apps by today's spend (Core `Attribution.top`); nil when no app spent anything today.
+  private var appsText: String? {
+    let top = Attribution.top(summary.todayApps)
+    guard !top.rows.isEmpty else { return nil }
+    let hideCents = environment?.settings.uiHideCents ?? true
+    func spend(_ figure: SpendFigure) -> String {
+      Formatters.spend(figure, currency: summary.currency, hideCents: hideCents, locale: .current)
+    }
+    var entries = top.rows.map { Strings.appEntry(Strings.appLabel($0), spend($0.spend)) }
+    if let other = top.other { entries.append(Strings.appEntry(Strings.otherApps, spend(other))) }
+    return entries.joined(separator: " \u{00B7} ")
   }
 
   private var modeChip: String? {

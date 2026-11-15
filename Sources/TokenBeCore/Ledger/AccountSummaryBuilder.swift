@@ -4,7 +4,8 @@ import Foundation
 /// Stage 2.2 fills the identity fields: id, provider, label, balance mode and currency (14 § Stage 2.2); 3.5 adds
 /// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3); 4.2 adds the
 /// capabilities, the interval override and the Sources strip (`Freshness` then sets `isStale` at a given time); 5.2
-/// today's and the range's spend and the unpriced estimate (`SpendContext`). Later stages fill the rest from the
+/// today's and the range's spend and the unpriced estimate (`SpendContext`); 7.1 the By-app rows (`Attribution`).
+/// Later stages fill the rest from the
 /// inputs they add.
 public enum AccountSummaryBuilder {
   /// What the money figures depend on besides the database: the Dashboard range, the time, the price book and the
@@ -98,6 +99,9 @@ public enum AccountSummaryBuilder {
     summary.spend30dCents = Spend.sum(Spend.days(.thirtyDays, now: now).compactMap { daily[$0] }).cents
     summary.unpriced = Spend.unpriced(summary, days: Spend.days(context.range, now: now), inputs: inputs,
                                       pricer: context.pricer)
+    summary.byApp = Attribution.rows(summary, days: Spend.days(context.range, now: now), today: today, inputs: inputs)
+    summary.byAppTotal = Attribution.total(summary.byApp)
+    summary.todayApps = Attribution.rows(summary, days: [today], today: today, inputs: inputs)
     summary.burn7dCents = Burn.sevenDay(daily: daily, now: now)
     summary.burnTodayCents = Burn.today(daily: daily, now: now)
     applyLedger(anchor: anchor, inputs: inputs, context: context, daily: daily, to: &summary)

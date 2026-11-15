@@ -1,5 +1,6 @@
 import XCTest
 
+// ui-covers: always
 /// 11 `LaunchSmokeTests`: the app launches and its menu-bar item exists.
 final class LaunchSmokeTests: XCTestCase {
   @MainActor

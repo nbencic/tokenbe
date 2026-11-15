@@ -6,7 +6,8 @@ import GRDB
 /// `poll_state` (card freshness, `never` before the first poll), and 4.2 each job's last error (the account page's
 /// Sources strip); 5.2 the daily usage, cost and priced-model aggregates of the last 91 UTC days (the numbers strip);
 /// 5.3 the ledger, the latest balance, `band_state` and the anchor day's remainder, and the aggregates reach back
-/// to the oldest current anchor (PM-2.2-3).
+/// to the oldest current anchor (PM-2.2-3); 7.1 apps, bindings, provider keys and the per-key daily aggregates (the
+/// By-app table, Apps this period, popover row 4).
 public struct SummaryInputs: Sendable, Equatable {
   /// Oldest first, like `fetchAccounts()`.
   public var accounts: [AccountRecord]
@@ -27,6 +28,16 @@ public struct SummaryInputs: Sendable, Equatable {
   /// Per account and source, Σ `est_cost_cents` of the buckets on the latest anchor's UTC day that start at or after
   /// the anchor (05: "the anchor day's remainder"); `day` is the anchor day.
   public var anchorDayUsage: [UsageDay]
+  /// Every `app` row, the `unassigned` sentinel included (03).
+  public var apps: [AppRecord]
+  /// Every `app_binding` row (03).
+  public var bindings: [AppBindingRecord]
+  /// Every `provider_key` row: names and hints for the By-app table (08) and Keys & apps.
+  public var providerKeys: [ProviderKeyRecord]
+  /// Per account, UTC day, provider key and source: Σ `est_cost_cents`, requests and token classes (06 precedence).
+  public var keyUsageDays: [KeyUsageDay]
+  /// Per account, UTC day and provider key: the provider's `cost_bucket` rows with `group_kind = 'api_key_id'`.
+  public var keyCostDays: [KeyCostDay]
 
   /// How far back the aggregates reach: the longest Dashboard range (90 d) plus today.
   public static let window: TimeInterval = 91 * 86_400
@@ -34,7 +45,9 @@ public struct SummaryInputs: Sendable, Equatable {
   public init(accounts: [AccountRecord], pollStates: [PollStateSummary] = [], usageDays: [UsageDay] = [],
               pricedModels: [PricedModelDay] = [], costDays: [CostDay] = [], ledgerEvents: [LedgerEventRecord] = [],
               balances: [BalanceSnapshotRecord] = [], bandStates: [BandStateRecord] = [],
-              anchorDayUsage: [UsageDay] = []) {
+              anchorDayUsage: [UsageDay] = [], apps: [AppRecord] = [], bindings: [AppBindingRecord] = [],
+              providerKeys: [ProviderKeyRecord] = [], keyUsageDays: [KeyUsageDay] = [],
+              keyCostDays: [KeyCostDay] = []) {
     self.accounts = accounts
     self.pollStates = pollStates
     self.usageDays = usageDays
@@ -44,6 +57,11 @@ public struct SummaryInputs: Sendable, Equatable {
     self.balances = balances
     self.bandStates = bandStates
     self.anchorDayUsage = anchorDayUsage
+    self.apps = apps
+    self.bindings = bindings
+    self.providerKeys = providerKeys
+    self.keyUsageDays = keyUsageDays
+    self.keyCostDays = keyCostDays
   }
 
   static func fetch(_ db: Database) throws -> SummaryInputs {
@@ -53,7 +71,7 @@ public struct SummaryInputs: Sendable, Equatable {
     let oldestAnchorDay = anchors.map { String($0.ts.prefix(10)) + "T00:00:00.000Z" }.min()
     let since = Date().addingTimeInterval(-window)
     let start = min(DBTime.string(since), oldestAnchorDay ?? DBTime.string(since))
-    return SummaryInputs(
+    var inputs = SummaryInputs(
       accounts: try AccountRecord.order(Column("created_at"), Column("id")).fetchAll(db),
       pollStates: try PollStateSummary.fetchAll(db, sql: """
         SELECT account_id, job, last_success_at, circuit_open_until, last_error_class, last_error_message
@@ -94,6 +112,24 @@ public struct SummaryInputs: Sendable, Equatable {
         }
       }
     )
+    try inputs.fetchAttribution(db, since: DBTime.string(since))
+    return inputs
+  }
+
+  /// 7.1: apps, bindings, provider keys and the per-key daily aggregates of the window (the By-app table).
+  mutating func fetchAttribution(_ db: Database, since: String) throws {
+    apps = try AppRecord.order(Column("display_name"), Column("name")).fetchAll(db)
+    bindings = try AppBindingRecord.order(Column("account_id"), Column("kind"), Column("value")).fetchAll(db)
+    providerKeys = try ProviderKeyRecord.order(Column("account_id"), Column("provider_key_id")).fetchAll(db)
+    keyUsageDays = try KeyUsageDay.fetch(db, since: since)
+    keyCostDays = try Row.fetchAll(db, sql: """
+      SELECT account_id, day, group_key, SUM(amount_cents) AS amount FROM cost_bucket
+      WHERE group_kind = 'api_key_id' AND day >= ? GROUP BY account_id, day, group_key
+      ORDER BY account_id, day, group_key
+      """, arguments: [String(since.prefix(10))]).map {
+        KeyCostDay(accountId: $0["account_id"], day: $0["day"], providerKeyId: $0["group_key"],
+                   amountCents: $0["amount"])
+      }
   }
 }
 

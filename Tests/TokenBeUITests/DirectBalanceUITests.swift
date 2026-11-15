@@ -1,5 +1,9 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Onboarding/ Sources/TokenBeApp/Popover/AccountCardView.swift
+// ui-covers: Sources/TokenBeApp/Popover/AlertBanner.swift Sources/TokenBeCore/Providers/
+// ui-covers: Sources/TokenBeCore/Model/Formatters.swift Sources/TokenBeCore/Ledger/Remaining.swift
+// ui-covers: Sources/TokenBeCore/Ledger/BandEvaluator.swift
 /// 14 § Stage 6.1/6.2 (PM-6.1-2): a direct-balance account end to end, in fixture mode under a throwaway
 /// `TOKENBE_TEST_ROOT` (Q-014). Onboarding a DeepSeek key shows `direct`, the first entry's currency and no anchor
 /// field. After the first balance poll, the card shows the balance in `CN¥` without `≈` or `±`. An account the provider

@@ -1,5 +1,9 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/SettingsUI/GeneralTab.swift Sources/TokenBeApp/SettingsUI/SettingsView.swift
+// ui-covers: Sources/TokenBeApp/SettingsUI/AdvancedTab.swift Sources/TokenBeApp/Components/HotKeyRecorder.swift
+// ui-covers: Sources/TokenBeApp/HotKey/ Sources/TokenBeApp/LoginItems.swift Sources/TokenBeCore/Settings/
+// ui-covers: Sources/TokenBeCore/Presentation/Shortcut.swift
 /// 14 § Stage 1.3 Tests: every General control writes its 09 key; the appearance flips; the global shortcut toggles
 /// the Dashboard (Q-023: `MenuBarExtra` cannot be opened from code); Advanced writes the log level. The test does not reset settings, because the Dashboard test's `30d`
 /// must survive for 1.2's check (PM-1.2-2). Instead, each control is first set to one value and then to its

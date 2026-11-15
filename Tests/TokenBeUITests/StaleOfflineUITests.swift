@@ -1,5 +1,9 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Popover/ Sources/TokenBeApp/Dashboard/AccountDetailView.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/BadgesRow.swift Sources/TokenBeApp/Dashboard/SourcesStrip.swift
+// ui-covers: Sources/TokenBeApp/Components/MenuBarGlyph.swift Sources/TokenBeCore/Ledger/Freshness.swift
+// ui-covers: Sources/TokenBeCore/Network/NetworkMonitor.swift
 /// 14 § Stage 4.2 Tests, `StaleOfflineUITests` (E2E-5 of 11), in fixture mode under a throwaway `TOKENBE_TEST_ROOT`
 /// (Q-014). Settings that shorten the wait go in as launch arguments (the argument domain, never stored), and no test
 /// resets the UI-test suite, so later checks still see what earlier suites left (PM-3.4-8).

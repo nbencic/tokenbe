@@ -1,6 +1,8 @@
 import SQLite3
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Components/MenuBarGlyph.swift Sources/TokenBeCore/Model/GlyphState.swift
+// ui-covers: Sources/TokenBeCore/Ledger/BandEvaluator.swift
 /// 14 § Stage 5.5 Tests, `GlyphMetricUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT`: an anchored
 /// account driven `critical` (two heavy closed days written into the test root's database) notches the menu-bar
 /// glyph (`glyph.notched`), and 09 `tb.menubar.metric` shows the text beside it: `minRunway` as `Nh`, `todaySpend` as

@@ -5,7 +5,8 @@ import TokenBeCore
 /// `Usage · ok · 2 min ago · next 3 min`, `Cost · ok · 02:10`, `Balance · n/a`. A failed source is in `HealthLow`
 /// with its last error's human message (Q-036). Laid out as Paper's strip: a grey panel of columns, each a caption
 /// title over its line. The last column is the price snapshot's chip, `Prices · Nov 8 · ok` or `· stale` in
-/// `HealthWatch` (14 § Stage 5.1 step 6). `Harness · …` joins in 7.2.
+/// `HealthWatch` (14 § Stage 5.1 step 6). `Harness · …` joins in 7.2. The columns wrap to the window's width, so
+/// the strip never makes the account page wider than the Dashboard's 920 pt minimum (7.1).
 struct SourcesStrip: View {
   let sources: [SourceStatus]
   /// Nil before startup step 4 (no chip).
@@ -13,7 +14,8 @@ struct SourcesStrip: View {
 
   var body: some View {
     TimelineView(.periodic(from: .now, by: 30)) { context in
-      HStack(alignment: .top, spacing: 28) {
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 28, alignment: .topLeading)],
+                alignment: .leading, spacing: 12) {
         ForEach(sources) { source in
           column(source, now: context.date)
         }
@@ -32,7 +34,6 @@ struct SourcesStrip: View {
           .accessibilityLabel(Strings.sourceLine([Strings.sourcePrices, line]))
           .accessibilityIdentifier("dashboard.account.source.prices")
         }
-        Spacer(minLength: 0)
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)

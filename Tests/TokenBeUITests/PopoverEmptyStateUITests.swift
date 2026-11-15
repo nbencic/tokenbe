@@ -1,5 +1,6 @@
 import XCTest
 
+// ui-covers: always
 /// 11 `PopoverEmptyStateUITests` (Stage 1.1): open the popover, assert identifiers and 08 copy, Quit terminates cleanly.
 final class PopoverEmptyStateUITests: XCTestCase {
   private var root: URL!

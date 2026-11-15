@@ -3,7 +3,7 @@ import TokenBeCore
 
 /// 08 § Overview. No placeholder headline (14 § 1.2): with no accounts it shows the real empty state and the
 /// `Spend by day` card's empty text. With accounts: the headline and its sublines (5.2, 5.3) and the runway board
-/// (5.3); the chart and tiles arrive with their data (8.2, 7.1).
+/// (5.3); `Apps this period` (7.1); the chart and the cache tile arrive with their data (8.2).
 struct OverviewView: View {
   let model: AppModel
   @State private var anchorAccount: AnchorTarget?
@@ -30,6 +30,7 @@ struct OverviewView: View {
           RunwayBoard(model: model, hideCents: hideCents) { summary in
             anchorAccount = model.records.first { $0.id == summary.id }.map(AnchorTarget.init)
           }
+          AppsThisPeriod(accounts: model.accounts, hideCents: hideCents)
         }
         spendByDay
       }

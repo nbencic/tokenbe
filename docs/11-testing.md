@@ -44,7 +44,7 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 | `CostFormulaTests` | `expected/pricing.csv`; 1h cache write; `_above_200k` fields present in feed but NOT applied (05); fallback multipliers logged. |
 | `LedgerTests` | `expected/ledger.csv`; `M ≥ remaining → unknown`; auto-reload override → watch; negative remaining clamps to 0 + critical; burn_today gates (≥2 h, ≥$0.01); fewer than 2 closed days → burn_7d nil. |
 | `BandTransitionTests` | writes `band_state` row and `ui.band_change` log on change only (no row when unchanged). |
-| `AttributionTests` | split (Σ apps == key total, remainder to largest), substitute, inferred (single app, no topup), never-add. |
+| `AttributionTests` | key path (7.1: Σ rows == provider total for the range, per-key cost rows, a split total, remainder to the largest key, unbound and keyless rows, the O-16 slug, `Repository+Apps`), split (Σ apps == key total, remainder to largest), substitute, inferred (single app, no topup), never-add. |
 | `SchedulerTests` | uses `TestClock`: due ordering, tolerance coalescing (two jobs due within 5 s run in one wake), backoff sequence 2/4/8 ±25 % with seeded RNG, 429 Retry-After honored and capped at 300 s, auth ×3 → circuit 24 h, decode no-retry, Low Power ×4, clock jump >30 s reschedules, pause/resume. |
 | `PollStateTests` | consecutive_failures, circuit_open_until, cursor persistence, last_raw ≤ 64 KiB and redacted. |
 | `AdapterTests/<Provider>` | for each fixture case: decode → normalized rows → DB rows count and values; probe sequence returns the exact human message strings from 02 for 401/403/400/429 fixtures; unknown JSON keys logged once. |

@@ -3,7 +3,8 @@ import TokenBeCore
 
 /// Settings → Accounts (08 § Settings, Paper `14Z-0`; 14 § Stage 3.5 step 2): the account list (184 pt) and the
 /// selected account's label, key status, `Replace key…`, `Test`, `Remove account…`, `Paused`, the refresh-interval
-/// overrides (09 `account.interval_override_json`, 14 § Stage 4.1) and Keys & apps.
+/// overrides (09 `account.interval_override_json`, 14 § Stage 4.1) and Keys & apps, with each key's `Bound app`
+/// picker and `New app…` (7.1).
 struct AccountsTab: View {
   let model: AppModel
   let environment: AppEnvironment
@@ -58,6 +59,7 @@ private struct AccountDetail: View {
   @State private var testedAt: Date?
   @State private var replacing = false
   @State private var confirmingRemove = false
+  @State private var naming: NamingTarget?
 
   private var provider: ProviderID { ProviderID(rawValue: record.provider) ?? .openai }
 
@@ -121,14 +123,16 @@ private struct AccountDetail: View {
             GridRow {
               Text(Strings.keyName).font(.caption).foregroundStyle(.secondary)
               Text(Strings.keyHint).font(.caption).foregroundStyle(.secondary)
+              Text(Strings.boundApp).font(.caption).foregroundStyle(.secondary)
             }
             ForEach(keys, id: \.providerKeyId) { key in
               GridRow {
                 Text(key.name ?? Strings.unnamedKey)
+                  .accessibilityIdentifier("settings.accounts.key.\(key.providerKeyId)")
                 Text(Self.hint(key.redacted)).monospaced()
+                BoundAppPicker(model: model, key: ProviderKeyRef(accountID: record.id, providerKeyID: key.providerKeyId),
+                               suggestion: key.name ?? "", naming: $naming)
               }
-              .accessibilityElement(children: .combine)
-              .accessibilityIdentifier("settings.accounts.key.\(key.providerKeyId)")
             }
           }
         }
@@ -147,6 +151,7 @@ private struct AccountDetail: View {
       Task { await loadKeys() }
     }
     .onDisappear { saveLabel() }
+    .appNamePrompt($naming, model: model)
     .sheet(isPresented: $replacing) {
       Step2Key(provider: provider, actionTitle: Strings.testAndContinue, cancel: { replacing = false },
                submit: { key in await replace(key) })

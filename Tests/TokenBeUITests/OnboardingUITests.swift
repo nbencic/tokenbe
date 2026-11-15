@@ -1,6 +1,9 @@
 import SQLite3
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Onboarding/ Sources/TokenBeApp/SettingsUI/AccountsTab.swift
+// ui-covers: Sources/TokenBeApp/Popover/AccountCardView.swift Sources/TokenBeApp/Popover/EmptyStateView.swift
+// ui-covers: Sources/TokenBeCore/Accounts/ Sources/TokenBeCore/Keychain/ Sources/TokenBeCore/Providers/OpenAI/
 /// 14 § Stage 3.5 Tests, `OnboardingUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT` (Q-014):
 /// - the happy path creates 1 account, its 4 `poll_state` rows and the discovered `provider_key` rows (14 Verify:
 ///   `select count(*) from poll_state` == 4, in the test root's database, never the owner's; Q-025);

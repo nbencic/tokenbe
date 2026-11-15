@@ -1,5 +1,7 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/SettingsUI/AdvancedTab.swift Sources/TokenBeApp/SettingsUI/SettingsView.swift
+// ui-covers: Sources/TokenBeCore/Store/Integrity.swift Sources/TokenBeCore/Store/Database.swift
 /// 14 § Stage 2.2 Tests: Settings → Advanced → `Run integrity check now` reports `ok`; `Back up now` writes
 /// `tokenbe.sqlite.bak` and reports its size, time and path. Everything happens under a throwaway
 /// `TOKENBE_TEST_ROOT` (Q-014, Q-025), never in the owner's support folder. Settings are not reset, so the values

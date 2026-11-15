@@ -15,10 +15,11 @@
 /// | prices | `Repository+Prices.swift` | 5.1 |
 /// | ledger (delete), band | `Repository+Ledger.swift`, `Repository+Band.swift` | 5.3 |
 /// | balance | `Repository+Balance.swift` | 6.1 |
-/// | ledger reads, apps, ingest | see 14 § Stage 2.1 | with their features |
+/// | apps | `Repository+Apps.swift` | 7.1 |
+/// | ledger reads, ingest | see 14 § Stage 2.1 | with their features |
 public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository
   & ProviderKeyRepository & UsageRepository & CostRepository & PollRepository & LedgerRepository & PriceRepository
-  & BandRepository & BalanceRepository
+  & BandRepository & BalanceRepository & AppRepository
 
 /// What `Poller` writes (14 § Stage 3.4 step 6).
 public typealias PollStore = ProviderKeyRepository & UsageRepository & CostRepository & PollRepository

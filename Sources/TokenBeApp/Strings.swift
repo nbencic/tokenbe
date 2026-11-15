@@ -1,6 +1,8 @@
 import Foundation
 import TokenBeCore
 
+// R9 keeps every string in this one file, so it outgrows SwiftLint's 400 lines (Q-048).
+// swiftlint:disable file_length
 /// Every user-visible string (12 § R9, 08), exactly as 08 writes it. Views never contain inline copy.
 enum Strings {
   static let appName = "TokenBe"
@@ -378,4 +380,47 @@ extension Strings {
   static let notificationsOff = "Notifications are off in System Settings"
   static let openSystemSettings = "Open System Settings"
   static let notificationSettingsURL = "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+
+  // Apps (14 § Stage 7.1): the account page's By-app table (08 § Account detail 4), Overview `Apps this period`
+  // (§ Overview 4), popover row 4 (§ Popover 3), the sidebar's `Apps` and Keys & apps (§ Settings). Copy 08 does not
+  // give is authored (Q-048).
+  static let apps = "Apps"
+  static let byApp = "By app"
+  static let appsThisPeriod = "Apps this period"
+  static let columnApp = "App"
+  static let columnKey = "Key"
+  static let columnRequests = "Requests"
+  static let columnTokens = "Tokens"
+  static let columnSpend = "Spend"
+  static let columnShare = "Share"
+  static let total = "Total"
+  static let nameKey = "Name\u{2026}"
+  static let boundApp = "Bound app"
+  static let newApp = "New app\u{2026}"
+  static let noApp = "\u{2014}"
+  static let appNameField = "App name"
+  static let create = "Create"
+  static let appTag = "Harness tag"
+  static let noAppsYet = "No apps yet"
+  static let noAppsBody = "Name a key in an account\u{2019}s By app table, or bind it in Settings \u{2192} Accounts \u{2192} Keys & apps."
+  static let showApps = "Show apps"
+  static let hideApps = "Hide apps"
+  /// Popover row 4 (08): with more than three apps, the rest in one entry.
+  static let otherApps = "other"
+  /// 08: an unbound provider key, `(unnamed key …a9f2)`.
+  static func unnamedKeyHint(_ hint: String) -> String { "(unnamed key \(hint))" }
+  /// `weather-collector $1.20` (08 popover row 4).
+  static func appEntry(_ name: String, _ amount: String) -> String { "\(name) \(amount)" }
+  /// The badge of each attribution kind (08: `key` / `≈ split` / `harness` / `inferred`; 7.1 has only `key`).
+  static func badge(_ kind: AttributionKind) -> String {
+    switch kind {
+    case .key: "key"
+    }
+  }
+
+  /// The name a By-app row shows: the bound app's display name (O-13), else the provider's key name (01 A2: human
+  /// key names), else 08's `(unnamed key …a9f2)` (Q-048).
+  static func appLabel(_ row: AppRow) -> String {
+    row.appName ?? row.keyName ?? unnamedKeyHint(row.keyHint.map(hint) ?? noApp)
+  }
 }

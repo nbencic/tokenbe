@@ -1,5 +1,7 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/SettingsUI/AlertsTab.swift Sources/TokenBeApp/Notifications/
+// ui-covers: Sources/TokenBeCore/Notifications/ Sources/TokenBeCore/Ledger/AlertPolicy.swift
 /// 14 § Stage 5.4 Tests, `NotificationsSettingsUITests`: Settings → Alerts has the notification toggles per band,
 /// quiet hours with its times, and `Send test notification`. Under a `TOKENBE_TEST_ROOT` the app's notifier writes
 /// `<root>/notifications.ndjson` instead of asking macOS (Q-043), so the test notification is read back from there.

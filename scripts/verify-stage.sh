@@ -21,22 +21,26 @@ target=-1
 for i in "${!STAGES[@]}"; do [[ "${STAGES[$i]}" == "$id" ]] && target=$i; done
 if (( target < 0 )); then echo "verify-stage.sh: unknown stage '${id}'" >&2; exit 2; fi
 
-# UI tests (Q-031, the owner's "middle ground"): on when the target stage closes its phase, or when this branch changes
-# app or UI-test code; off otherwise. `TB_UI_TESTS=1|0` overrides. Off, every `ui_check` prints `skip`; unit tests,
-# lint, the guards and every other check still run, and CI is unchanged.
-next_stage="${STAGES[$((target + 1))]:-}"
-if [[ -n "${TB_UI_TESTS:-}" ]]; then
-  UI_TESTS="$TB_UI_TESTS"; ui_reason="TB_UI_TESTS=$TB_UI_TESTS"
-elif [[ "${id%%.*}" != "${next_stage%%.*}" ]]; then
-  UI_TESTS=1; ui_reason="stage $id closes phase ${id%%.*}"
+# UI tests (Q-047, the owner's request of 2026-11-15; supersedes Q-031's and Q-041's cadence): on when this branch
+# changes app, Core or UI-test code, off otherwise. On, `scripts/ui-select.sh` picks the suites: those whose declared
+# paths (`// ui-covers:`) the branch touched, plus LaunchSmokeTests and PopoverEmptyStateUITests; a shared file runs
+# them all. `TB_UI_TESTS=0` turns them off; `TB_UI_TESTS=1` runs every suite (the full run before 11.5). Off, every
+# `ui_check` prints `skip`; unit tests, lint, the guards and every other check still run, and CI is unchanged.
+if [[ "${TB_UI_TESTS:-}" == 0 ]]; then
+  UI_TESTS=0; ui_reason="TB_UI_TESTS=0"
+elif [[ "${TB_UI_TESTS:-}" == 1 ]]; then
+  UI_TESTS=1; TB_UI_SUITES=ALL; ui_reason="TB_UI_TESTS=1, every suite"
 else
   base="$(git merge-base origin/main HEAD 2>/dev/null || git rev-parse HEAD)"
   ui_change="$( { git diff --name-only "$base" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } \
-    | grep -E '^(Sources/TokenBeApp/|Tests/TokenBeUITests/|TokenBe\.xcodeproj/|Config/)' | head -n 1 || true)"
-  if [[ -n "$ui_change" ]]; then UI_TESTS=1; ui_reason="this branch changes $ui_change"
+    | grep -E '^(Sources/|Tests/TokenBeUITests/|TokenBe\.xcodeproj/|Config/)' | head -n 1 || true)"
+  if [[ -n "$ui_change" ]]; then
+    UI_TESTS=1; TB_UI_SUITES="$(scripts/ui-select.sh)"; ui_reason="this branch changes $ui_change"
   else UI_TESTS=0; ui_reason="no app or UI-test change on this branch"; fi
 fi
-echo "ui-tests: $([[ "$UI_TESTS" == 1 ]] && echo on || echo off) ($ui_reason)"
+# Stage scripts run in subshells, and `run.sh uitest` (0.4) reads the selection from the environment.
+export TB_UI_SUITES="${TB_UI_SUITES:-ALL}"
+echo "ui-tests: $([[ "$UI_TESTS" == 1 ]] && echo "on: $TB_UI_SUITES" || echo off) ($ui_reason)"
 
 # check <name> <command…>: runs the command quietly; on failure prints its output tail and stops.
 check() {
@@ -53,9 +57,21 @@ check() {
   fi
 }
 
-# ui_check <name> <command…>: `check` when UI tests are on (Q-031); otherwise one `skip` line.
+# ui_check <name> <command…>: `check` when UI tests are on and the suite the check reads ran; otherwise one `skip`
+# line. The suite is the one the command names (`Test Suite 'X'`, `TokenBeUITests.X`); a check that names none (the
+# run itself) runs whenever UI tests are on.
 ui_check() {
+  local suite; suite="$(printf '%s\n' "$@" | sed -nE "s/.*(Test Suite '|TokenBeUITests\.)([A-Za-z]+).*/\2/p" | head -n 1)"
+  if [[ -n "$suite" ]]; then ui_check_for "$suite" "$@"; return; fi
   if [[ "$UI_TESTS" == 1 ]]; then check "$@"; else echo "skip ${STAGE} $1 (UI tests off: $ui_reason)"; fi
+}
+# ui_check_for <Suite> <name> <command…>: a check that reads what <Suite> leaves behind (Q-047).
+ui_check_for() {
+  local suite="$1"; shift
+  if [[ "$UI_TESTS" != 1 ]]; then echo "skip ${STAGE} $1 (UI tests off: $ui_reason)"
+  elif [[ "$TB_UI_SUITES" != ALL && " $TB_UI_SUITES " != *" $suite "* ]]; then
+    echo "skip ${STAGE} $1 ($suite not selected: no covered path changed, Q-047)"
+  else check "$@"; fi
 }
 # suite_passed <Suite>: the last `run.sh test` (its xunit result, newer than the run's start) ran the suite, no failures.
 # Reads the structured result, not console text, which SwiftPM's relay sometimes truncates (Q-022).
