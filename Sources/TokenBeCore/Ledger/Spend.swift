@@ -86,7 +86,7 @@ public enum Spend {
     case .thirtyDays: 30
     case .ninetyDays: 90
     }
-    return (0..<count).reversed().map { DailyOnce.utcDay(now.addingTimeInterval(-Double($0) * 86_400)) }
+    return (0..<count).reversed().map { DailyOnce.utcDay(now.addingTimeInterval(TimeInterval(-86_400 * $0))) }
   }
 
   /// Spend of one account over `days` (05: `spend_truth` for closed days, `spend_est` for the open day).
