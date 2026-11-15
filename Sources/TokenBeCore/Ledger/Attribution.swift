@@ -99,6 +99,17 @@ public struct AppRow: Sendable, Equatable, Identifiable {
   }
 }
 
+/// The By-app table's `Total` row (08): Σ of the rows' requests, tokens and spend, computed in Core (04 I3).
+public struct AppRowsTotal: Sendable, Equatable {
+  public var tokens: TokenClasses
+  public var spend: SpendFigure
+
+  public init(tokens: TokenClasses = TokenClasses(), spend: SpendFigure = SpendFigure(cents: 0, isEstimate: false)) {
+    self.tokens = tokens
+    self.spend = spend
+  }
+}
+
 /// One app's spend across accounts (08 Overview `Apps this period`): its rows summed per currency, never across
 /// currencies (05).
 public struct AppTotal: Sendable, Equatable, Identifiable {
@@ -220,6 +231,12 @@ public enum Attribution {
     if lhs.spend.cents != rhs.spend.cents { return lhs.spend.cents > rhs.spend.cents }
     let lhsName = lhs.appName ?? lhs.keyName ?? "", rhsName = rhs.appName ?? rhs.keyName ?? ""
     return (lhsName, lhs.providerKeyID) < (rhsName, rhs.providerKeyID)
+  }
+
+  /// The `Total` row of `rows`; nil when there are none.
+  public static func total(_ rows: [AppRow]) -> AppRowsTotal? {
+    guard !rows.isEmpty else { return nil }
+    return AppRowsTotal(tokens: rows.reduce(TokenClasses()) { $0 + $1.tokens }, spend: Spend.sum(rows.map(\.spend)))
   }
 
   /// 03's sentinel app (V4).

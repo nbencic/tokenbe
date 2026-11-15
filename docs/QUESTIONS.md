@@ -602,6 +602,7 @@ Chosen for now: B — the owner asked for it. It supersedes Q-031 and Q-041 from
 - `TB_UI_TESTS=0` turns UI tests off; `TB_UI_TESTS=1` runs every suite. The full suite runs once more before 11.5 (14 § 11.5).
 - A `ui_check` reads the suite its command names (`Test Suite 'X'`, `TokenBeUITests.X`) and prints `skip` when that suite was not selected. Checks that read what a suite leaves behind name it with `ui_check_for <Suite>`: 1.3's settings values (`SettingsGeneralUITests`) and 4.1's 190 s cadence run (`RefreshPauseUITests`, whose paths include `Scheduling/`).
 - 7.1's stage script checks that every suite declares its paths and that every declared path exists.
+- **Known gap:** `Strings.swift` is in no suite's paths (nearly every UI stage edits it, and listing it would run everything again). So a copy-only branch selects only the smoke suites, and the copy the other suites assert goes unchecked. 11.3 (strings reconciliation) verifies with `TB_UI_TESTS=1`.
 Blocking: no
 
 ## Q-048 Stage 7.1: app-attribution rules the docs leave open            (2026-11-15)

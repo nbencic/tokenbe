@@ -100,6 +100,7 @@ public enum AccountSummaryBuilder {
     summary.unpriced = Spend.unpriced(summary, days: Spend.days(context.range, now: now), inputs: inputs,
                                       pricer: context.pricer)
     summary.byApp = Attribution.rows(summary, days: Spend.days(context.range, now: now), today: today, inputs: inputs)
+    summary.byAppTotal = Attribution.total(summary.byApp)
     summary.todayApps = Attribution.rows(summary, days: [today], today: today, inputs: inputs)
     summary.burn7dCents = Burn.sevenDay(daily: daily, now: now)
     summary.burnTodayCents = Burn.today(daily: daily, now: now)

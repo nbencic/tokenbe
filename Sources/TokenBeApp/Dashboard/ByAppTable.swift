@@ -39,9 +39,9 @@ struct ByAppTable: View {
           Text(Strings.total).fontWeight(.semibold)
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text(summary.byApp.reduce(Int64(0)) { $0 + $1.tokens.requests }.formatted()).monospacedDigit()
+          Text((summary.byAppTotal?.tokens.requests ?? 0).formatted()).monospacedDigit()
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text(spend(total)).fontWeight(.semibold).monospacedDigit()
+          Text(summary.byAppTotal.map { spend($0.spend) } ?? Strings.noApp).fontWeight(.semibold).monospacedDigit()
             .accessibilityIdentifier("dashboard.account.byApp.total")
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
         }
@@ -52,11 +52,6 @@ struct ByAppTable: View {
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("dashboard.account.byApp")
     .appNamePrompt($naming, model: model)
-  }
-
-  private var total: SpendFigure {
-    SpendFigure(cents: summary.byApp.reduce(0) { $0 + $1.spend.cents },
-                isEstimate: summary.byApp.contains { $0.spend.isEstimate })
   }
 
   @ViewBuilder private func appCell(_ row: AppRow) -> some View {

@@ -72,6 +72,9 @@ import Testing
     let total = Spend.spend(Self.summary(), days: Self.days, today: Self.today, inputs: Self.inputs)
     #expect(total == SpendFigure(cents: 507, isEstimate: true))
     #expect(rows.reduce(0) { $0 + $1.spend.cents } == total.cents)
+    #expect(Attribution.total(rows)?.spend == total, "the Total row equals the provider total, estimate flag included")
+    #expect(Attribution.total(rows)?.tokens.requests == 10)
+    #expect(Attribution.total([]) == nil)
     // key_a: 300 + 1 (11-08's keyless cent, to the largest) + 60 (2/3 of 90) + 10 = 371; key_b: 100 + 30 + 5;
     // '': 1 on the open day. The harness row and the other account do not count.
     #expect(rows.map(\.providerKeyID) == ["key_a", "key_b", ""])
@@ -235,6 +238,7 @@ import Testing
     let summary = try #require(AccountSummaryBuilder.summaries(from: inputs, spend: context).first)
     let range = try #require(summary.rangeSpend)
     #expect(summary.byApp.reduce(0) { $0 + $1.spend.cents } == range.cents)
+    #expect(summary.byAppTotal?.spend == range, "the Total row (Core) equals Spend in range")
     #expect(Set(summary.byApp.map(\.providerKeyID)).isSuperset(of: ["key_fixture_a1b2", "key_fixture_c3d4"]))
     #expect(summary.byApp.first { $0.providerKeyID == "key_fixture_a1b2" }?.appName == "Weather")
     #expect(summary.byApp.first { $0.providerKeyID == "key_fixture_c3d4" }?.keyName == "batch")

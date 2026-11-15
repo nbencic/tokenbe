@@ -50,6 +50,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var anchorAgeDays: Int?
   /// The By-app table over the Dashboard range (08 `20N-0`; `Attribution.rows`); Σ spend == `rangeSpend`.
   public var byApp: [AppRow] = []
+  /// The By-app table's `Total` (Σ `byApp`); equals `rangeSpend` (06 precedence, 08).
+  public var byAppTotal: AppRowsTotal?
   /// Popover row 4 (08): the rows by today's spend.
   public var todayApps: [AppRow] = []
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.

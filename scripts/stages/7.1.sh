@@ -39,6 +39,7 @@ check "attribution uses Spend.daily's day rule (Σ rows == provider total)" grep
 check "AccountSummary carries the By-app rows" bash -c "grep -qF 'public var byApp: [AppRow]' $core/Model/AccountSummary.swift && grep -qF 'Attribution.rows(summary' $core/Ledger/AccountSummaryBuilder.swift"
 
 # Step 2: the UI.
+check "the By-app Total comes from Core, not the view (04 I3)" bash -c "grep -qF 'summary.byAppTotal = Attribution.total(summary.byApp)' $core/Ledger/AccountSummaryBuilder.swift && ! grep -qE 'byApp\.reduce' $app/Dashboard/ByAppTable.swift"
 check "the account page shows the By-app table" grep -qF 'ByAppTable(model: model, summary: summary' $app/Dashboard/AccountDetailView.swift
 check "the Overview shows Apps this period" grep -qF 'AppsThisPeriod(accounts: model.accounts' $app/Dashboard/OverviewView.swift
 check "the sidebar ends with Apps, which opens the Apps page" bash -c "grep -qF 'case apps' $app/Dashboard/SidebarView.swift && grep -qF 'AppsPage(model: model)' $app/Dashboard/DashboardView.swift"
