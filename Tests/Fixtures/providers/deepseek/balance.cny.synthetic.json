@@ -1,0 +1,1 @@
+{"status": 200, "headers": {"Content-Type": "application/json"}, "body": {"is_available": true, "balance_infos": [{"currency": "CNY", "total_balance": "56.785", "granted_balance": "6.78", "topped_up_balance": "50.005"}, {"currency": "USD", "total_balance": "1.50", "granted_balance": "0.00", "topped_up_balance": "1.50"}]}}

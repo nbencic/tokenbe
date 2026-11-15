@@ -74,6 +74,8 @@ extension PollError {
     switch self {
     case .auth(let status, _) where provider == .openai:
       return status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope
+    case .auth where provider == .deepseek:
+      return CoreStrings.DeepSeek.keyRejected
     case .auth(let status, _):
       return CoreStrings.unexpectedStatus(name, status: status)
     case .rateLimited: return CoreStrings.rateLimited(name)

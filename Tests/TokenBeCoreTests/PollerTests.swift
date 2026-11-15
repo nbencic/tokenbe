@@ -199,13 +199,13 @@ import Testing
     #expect(await env.transport.calls.isEmpty)
   }
 
-  @Test("a balance-capable account's balance job fails as a provider rule until balances are stored (Q-029)")
-  func balanceNotStored() async throws {
+  @Test("a balance job on an adapter without a balance endpoint fails as its provider rule, not a write (Q-045)")
+  func balanceWithoutEndpoint() async throws {
     let env = try await Harness()
     var account = Harness.account
     account.capabilities = account.capabilities.replacingOccurrences(of: #""balance":false"#, with: #""balance":true"#)
     #expect(await env.poller.runOnce(account: account, job: .balance) == .failed("provider_rule"))
-    #expect(await env.records(.pollProviderRule).first?.ctx["rule"] == "openai_balance_not_stored")
+    #expect(await env.records(.pollProviderRule).first?.ctx["rule"] == "openai_no_balance_api")
   }
 
   @Test("a key that cannot be read fails the job (poll.failed key unavailable) and records keychain")

@@ -212,10 +212,7 @@ public struct OpenAIAdapter: ProviderAdapter {
 
   /// Dollars → cents, rounded half up once (05; R7: `Decimal`, never `Double`).
   static func cents(_ dollars: Decimal) -> Int64 {
-    var scaled = dollars * 100
-    var rounded = Decimal()
-    NSDecimalRound(&rounded, &scaled, 0, .plain)
-    return NSDecimalNumber(decimal: rounded).int64Value
+    MinorUnits.cents(dollars)
   }
 
   // MARK: - Requests

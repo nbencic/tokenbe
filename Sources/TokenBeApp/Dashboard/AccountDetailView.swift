@@ -78,7 +78,8 @@ struct AccountDetailView: View {
     }
   }
 
-  /// Provider glyph, label, mode chip, band pill and freshness; `Refresh` on the right.
+  /// Provider glyph, label, mode chip, band pill, the unavailable chip (direct providers) and freshness; `Refresh`
+  /// on the right.
   private var header: some View {
     HStack(alignment: .top, spacing: 24) {
       VStack(alignment: .leading, spacing: 8) {
@@ -93,6 +94,16 @@ struct AccountDetailView: View {
               .foregroundStyle(.secondary)
           }
           BandPill(band: summary.band)
+          if summary.providerUnavailable {
+            // D-deepseek-unavailable: the provider's hard stop, beside the band it forces to critical.
+            Text(Strings.providerUnavailable)
+              .font(.callout.weight(.medium))
+              .foregroundStyle(Color(.healthCritical))
+              .padding(.horizontal, 8)
+              .padding(.vertical, 2)
+              .background(Color(.healthCritical).opacity(0.12), in: Capsule())
+              .accessibilityIdentifier("dashboard.account.unavailable")
+          }
         }
         TimelineView(.periodic(from: .now, by: 30)) { context in
           Text(Formatters.freshness(summary.lastSuccessAt, now: context.date, calendar: .current, stale: dimmed))

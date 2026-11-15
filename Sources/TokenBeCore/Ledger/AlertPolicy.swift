@@ -93,6 +93,8 @@ public enum AlertPolicy {
   public static func notice(_ summary: AccountSummary, kind: AlertNotice.Kind, hideCents: Bool) -> AlertNotice {
     let body: String
     switch kind {
+    case .critical where summary.providerUnavailable:
+      body = CoreStrings.Alerts.unavailable(summary.label)
     case .low, .critical:
       let runway = Formatters.runway(summary.runwayMin) ?? Formatters.runway(0) ?? ""
       let amount = summary.remainingCents.map { cents -> String in

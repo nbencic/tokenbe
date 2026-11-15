@@ -235,6 +235,23 @@ actor MemoryRepository: Repository {
     return priceOverrides.count
   }
 
+  // MARK: - Balance (6.1): plain storage, enough for code above the store
+
+  private(set) var balanceSnapshots: [BalanceSnapshotRecord] = []
+
+  func insertBalanceSnapshots(_ snapshots: [BalanceSnapshotRecord]) async throws {
+    for snapshot in snapshots {
+      balanceSnapshots.removeAll {
+        $0.accountId == snapshot.accountId && $0.ts == snapshot.ts && $0.currency == snapshot.currency
+      }
+      balanceSnapshots.append(snapshot)
+    }
+  }
+
+  func fetchBalanceSnapshots(accountID: String) async throws -> [BalanceSnapshotRecord] {
+    balanceSnapshots.filter { $0.accountId == accountID }.sorted { ($0.ts, $0.currency) < ($1.ts, $1.currency) }
+  }
+
   // MARK: - Observation (like `ValueObservation`: the current value first, then one value per change)
 
   nonisolated func observeSummaryInputs() -> AsyncStream<SummaryInputs> {

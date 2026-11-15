@@ -27,6 +27,8 @@ enum Strings {
   // Popover — alert banner (08 § Popover 2)
   static func bannerRunway(_ runway: String) -> String { ": \(runway) left" }
   static let bannerSetAnchor = ": set an anchor to see runway"
+  /// A critical band forced by the provider (D-deepseek-unavailable) has no runway to show; authored (Q-045).
+  static let bannerUnavailable = ": account unavailable"
 
   // Popover — footer (08 § Popover 4)
   static func refreshed(_ freshness: String) -> String { "Refreshed \(freshness)" }
@@ -212,6 +214,8 @@ enum Strings {
   static func badgeUsage(_ word: String) -> String { "Usage: \(word)" }
   static func badgeCost(_ word: String) -> String { "Cost: \(word)" }
   static func badgeLag(_ interval: String) -> String { "Lag: \(interval)" }
+  /// Account header chip when the provider reports the account unavailable (13 § D-deepseek-unavailable, 08).
+  static let providerUnavailable = "Provider reports account unavailable"
   static let helpBalanceDirect = "The provider reports the balance, so remaining is read directly."
   static let helpBalanceAnchored =
     "There is no balance endpoint, so remaining is your anchor plus top-ups minus spend since the anchor."

@@ -109,8 +109,10 @@ public enum AccountSummaryBuilder {
     let now = context.now
     let today = DailyOnce.utcDay(now)
     let sinceAnchor = anchor.map { Spend.sinceAnchor(summary, anchor: $0, today: today, inputs: inputs) }
-    summary.remainingCents = Remaining.cents(mode: summary.mode, accountID: summary.id, inputs: inputs,
-                                             spendSinceAnchor: sinceAnchor?.cents)
+    summary.remainingCents = Remaining.cents(mode: summary.mode, accountID: summary.id, currency: summary.currency,
+                                             inputs: inputs, spendSinceAnchor: sinceAnchor?.cents)
+    summary.providerUnavailable = summary.mode == .direct
+      && Remaining.providerUnavailable(accountID: summary.id, inputs: inputs)
     if summary.mode == .anchored, let anchor, let sinceAnchor, let anchorAt = summary.anchorAt {
       let anchorDays = Spend.days(.ninetyDays, now: now).filter { $0 >= String(anchor.ts.prefix(10)) }
       let unpriced = Spend.unpriced(summary, days: anchorDays, inputs: inputs, pricer: context.pricer).cents ?? 0
@@ -131,7 +133,8 @@ public enum AccountSummaryBuilder {
     summary.runwayMin = paces.minimum
     let evaluated = BandEvaluator.band(BandEvaluator.Inputs(
       mode: summary.mode, remaining: summary.remainingCents, estimateBand: summary.estimateBandCents ?? 0,
-      burn7d: summary.burn7dCents, runwayMin: summary.runwayMin, autoReload: summary.autoReload
+      burn7d: summary.burn7dCents, runwayMin: summary.runwayMin, autoReload: summary.autoReload,
+      providerUnavailable: summary.providerUnavailable
     ), thresholds: context.thresholds)
     summary.band = evaluated.band
     summary.needsReanchor = evaluated.needsReanchor
