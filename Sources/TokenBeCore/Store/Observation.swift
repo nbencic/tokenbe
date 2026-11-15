@@ -71,7 +71,7 @@ public struct SummaryInputs: Sendable, Equatable {
     let oldestAnchorDay = anchors.map { String($0.ts.prefix(10)) + "T00:00:00.000Z" }.min()
     let since = Date().addingTimeInterval(-window)
     let start = min(DBTime.string(since), oldestAnchorDay ?? DBTime.string(since))
-    return SummaryInputs(
+    var inputs = SummaryInputs(
       accounts: try AccountRecord.order(Column("created_at"), Column("id")).fetchAll(db),
       pollStates: try PollStateSummary.fetchAll(db, sql: """
         SELECT account_id, job, last_success_at, circuit_open_until, last_error_class, last_error_message
@@ -110,20 +110,26 @@ public struct SummaryInputs: Sendable, Equatable {
           """, arguments: [anchor.accountId, anchor.ts, String(anchor.ts.prefix(10))]).map {
           UsageDay(accountId: anchor.accountId, day: String(anchor.ts.prefix(10)), source: $0["source"], estCents: $0["est"])
         }
-      },
-      apps: try AppRecord.order(Column("display_name"), Column("name")).fetchAll(db),
-      bindings: try AppBindingRecord.order(Column("account_id"), Column("kind"), Column("value")).fetchAll(db),
-      providerKeys: try ProviderKeyRecord.order(Column("account_id"), Column("provider_key_id")).fetchAll(db),
-      keyUsageDays: try KeyUsageDay.fetch(db, since: DBTime.string(since)),
-      keyCostDays: try Row.fetchAll(db, sql: """
-        SELECT account_id, day, group_key, SUM(amount_cents) AS amount FROM cost_bucket
-        WHERE group_kind = 'api_key_id' AND day >= ? GROUP BY account_id, day, group_key
-        ORDER BY account_id, day, group_key
-        """, arguments: [String(DBTime.string(since).prefix(10))]).map {
-          KeyCostDay(accountId: $0["account_id"], day: $0["day"], providerKeyId: $0["group_key"],
-                     amountCents: $0["amount"])
-        }
+      }
     )
+    try inputs.fetchAttribution(db, since: DBTime.string(since))
+    return inputs
+  }
+
+  /// 7.1: apps, bindings, provider keys and the per-key daily aggregates of the window (the By-app table).
+  mutating func fetchAttribution(_ db: Database, since: String) throws {
+    apps = try AppRecord.order(Column("display_name"), Column("name")).fetchAll(db)
+    bindings = try AppBindingRecord.order(Column("account_id"), Column("kind"), Column("value")).fetchAll(db)
+    providerKeys = try ProviderKeyRecord.order(Column("account_id"), Column("provider_key_id")).fetchAll(db)
+    keyUsageDays = try KeyUsageDay.fetch(db, since: since)
+    keyCostDays = try Row.fetchAll(db, sql: """
+      SELECT account_id, day, group_key, SUM(amount_cents) AS amount FROM cost_bucket
+      WHERE group_kind = 'api_key_id' AND day >= ? GROUP BY account_id, day, group_key
+      ORDER BY account_id, day, group_key
+      """, arguments: [String(since.prefix(10))]).map {
+        KeyCostDay(accountId: $0["account_id"], day: $0["day"], providerKeyId: $0["group_key"],
+                   amountCents: $0["amount"])
+      }
   }
 }
 

@@ -35,6 +35,10 @@ final class AppModel {
   private(set) var ledgerEvents: [LedgerEventRecord] = []
   /// `band_state` as observed, for the glyph before an account's first poll (04 step 8).
   private(set) var bandStates: [BandStateRecord] = []
+  /// Apps, their bindings and the provider keys, as observed (14 § Stage 7.1): Keys & apps and the Apps page.
+  private(set) var apps: [AppRecord] = []
+  private(set) var bindings: [AppBindingRecord] = []
+  private(set) var providerKeys: [ProviderKeyRecord] = []
   /// Keychain refs with no item (04 startup step 3); cleared for an account once its key is replaced.
   var missingKeys: Set<String> = [] {
     didSet { rebuild() }
@@ -194,11 +198,49 @@ final class AppModel {
 
   static let pauseDuration: TimeInterval = 3600
 
+  /// `New app…` (Keys & apps) and `Name…` (By-app table, 08): a new app, bound to the key in the same write (R7).
+  func createApp(_ displayName: String, binding key: ProviderKeyRef) {
+    appsWrite("app not created", acct: key.accountID) { repository in
+      _ = try await repository.upsertApp(displayName: displayName, binding: key)
+    }
+  }
+
+  /// The Apps page: a new display name (O-13: the name, the harness tag, never changes).
+  func renameApp(_ id: String, to displayName: String) {
+    appsWrite("app not renamed", acct: nil) { try await $0.upsertApp(id: id, displayName: displayName) }
+  }
+
+  /// Keys & apps `Bound app`: binds the key to the app, or unbinds it for `—`.
+  func bind(_ key: ProviderKeyRef, to appID: String?) {
+    appsWrite("binding not saved", acct: key.accountID) { repository in
+      if let appID {
+        try await repository.bind(appID: appID, key: key)
+      } else {
+        try await repository.unbind(key: key)
+      }
+    }
+  }
+
+  /// Runs an app write; a failure logs `ui.error {view: apps}` and changes nothing (the observation shows the truth).
+  private func appsWrite(_ msg: String, acct: String?, _ write: @escaping @Sendable (any Repository) async throws -> Void) {
+    guard let repository = environment?.repository else { return }
+    Task {
+      do {
+        try await write(repository)
+      } catch {
+        Log.error(.uiError, cat: .ui, msg: msg, acct: acct, err: error, ctx: ["view": "apps"])
+      }
+    }
+  }
+
   /// `trigger` says why (a database change, a setting, time passing); `ui.band_change` carries it (Q-042).
   private func rebuild(trigger: BandRecorder.Trigger = .clock) {
     if records != lastInputs.accounts { records = lastInputs.accounts }
     if ledgerEvents != lastInputs.ledgerEvents { ledgerEvents = lastInputs.ledgerEvents }
     if bandStates != lastInputs.bandStates { bandStates = lastInputs.bandStates }
+    if apps != lastInputs.apps { apps = lastInputs.apps }
+    if bindings != lastInputs.bindings { bindings = lastInputs.bindings }
+    if providerKeys != lastInputs.providerKeys { providerKeys = lastInputs.providerKeys }
     let settings = environment?.settings
     let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
     let now = Date()

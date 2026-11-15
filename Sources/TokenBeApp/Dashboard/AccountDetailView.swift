@@ -3,7 +3,8 @@ import TokenBeCore
 
 /// 08 § Account detail (Paper `8T-0`): the header (`AM-0`, `AR-0`) with `Set anchor…` (anchored), `Add top-up…` and
 /// `Refresh`; the badges row (`B1-0`); the anchor nudges (09 `tb.alerts.anchorAgeDays`, 04 V1); the numbers strip;
-/// the sources strip (`HP-0`); the ledger list (anchored). The tables arrive in 7.1 and 8.1.
+/// the By-app table (`20N-0`, 7.1); the sources strip (`HP-0`); the ledger list (anchored). The by-model table
+/// arrives in 8.1.
 struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
@@ -21,6 +22,9 @@ struct AccountDetailView: View {
         }
         nudge
         NumbersStrip(summary: summary, hideCents: settings?.uiHideCents ?? true)
+        if !summary.byApp.isEmpty {
+          ByAppTable(model: model, summary: summary, hideCents: settings?.uiHideCents ?? true)
+        }
         SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status)
         if summary.mode == .anchored {
           LedgerList(events: model.ledgerEvents.filter { $0.accountId == summary.id }, currency: summary.currency,

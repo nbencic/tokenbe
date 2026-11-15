@@ -3,7 +3,7 @@ import TokenBeCore
 
 /// 08 § Dashboard window: `NavigationSplitView`, min 920×600, frame kept in `tb.ui.dashboardFrame`.
 /// Stage 1.2: sidebar `Overview`, the range picker and the Overview empty state; 4.2: account pages and the
-/// toolbar's `Refresh`. The CSV export (8.3) joins with its action.
+/// toolbar's `Refresh`; 7.1: the Apps page. The CSV export (8.3) joins with its action.
 struct DashboardView: View {
   static let windowID = "dashboard"
   static let minimumSize = CGSize(width: 920, height: 600)
@@ -18,6 +18,8 @@ struct DashboardView: View {
     } detail: {
       if let account = selectedAccount {
         AccountDetailView(model: model, summary: account)
+      } else if model.dashboardSelection == .apps {
+        AppsPage(model: model)
       } else {
         OverviewView(model: model)
       }
