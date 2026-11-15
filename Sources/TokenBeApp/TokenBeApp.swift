@@ -58,7 +58,7 @@ private struct StatusLabel: View {
 
   var body: some View {
     HStack(spacing: 4) {
-      MenuBarGlyph(state: model.glyphState)
+      MenuBarGlyph(state: model.glyphState, metric: model.menuBarText)
       if let text = model.menuBarText {
         Text(text)
           .monospacedDigit()

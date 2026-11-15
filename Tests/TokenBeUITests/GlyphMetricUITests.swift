@@ -36,7 +36,7 @@ final class GlyphMetricUITests: XCTestCase {
     critical.launch()
     XCTAssertTrue(critical.statusItems["glyph.notched"].waitForExistence(timeout: 20), "critical: the ring is notched")
     let runway = metricText(critical)
-    XCTAssertNotNil(runway.range(of: #"^\d+h$"#, options: .regularExpression), "minRunway reads `Nh`: \(runway)")
+    XCTAssertNotNil(runway.range(of: #"^\d+h$"#, options: .regularExpression), "minRunway reads `Nh`: `\(runway)`")
     XCTAssertTrue(quitThroughPopover(critical), "the app quits")
 
     let spend = makeApp(root: root, fixtures: true, fixtureCases: emptyUsage)
@@ -47,15 +47,17 @@ final class GlyphMetricUITests: XCTestCase {
     XCTAssertTrue(quitThroughPopover(spend), "the app quits")
   }
 
-  /// The metric beside the glyph: its own element when the menu bar exposes it, else the status item's text.
+  /// The metric beside the glyph, as the status item reads it out (`TokenBe, 30h`; Q-044): the item's title carries
+  /// the glyph's accessibility label. Waits for the first evaluation to put it there.
   @MainActor
   private func metricText(_ app: XCUIApplication) -> String {
-    let metric = app.descendants(matching: .any).matching(identifier: "glyph.metric").firstMatch
-    if metric.waitForExistence(timeout: 10) {
-      return metric.label.isEmpty ? (metric.value as? String ?? "") : metric.label
-    }
     let item = app.statusItems.firstMatch
-    return (item.title.isEmpty ? item.label : item.title).trimmingCharacters(in: .whitespaces)
+    func spoken() -> String { item.title.isEmpty ? item.label : item.title }
+    let deadline = Date().addingTimeInterval(15)
+    while Date() < deadline, !spoken().contains(", ") {
+      RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+    }
+    return spoken().components(separatedBy: ", ").dropFirst().joined(separator: ", ")
   }
 
   @MainActor

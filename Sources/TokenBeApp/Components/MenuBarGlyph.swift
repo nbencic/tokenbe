@@ -9,10 +9,13 @@ struct MenuBarGlyph: View {
   static let lineWidth: CGFloat = 1.5
 
   let state: GlyphState
+  /// 09 `tb.menubar.metric`'s text, also read out with the name (`TokenBe, 12d`): the status item exposes only the
+  /// glyph's label to accessibility, not the text beside it (Q-044).
+  var metric: String?
 
   var body: some View {
     Image(nsImage: Self.image(for: state))
-      .accessibilityLabel(Strings.appName)
+      .accessibilityLabel(metric.map { "\(Strings.appName), \($0)" } ?? Strings.appName)
       // The shape, for VoiceOver and the UI tests (`glyph.dashed`, 14 § Stage 4.2).
       .accessibilityValue(state.rawValue)
       .accessibilityIdentifier("glyph.\(state.rawValue)")

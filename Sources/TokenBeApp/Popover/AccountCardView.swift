@@ -93,12 +93,15 @@ struct AccountCardView: View {
     }
     var values: [CardRows.Metric: String] = [:]
     values[.remaining] = remainingText(hideCents: hideCents)
-    values[.runway] = runwayText(money: money)
+    // Day-1 has no runway value: the next metric takes row 2 and `Collecting…` closes row 3 (08).
+    let collecting = summary.burn7dCents == nil && !summary.reloadPending && !summary.needsAnchor
+    values[.runway] = collecting ? nil : runwayText(money: money)
     values[.todaySpend] = today.map(Strings.todaySpend)
     let pinned = CardRows.Metric(rawValue: environment?.settings.popoverPinnedMetric ?? "runway") ?? .runway
     var rows = CardRows.rows(pinned: pinned, values: values)
     // The pinned metric itself reads without its `today` prefix in row 2.
     if pinned == .todaySpend, let today, rows.row2 == values[.todaySpend] { rows.row2 = today }
+    if collecting { rows.row3.append(Strings.collecting) }
     return rows
   }
 

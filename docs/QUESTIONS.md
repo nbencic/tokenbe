@@ -559,4 +559,5 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Step 8:** a startup step `glyph` after `daily activity` reads `band_state` into the environment. Until the accounts are observed, the glyph uses those bands. Afterwards, an account with no poll yet uses its stored band, and a polled one its computed band.
 - **Metric text:** `minRunway` is the shortest `runway_min` among accounts not `unknown`, in 05's rule without spaces or `~` (`<1h`, `30h`, `12d`, `>60d`). `minRemaining` is the lowest remaining (negative as 0) in that account's currency. `todaySpend` is today's spend summed over USD accounts (05 § Currency), without `≈` (the menu bar has no room; the popover keeps it). Nothing known yet → no text. Width: `.frame(maxWidth: 64)`, one line.
 - **UI test:** the metric is set with a launch argument (`-tb.menubar.metric`), so the shared UI-test settings suite is not changed (PM-4.2-5).
+- **Accessibility:** a `MenuBarExtra` status item exposes only the glyph image's label, not the text beside it, so the glyph's label carries the metric: `TokenBe, 12d`. VoiceOver reads it, and the UI test asserts it.
 Blocking: no
