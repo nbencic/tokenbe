@@ -560,12 +560,12 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 **Goal:** D-xai-balance resolved by fixture. **Depends on:** 6.1. **Adds:** xAI tile (Release only after `RECORDED`). **Size:** S.
 
 **Steps**
-1. Synthetic fixtures `xai/api_key.{ok,no_balance}.synthetic.json`.
-2. `Providers/XAI/*.swift`: probe `GET /v1/api-key`; if `remaining_balance` numeric → `direct` else `anchored` (`poll.provider_rule rule=xai_no_balance_field`).
+1. Synthetic fixtures `xai/api_key.{ok,no_balance,401}.synthetic.json`.
+2. `Providers/XAI/XAI{DTOs,Probe,Client}.swift` (prefixed, Q-045): probe `GET /v1/api-key`; if `remaining_balance` numeric → `direct` else `anchored` (`poll.provider_rule rule=xai_no_balance_field`).
 3. H3 (xai) if a key exists: record; update `13 § D-xai-balance` with the recorded shape; `Verified += .xai`. If no key: xAI stays unverified (gated) and this is written to `QUESTIONS.md` as resolved-by-scope.
 
-**Inventory** — Files: `Providers/XAI/*.swift`, fixtures. Events: `poll.provider_rule`.
-**Tests:** `AdapterTests/XAITests` (both shapes → mode).
+**Inventory** — Files: `Providers/XAI/*.swift`, `Providers/BearerRequest.swift` (the one-endpoint Bearer GET that DeepSeek and xAI share; `DeepSeek/DeepSeekClient.swift` uses it, `scripts/stages/6.1.sh` checks it), `Network/PollError.swift` + `Core/CoreStrings.swift` (xAI's key message), `Network/FixtureTransport.swift` (routes), `Startup.swift` (registry), `scripts/stages/6.2.sh`, fixtures. Events: `poll.provider_rule`.
+**Tests:** `AdapterTests/XAITests` (both shapes → mode), `TokenBeUITests/DirectBalanceUITests` (PM-6.1-2: DeepSeek onboarding → `direct`, CN¥ card without `≈`, the unavailable banner; it runs in this phase-closing verify, Q-041).
 **Verify:** tests.
 **Stage DoD:** D1–D12.
 
