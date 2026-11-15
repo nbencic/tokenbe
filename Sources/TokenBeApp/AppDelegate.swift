@@ -28,6 +28,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       if let prices = startup.environment?.prices {
         model.observe(prices.book)
       }
+      // 08 § Notifications: `Open` shows the account's page; `Snooze 24 h` sets `tb.alerts.snoozedUntil.<p>`.
+      if let notifier = startup.environment?.systemNotifier, let settings = startup.environment?.settings {
+        notifier.onOpen = { [model] account in model.showAccount(account) }
+        notifier.onSnooze = { provider in
+          settings.setSnoozedUntil(provider, Date().addingTimeInterval(AlertPolicy.snooze).timeIntervalSince1970)
+        }
+      }
       if let settings = startup.environment?.settings, !settings.uiOnboardingDone, startup.accountCount == 0 {
         model.showOnboarding()
       }

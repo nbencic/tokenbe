@@ -99,7 +99,20 @@ public actor BandRecorder {
     log = EventLog(pipeline: logPipeline)
   }
 
-  public func record(_ summaries: [AccountSummary], persisted: [BandStateRecord], trigger: Trigger, now: Date) async {
+  /// One logged band change (the input of 5.4's `AlertPolicy`).
+  public struct Transition: Sendable, Equatable {
+    public var accountID: String
+    public var from: Band
+    /// The new band.
+    public var band: Band
+    public var trigger: Trigger
+  }
+
+  /// Returns the changes it logged.
+  @discardableResult
+  public func record(_ summaries: [AccountSummary], persisted: [BandStateRecord], trigger: Trigger,
+                     now: Date) async -> [Transition] {
+    var transitions: [Transition] = []
     let rows = Dictionary(persisted.map { ($0.accountId, $0.band) }) { first, _ in first }
     for summary in summaries {
       let first = seen.insert(summary.id).inserted
@@ -120,11 +133,15 @@ public actor BandRecorder {
       }
       known[summary.id] = band
       guard let previous else { continue }
+      let cause = first ? Trigger.launch : trigger
+      transitions.append(Transition(accountID: summary.id, from: Band(rawValue: previous) ?? .unknown, band: summary.band,
+                                    trigger: cause))
       log.emit(.info, .uiBandChange, cat: .ui, msg: "band changed", acct: summary.provider.rawValue, ctx: [
         "from": .string(previous), "to": .string(band), "inputs": .string(inputs.json),
-        "trigger": .string((first ? Trigger.launch : trigger).rawValue)
+        "trigger": .string(cause.rawValue)
       ])
     }
+    return transitions
   }
 
   /// 07 `inputs` plus 03's floor: remaining, burn_7d, burn_today, runway_min (seconds), floor and M.

@@ -22,7 +22,7 @@ struct SettingsView: View {
             SourcesTab(settings: environment.settings, daily: environment.daily, prices: environment.prices)
           }
           Tab(Strings.tabAlerts, systemImage: "bell", value: SettingsTab.alerts) {
-            AlertsTab(settings: environment.settings)
+            AlertsTab(settings: environment.settings, model: model)
           }
           Tab(Strings.tabPrivacy, systemImage: "hand.raised", value: SettingsTab.privacy) {
             PrivacyTab(logsDirectory: environment.logsDirectory)

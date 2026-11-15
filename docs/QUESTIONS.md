@@ -537,3 +537,18 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Anchor-age nudge:** `The anchor is N days old. Set a new one to tighten the estimate.` with `Set anchor…`, when the anchor is older than `tb.alerts.anchorAgeDays` (authored copy).
 - **Paper:** Paper Desktop was not running, so the new views follow 08's text; 11.3 reconciles.
 Blocking: no
+
+## Q-043 Stage 5.4: notification rules the docs leave open            (2026-11-15)
+Context: 14 § Stage 5.4; `TokenBeCore/{Notifications/Notifier,Ledger/AlertPolicy}.swift`, `TokenBeApp/Notifications/*.swift`, `SettingsUI/AlertsTab.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **Where the seam lives:** 14 § 0.3 placed `Notifier` in the app. E2E-4 asks for `RecordingNotifier` in a Core test, which cannot import the app. A) a second protocol in Core; B) move `Notifier` to Core. **B**: one protocol, as 0.3 requires (0.3 updated). `UNNotifier` stays in the app.
+- **UI tests:** under a DEBUG `TOKENBE_TEST_ROOT` the app uses a `FileNotifier` that appends JSON lines to `<root>/notifications.ndjson` and grants authorization, like `FileKeyStore` (Q-030). UI runs never show a system prompt or a real notification.
+- **What counts as a transition into low/critical:** the band change `BandRecorder` logged in this evaluation, when it is still the account's band. Into `low` only from `healthy`/`watch`/`unknown`; `critical` → `low` is a better band (08: no notification). A `launch` change counts like any other (the band really changed while TokenBe was closed); restoring the same band is no change.
+- **`unknown` > 24 h:** an anchored account with no anchor whose `band_state.since` (band `unknown`) is more than 24 h old. **`stale` > 6 h:** stale, and the last success of any job more than 6 h ago.
+- **Dedupe:** one per account per kind (low, critical, unknown, stale) per 24 h, in memory (a relaunch may repeat one).
+- **Quiet hours:** local time; `start > end` wraps past midnight; equal times mean no quiet hours. Notices are held, still deduped, and sent at the first evaluation after quiet hours end, logged `suppressed_by_quiet_hours: true`.
+- **Snooze:** `Snooze 24 h` sets `tb.alerts.snoozedUntil.<provider>` to now + 24 h. A snoozed provider gets no notice of any kind; nothing is held for it.
+- **Authorization** is asked at the first notice, or at `Send test notification`. Denied → `ui.notification_denied` once per process, nothing is sent, and the Alerts tab shows `Notifications are off in System Settings` with `Open System Settings` (O-11), which opens the Notifications pane.
+- **Copy:** 08's runway body (`OpenAI: ~1 d of runway left (≈ $9 ± 2).`; without a remaining amount, the parenthesis is left out). Authored: the title `TokenBe`; `OpenAI: set an anchor to see runway.`; `OpenAI: no fresh data for over 6 h.`; the test body `Notifications from TokenBe are on.`; the toggle labels; `Sent` / `Not sent: notifications are off`.
+- **Quiet-hours times:** time pickers that write 09's `HH:mm` strings. The 01 S11 "optional Shortcut" is not built: no doc defines it, and R9 forbids adding controls 08/09 do not list.
+Blocking: no

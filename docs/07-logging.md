@@ -129,7 +129,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `db.busy` | warn | op, waited_ms |
 | `ui.popover_open` / `ui.popover_close` | debug | dur_ms open |
 | `ui.band_change` | info | acct, from, to, inputs (remaining, burn_7d, burn_today, runway_min; plus floor and estimate_band, as `band_state.inputs_json`), trigger (`data`, `settings`, `clock`, `launch`; Q-042). Not logged for an account's first evaluation (its `band_state` row is inserted silently) |
-| `ui.notification_sent` | info | acct, band, suppressed_by_quiet_hours |
+| `ui.notification_sent` | info | acct, band (`low`,`critical`,`unknown`,`stale`,`test`), suppressed_by_quiet_hours (true when it was held through quiet hours and sent at their end; Q-043) |
 | `ui.notification_denied` | warn | — |
 | `ui.hotkey_failed` | warn | shortcut, osstatus |
 | `ui.error` | error | view, err |

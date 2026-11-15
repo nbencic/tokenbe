@@ -144,7 +144,8 @@ final class Startup {
         cases: fixtureCases()
       ),
       registry: ProviderRegistry(adapters: [OpenAIAdapter()]),
-      keyStore: makeKeyStore()
+      keyStore: makeKeyStore(),
+      notifiers: Notifiers.make(testRoot: paths.testRoot)
     )
     await fileSink.setRetentionDays(current.logRetentionDays)
     retentionWatcher = Task { [weak self] in
