@@ -30,6 +30,7 @@ struct AlertBanner: View {
     switch kind {
     case .runway(let runway): AlertBannerPick.fit(label: account.label, rest: Strings.bannerRunway(runway))
     case .setAnchor: AlertBannerPick.fit(label: account.label, rest: Strings.bannerSetAnchor)
+    case .unavailable: AlertBannerPick.fit(label: account.label, rest: Strings.bannerUnavailable)
     }
   }
 }

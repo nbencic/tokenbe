@@ -94,11 +94,11 @@ import Testing
                             grantedCents: nil, toppedUpCents: nil, isAvailable: nil)
     ])
     #expect(Remaining.anchor(accountID: Self.account, events: events)?.id == "b")
-    #expect(Remaining.cents(mode: .anchored, accountID: Self.account, inputs: inputs, spendSinceAnchor: 1_200) == 11_300)
-    #expect(Remaining.cents(mode: .anchored, accountID: Self.account, inputs: inputs, spendSinceAnchor: nil) == nil)
-    #expect(Remaining.cents(mode: .direct, accountID: Self.account, inputs: inputs, spendSinceAnchor: nil) == 700)
-    #expect(Remaining.cents(mode: .spendOnly, accountID: Self.account, inputs: inputs, spendSinceAnchor: 0) == nil)
-    #expect(Remaining.cents(mode: .anchored, accountID: "other", inputs: inputs, spendSinceAnchor: 0) == nil)
+    #expect(Remaining.cents(mode: .anchored, accountID: Self.account, currency: .usd, inputs: inputs, spendSinceAnchor: 1_200) == 11_300)
+    #expect(Remaining.cents(mode: .anchored, accountID: Self.account, currency: .usd, inputs: inputs, spendSinceAnchor: nil) == nil)
+    #expect(Remaining.cents(mode: .direct, accountID: Self.account, currency: .usd, inputs: inputs, spendSinceAnchor: nil) == 700)
+    #expect(Remaining.cents(mode: .spendOnly, accountID: Self.account, currency: .usd, inputs: inputs, spendSinceAnchor: 0) == nil)
+    #expect(Remaining.cents(mode: .anchored, accountID: "other", currency: .usd, inputs: inputs, spendSinceAnchor: 0) == nil)
   }
 
   @Test("M: drift 3 %, unreported lag, unpriced, age factor; each term rounds up")

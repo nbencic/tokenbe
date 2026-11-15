@@ -14,13 +14,15 @@
 /// | ledger (insert) | `Repository+Ledger.swift` | 3.5 |
 /// | prices | `Repository+Prices.swift` | 5.1 |
 /// | ledger (delete), band | `Repository+Ledger.swift`, `Repository+Band.swift` | 5.3 |
-/// | balance, ledger reads, band, apps, ingest | see 14 § Stage 2.1 | with their features |
+/// | balance | `Repository+Balance.swift` | 6.1 |
+/// | ledger reads, apps, ingest | see 14 § Stage 2.1 | with their features |
 public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository
   & ProviderKeyRepository & UsageRepository & CostRepository & PollRepository & LedgerRepository & PriceRepository
-  & BandRepository
+  & BandRepository & BalanceRepository
 
 /// What `Poller` writes (14 § Stage 3.4 step 6).
 public typealias PollStore = ProviderKeyRepository & UsageRepository & CostRepository & PollRepository
+  & BalanceRepository
 
 /// `account` rows (03). Creating an account also seeds its four `poll_state` rows in the same transaction (03).
 public protocol AccountRepository: Sendable {

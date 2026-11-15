@@ -80,7 +80,7 @@ check "the guard test never aims at a provider host (PM-3.4-9)" bash -c "grep -A
 check "the guard is DEBUG-only" bash -c "grep -A3 'static let isActive' Sources/TokenBeCore/Network/NoNetworkInTests.swift | grep -qF '#if DEBUG'"
 check "FixtureTransport routes OpenAI" grep -qF 'knownRoutes: [Route] = OpenAIAdapter.fixtureRoutes' Sources/TokenBeCore/Network/FixtureTransport.swift
 check "AppEnvironment gets Transports.make(fixtureMode: settings)" grep -qF 'fixtureMode: current.debugFixtureMode' Sources/TokenBeApp/Startup.swift
-check "AppEnvironment registers the OpenAI adapter" grep -qF 'ProviderRegistry(adapters: [OpenAIAdapter()])' Sources/TokenBeApp/Startup.swift
+check "AppEnvironment registers the OpenAI adapter" grep -qF 'ProviderRegistry(adapters: [OpenAIAdapter()' Sources/TokenBeApp/Startup.swift
 check "no provider call in tests: StubTransport/FixtureTransport only (R13)" bash -c "! grep -rn 'URLSessionTransport(version: \"[^\"]*\")' Tests | grep -v URLSessionTransportTests.swift"
 
 for suite in OpenAITests OpenAIProbeTests NormalizerTests PollStateTests PollerTests URLSessionTransportTests \

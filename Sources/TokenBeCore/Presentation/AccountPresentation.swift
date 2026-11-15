@@ -25,11 +25,14 @@ public enum AlertBannerPick {
     case runway(String)
     /// `OpenAI: set an anchor to see runway`
     case setAnchor
+    /// `DeepSeek: account unavailable` (D-deepseek-unavailable: critical without a runway, Q-045)
+    case unavailable
   }
 
   public static func pick(_ accounts: [AccountSummary]) -> (account: AccountSummary, kind: Kind)? {
     for band in [Band.critical, .low] {
       if let account = accounts.first(where: { $0.band == band }) {
+        if account.providerUnavailable { return (account, .unavailable) }
         let runway = Formatters.runway(account.runwayMin) ?? Formatters.runway(0) ?? ""
         return (account, .runway(runway))
       }

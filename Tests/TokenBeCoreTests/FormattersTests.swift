@@ -60,6 +60,8 @@ import Testing
       Case(123_456_789, .usd, false, "$1,234,567.89", "$1.234.567,89"),
       Case(123_456_789, .usd, true, "$1,234,568", "$1.234.568"),
       Case(88_000, .cny, true, "CN¥880", "CN¥880"),
+      Case(5_679, .cny, false, "CN¥56.79", "CN¥56,79"),
+      Case(123_456_789, .cny, false, "CN¥1,234,567.89", "CN¥1.234.567,89"),
       Case(-500, .usd, true, "-$5", "-$5")
     ]
     for item in cases {

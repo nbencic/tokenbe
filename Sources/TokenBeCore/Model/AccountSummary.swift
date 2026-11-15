@@ -70,6 +70,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var needsReanchor: Bool = false
   /// Auto-reload is on and `remaining ≤ auto_reload_below`: runway reads `reloads at $X`, band `watch` (05).
   public var reloadPending: Bool = false
+  /// The provider reports the account unavailable (D-deepseek-unavailable): band `critical`, account header chip.
+  public var providerUnavailable: Bool = false
   /// `account.capabilities`; nil when the stored JSON cannot be read (the coordinator logs that once).
   public var capabilities: Capabilities?
   /// `account.interval_override_json`, clamped (09); the stale threshold uses the same interval as the scheduler.

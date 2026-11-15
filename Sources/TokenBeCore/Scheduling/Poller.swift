@@ -12,23 +12,6 @@ public actor Poller {
   /// A guard against a page sequence that never ends (Q-029).
   public static let maxPages = 50
 
-  /// How far back each job looks (02: usage "last 48 h", cost "last 7 days").
-  public static func lookback(_ job: Job) -> TimeInterval {
-    switch job {
-    case .usage: 48 * 3600
-    case .cost: 7 * 86400
-    case .balance, .keys: 0
-    }
-  }
-
-  public enum Outcome: Sendable, Equatable {
-    case succeeded(rows: Int)
-    /// `poll_state.last_error_class` of the failure (`PollFailure.errorClass`).
-    case failed(String)
-    /// Nothing ran, nothing was recorded: the job does not apply to the account, or it was cancelled.
-    case skipped(String)
-  }
-
   let store: any PollStore
   let keyStore: any KeyStore
   let registry: ProviderRegistry
@@ -158,8 +141,12 @@ public actor Poller {
       try await store.replaceCostDays(accountID: context.accountID, rows: page.rows)
       return (page.rows.count, page.rawBody)
     case .balance:
-      // No provider with a balance endpoint exists yet; its stage adds `Repository+Balance` and the write (Q-029).
-      throw PollError.providerRule("\(acct)_balance_not_stored")
+      let reading = try await retrying(acct, job, phase: context.trace.phase, attempts: &attempts) { () async throws(PollError) in
+        try await adapter.pollBalance(context)
+      }
+      context.trace.phase.set(.write)
+      try await store.insertBalanceSnapshots(reading.snapshots)
+      return (reading.snapshots.count, reading.rawBody)
     }
   }
 
@@ -296,6 +283,25 @@ public actor Poller {
                acct: account.provider, job: job.rawValue, err: error, ctx: ["attempts": 0])
       return nil
     }
+  }
+}
+
+extension Poller {
+  /// How far back each job looks (02: usage "last 48 h", cost "last 7 days").
+  public static func lookback(_ job: Job) -> TimeInterval {
+    switch job {
+    case .usage: 48 * 3600
+    case .cost: 7 * 86400
+    case .balance, .keys: 0
+    }
+  }
+
+  public enum Outcome: Sendable, Equatable {
+    case succeeded(rows: Int)
+    /// `poll_state.last_error_class` of the failure (`PollFailure.errorClass`).
+    case failed(String)
+    /// Nothing ran, nothing was recorded: the job does not apply to the account, or it was cancelled.
+    case skipped(String)
   }
 }
 

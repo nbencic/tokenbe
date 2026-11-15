@@ -10,6 +10,12 @@ public enum CoreStrings {
       "This Admin key is missing a permission TokenBe needs. Check its permissions at platform.openai.com → Settings → Organization → Admin keys."
   }
 
+  public enum DeepSeek {
+    /// 02 § deepseek names no copy for a refused key (401/403); authored (Q-045).
+    public static let keyRejected =
+      "DeepSeek did not accept this API key. Check the key at platform.deepseek.com → API keys and paste it again."
+  }
+
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
   public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
 
@@ -51,6 +57,8 @@ public enum CoreStrings {
       "\(label): \(runway) of runway left" + (amount.map { " (\($0))." } ?? ".")
     }
     public static func setAnchor(_ label: String) -> String { "\(label): set an anchor to see runway." }
+    /// D-deepseek-unavailable: the forced `critical` has no runway to quote (Q-045).
+    public static func unavailable(_ label: String) -> String { "\(label): the provider reports the account unavailable." }
     public static func stale(_ label: String) -> String { "\(label): no fresh data for over 6 h." }
     public static let test = "Notifications from TokenBe are on."
     public static let open = "Open"

@@ -36,6 +36,8 @@ public struct BandThresholds: Sendable, Equatable {
 /// 2. `critical` — `remaining < dollar_floor` or `runway_min < critical_days`;
 /// 3. `low` — `runway_min < low_days`; 4. `watch` — `runway_min < watch_days`; 5. `healthy`.
 /// Auto-reload (05): with it on and `remaining ≤ auto_reload_below`, the band is forced to `watch` (Q-042).
+/// Before all of these, a provider that reports the account unavailable forces `critical` (D-deepseek-unavailable:
+/// "the provider's own hard-stop signal must outrank the runway math"), with or without a runway (Q-045).
 public enum BandEvaluator {
   public struct Inputs: Sendable, Equatable {
     public var mode: BalanceMode
@@ -44,20 +46,24 @@ public enum BandEvaluator {
     public var burn7d: Int64?
     public var runwayMin: TimeInterval?
     public var autoReload: AutoReload?
+    /// `balance_snapshot.is_available == false` in the latest reading (direct accounts).
+    public var providerUnavailable: Bool
 
     public init(mode: BalanceMode, remaining: Int64?, estimateBand: Int64 = 0, burn7d: Int64? = nil,
-                runwayMin: TimeInterval? = nil, autoReload: AutoReload? = nil) {
+                runwayMin: TimeInterval? = nil, autoReload: AutoReload? = nil, providerUnavailable: Bool = false) {
       self.mode = mode
       self.remaining = remaining
       self.estimateBand = estimateBand
       self.burn7d = burn7d
       self.runwayMin = runwayMin
       self.autoReload = autoReload
+      self.providerUnavailable = providerUnavailable
     }
   }
 
   /// The band, and whether V1 failed (the account page then asks for a new anchor).
   public static func band(_ inputs: Inputs, thresholds: BandThresholds) -> (band: Band, needsReanchor: Bool) {
+    if inputs.providerUnavailable { return (.critical, false) }
     if let reload = inputs.autoReload, let remaining = inputs.remaining, remaining <= reload.belowCents {
       return (.watch, false)
     }
@@ -144,14 +150,17 @@ public actor BandRecorder {
     return transitions
   }
 
-  /// 07 `inputs` plus 03's floor: remaining, burn_7d, burn_today, runway_min (seconds), floor and M.
+  /// 07 `inputs` plus 03's floor: remaining, burn_7d, burn_today, runway_min (seconds), floor and M; plus
+  /// `unavailable: 1` when the provider reports the account unavailable.
   /// The JSON keys are sorted, so the same inputs always give the same text.
   static func inputs(_ summary: AccountSummary) -> (values: [String: Int64?], json: String) {
-    let values: [String: Int64?] = [
+    var values: [String: Int64?] = [
       "remaining": summary.remainingCents, "burn_7d": summary.burn7dCents, "burn_today": summary.burnTodayCents,
       "runway_min": summary.runwayMin.map { Int64($0) }, "floor": summary.dollarFloorCents,
       "estimate_band": summary.estimateBandCents
     ]
+    // Only when it forced the band, so every other change logs the same inputs as before (07 `ui.band_change`).
+    if summary.providerUnavailable { values["unavailable"] = 1 }
     let json = "{" + values.keys.sorted().map { key in
       "\"\(key)\":" + ((values[key] ?? nil).map { "\($0)" } ?? "null")
     }.joined(separator: ",") + "}"
