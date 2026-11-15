@@ -1,5 +1,5 @@
 # Postmortem — Stage 5.5 Menu bar glyph completion & metric
-Date: 2026-11-15 · Branch: s5.5-glyph-metric · PR: #27 · Planned size: S · Commits: 3
+Date: 2026-11-15 · Branch: s5.5-glyph-metric · PR: #27 · Planned size: S · Commits: 6
 
 ## Outcome
 The menu-bar ring is notched while any account is `low` or `critical`; dashed (stale or offline) still wins. It is solid otherwise.
@@ -21,17 +21,23 @@ This stage closes phase 5. Its verify ran the whole UI suite once, as the owner 
 
 ## Verify and CI failures
 - New suites run one at a time before the full run (cheaper than a 40-minute cycle): `AnchorRunwayUITests` failed 4 times and `GlyphMetricUITests` 3 times (items 1–3). `NotificationsSettingsUITests` passed first time.
-- Full verify (UI on, closes phase 5): see the PR body and `phase-5.md`.
+- Full verify run 1 (UI on): the whole UI suite passed (16 tests, 0 failures, 834 s), then the run stopped at `1.1 glyph shape: case solid`, which grepped `MenuBarGlyph.swift` for the enum that 5.5 moved to Core. PM-5.3-4's sweep had looked for "not yet" guards, not for greps on moved declarations. **Fix:** 1.1 checks Core's cases and the app's drawing of each; 4.2's dashed-glyph check (same cause, found by the sweep that followed) checks `GlyphState.state`.
+- Full verify run 2 (`TB_UI_TESTS=0`, to catch any further stale check cheaply): `STAGE 5.5 OK`, 1091 `ok`.
+- Full verify run 3 (UI on): the UI suite passed again (16/16), then `0.5 coverage gate` failed at 96.97 % (6647/6855), 3 lines short. Run 2 had passed it: the margin was within run-to-run noise. **Root cause:** the `Settings` initializers of `AlertSettings` and `BandThresholds`, and two builder paths, had no test. **Fix:** `AlertSettingsTests` (97.35 %).
+- Full verify run 4 (UI on): see the PR body.
 
 ## Deviations from the docs
 - **14 § Stage 5.5:** the inventory names every touched file (the Core `GlyphState.swift`, step 8 in `Startup`, `fetchBandStates`).
 - **Startup step 8** is a named step (`glyph`) in `StartupSequenceTests` (D7).
 - **Paper:** not consulted (not running). The 64 pt cap and the compact forms follow 08's text (Q-044).
 
+4. **Coverage sat on the gate's edge.** New code read through `@MainActor` `Settings` initializers that only the app called. **Fix:** tests for them. **Lesson:** add a test for every `init(_ settings:)` with the code, not after the gate fails (PM-5.5-2).
+
 ## Judgment calls
 - Q-044: step 8's reach, the compact metric forms, USD-only `todaySpend`, the metric in the accessibility label, and the launch-argument UI test.
 
 ## Carry-forward actions
+- PM-5.5-2 · agent · process · Every Core type that reads `Settings` gets a test that reads non-default values through it, in the same stage. Before the final verify, run `swift test --enable-code-coverage && scripts/coverage-gate.sh` and keep a margin above 97 %.
 - PM-5.5-1 · agent · 11.3 · Check the metric's look in the real menu bar against Paper `7P-0` (a 64 pt cap, monospaced digits) once Paper is available.
 - Earlier actions that targeted this stage:
   - PM-4.2-3: closed (`GlyphStateTests.states`).

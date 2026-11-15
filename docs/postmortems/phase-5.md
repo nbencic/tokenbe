@@ -63,7 +63,7 @@ Date: 2026-11-15 · Stages: 5.1 (#22), 5.2 (#24), 5.3 (#25), 5.4 (#26), 5.5 (#27
   - PM-5.2-3 · agent · accepted · the reprice race (Q-040).
   - PM-5.4-2 · agent · 9.5 · the in-memory 24 h notification dedupe is lost at relaunch.
   - PM-5.5-1 · agent · 11.3 · the metric's look against Paper `7P-0`.
-  - Process: PM-5.1-3, PM-5.1-4, PM-5.1-5, PM-5.1-6 (owner, disk), PM-5.3-4.
+  - Process: PM-5.1-3, PM-5.1-4, PM-5.1-5, PM-5.1-6 (owner, disk), PM-5.3-4, PM-5.5-2 (coverage margin).
 - **Earlier phases:**
   - PM-4.1-1 · agent · 11.3 · the popover footer as Paper's vertical list.
   - PM-4.3-3 · agent · 9.1 / 9.4 · the daily steps at their 04 positions.
