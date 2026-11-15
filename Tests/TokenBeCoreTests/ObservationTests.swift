@@ -229,11 +229,11 @@ actor StreamRecorder<Value: Sendable> {
     let day = DBTime.string(Date()).prefix(10)
     switch table {
     case .harness:
-      try await repository.applyIngestBatch(IngestBatch(
+      _ = try await repository.applyIngestBatch(IngestBatch(
         file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
                                linesOk: 0, linesBad: 0, linesDup: 0),
-        lines: [IngestLine(line: try #require(LineParser.parse(Data(IngestHarness.line("o1",
-          ts: "\(day)T01:00:00Z").replacingOccurrences(of: "deepseek", with: "openai").utf8)).get()),
+        lines: [IngestLine(line: try LineParser.parse(Data(IngestHarness.line("o1",
+          ts: "\(day)T01:00:00Z").replacingOccurrences(of: "deepseek", with: "openai").utf8)).get(),
                            lineNo: 1, estCents: 5)],
         ingestedAt: "\(day)T02:00:00.000Z"))
       await eventually("the harness day") {
@@ -260,7 +260,7 @@ actor StreamRecorder<Value: Sendable> {
     _ = try await repository.applyIngestBatch(IngestBatch(
       file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
                              linesOk: 0, linesBad: 0, linesDup: 0),
-      lines: [IngestLine(line: try #require(LineParser.parse(Data(IngestHarness.line("x1").utf8)).get()), lineNo: 1,
+      lines: [IngestLine(line: try LineParser.parse(Data(IngestHarness.line("x1").utf8)).get(), lineNo: 1,
                          estCents: nil)],
       ingestedAt: "2026-11-10T02:00:00.000Z"))
     await eventually("one line without an account") { await recorder.last?.harnessWithoutAccount == 1 }
