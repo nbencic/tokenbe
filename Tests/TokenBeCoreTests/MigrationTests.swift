@@ -319,14 +319,20 @@ struct StoreHarness {
     let harness = try StoreHarness()
     let database = try await harness.open().database
     let started = Atomic<Bool>(false)
+    let release = Atomic<Bool>(false)
+    // The holder keeps the writer until released, so the waiting write waits however slow the runner is (a fixed
+    // 0.3 s hold raced the `eventually` below on CI, PM-7.1-6).
     let holder = Task {
       try await database.write("hold") { _ in
         started.store(true, ordering: .sequentiallyConsistent)
-        Thread.sleep(forTimeInterval: 0.3)
+        while !release.load(ordering: .sequentiallyConsistent) { Thread.sleep(forTimeInterval: 0.01) }
       }
     }
     await eventually("writer held") { started.load(ordering: .sequentiallyConsistent) }
-    try await database.write("waiting") { _ in }
+    let waiting = Task { try await database.write("waiting") { _ in } }
+    try await Task.sleep(for: .milliseconds(300))
+    release.store(true, ordering: .sequentiallyConsistent)
+    try await waiting.value
     try await holder.value
     // Under load the holder may also wait > 100 ms (and log); only the waiting write's record is asserted.
     let busy = try #require(await harness.records(.dbBusy).first { $0.ctx["op"] == .string("waiting") })

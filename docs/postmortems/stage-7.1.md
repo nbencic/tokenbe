@@ -49,6 +49,13 @@ The stage opened with Q-047, the owner's change-based UI-test selection (the fir
 - Verify run 2 (UI on, every suite selected because `AppModel.swift` changed): `STAGE 7.1 OK`, 1220 `ok`, 1 `skip` (H2). The UI suite ran 19 tests with 0 failures in 986 s. The coverage gate (97 %) and both release builds passed.
 - After run 2, review found the By-app `Total` summed in the view, against 04 I3. It moved to Core (`AccountSummary.byAppTotal`, `Attribution.total`). `AttributionTests` asserts it equals `Spend in range`, and a 7.1 check forbids summing in `ByAppTable`. Only `ByAppTable.swift` and Core changed. Verify run 3 (`TB_UI_TESTS=0`): `STAGE 7.1 OK`, 1193 `ok`, 29 `skip` (28 UI checks and H2). `AppsBindingUITests` alone passed again in 73 s, so run 2's UI result stands for the other suites.
 
+- **CI on PR #30 failed, and the PR was merged anyway.**
+  - **Symptom:** `DurabilityTests` "a write that waits more than 100 ms … logs db.busy" found no `db.busy` record for the waiting write. 470 of 471 tests passed. The same test had already failed on `main`'s push run after 6.2 (3c8feee, run 43736542124), unnoticed.
+  - **Root cause, the test:** the holding write slept a fixed 0.3 s. On a slow runner, `eventually("writer held")` noticed the hold late, so the second write waited under 100 ms.
+  - **Root cause, the merge:** the agent piped `gh pr checks --watch` into `tail`. The pipe dropped its failing exit code, and the merge followed on exit 0. `main` has no branch protection.
+  - **Fix:** the holder keeps the writer until the test releases it, 300 ms after the waiting write starts. The test passed 20 of 20 alone and 50 of 50 full Core runs (PM-1.2-3). It ships in the follow-up PR #31 (`s7.1-busy-test-flake`), merged only on a green CI read without a pipe.
+  - **Cost:** one red merge on `main`, and one follow-up PR.
+
 ## Deviations from the docs
 - **08:**
   - an unbound key shows the provider's key name, per 01 A2 ("human key names"); `(unnamed key …a9f2)` only without a name. 01 wins over 08 (R1).
@@ -80,4 +87,5 @@ The stage opened with Q-047, the owner's change-based UI-test selection (the fir
 - PM-7.1-3 · agent · every stage with UI tests · A UI test that clicks a Dashboard element after closing Settings or a sheet calls `app.activate()` first. A test that toggles a shared setting puts it in a known state before asserting.
 - PM-7.1-4 · agent · 11.3 · Check the Dashboard's other pages at the 920 pt minimum width against Paper (the Sources strip was one overflow). The By-app table's look follows 08's text; Paper Desktop was not used. 11.3 is a copy-heavy branch, and Q-047 selects no copy-asserting suite for `Strings.swift`, so its verify runs with `TB_UI_TESTS=1`.
 - PM-7.1-5 · agent · 11.5 · Run the full UI suite once (`TB_UI_TESTS=1 scripts/verify-stage.sh 11.5`, Q-047).
+- PM-7.1-6 · agent · every stage · Read CI's result before merging: `gh pr checks <n> --watch` without a pipe, then `gh pr view <n> --json statusCheckRollup` must show every check `SUCCESS`. After a merge, check `main`'s push run too (6.2's failed unseen). Status: open (process).
 - Earlier actions that targeted 7.1: none. PM-6.1-3 and PM-6.2-2 target 7.2. Process actions applied here: PM-5.3-4 (the guard sweep), PM-1.3-5 (dry run of the static checks), PM-1.1-1 (screen unlocked), Q-039 (99 GiB free).
