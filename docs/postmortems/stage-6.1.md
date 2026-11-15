@@ -1,5 +1,5 @@
 # Postmortem — Stage 6.1 DeepSeek adapter
-Date: 2026-11-15 · Branch: s6.1-deepseek-adapter · PR: #28 · Planned size: M · Commits: 3
+Date: 2026-11-15 · Branch: s6.1-deepseek-adapter · PR: #28 · Planned size: M · Commits: 6
 
 ## Outcome
 A user can add a DeepSeek account with a standard API key (Debug builds; Release only once `deepseek/RECORDED` exists).
@@ -35,7 +35,7 @@ D1–D13 are met. UI tests compile (`build-uitest`) but did not run: the owner c
 - Full verify run 1 (`TB_UI_TESTS=0`): `FAIL 2.1 001_initial.sql contains 03's DDL verbatim`. **Root cause:** to note `unavailable` (advisor's D9 point), I edited the `inputs_json` comment inside 03's DDL. 2.1 checks that 03's DDL and the forward-only migration match byte for byte, comments included. **Fix:** reverted; the key is documented in 07 and Q-045, and 03's comment stays as migrated. **Lesson:** 03's DDL block is the migration; never edit it outside a new migration. Cost: one 12-minute verify.
 - `swift test` run 1: 19 issues, all in `DeepSeekTests` (item 2). Run 2: 451 tests passed.
 - `swiftlint --strict`: one `type_body_length` on `Poller` (item 3); clean after.
-- Full verify (`TB_UI_TESTS=0`, Q-041): see the PR description for its summary line.
+- Full verify run 2: run 1 had passed 0.1–1.3 and nothing they check had changed, so this run started at 2.1, using a local copy of `verify-stage.sh` (PM-5.3-4). It printed `STAGE 6.1 OK` with 854 `ok` and 14 `skip` lines. The skips are 13 UI checks (Q-041) and 3.6's H2 check.
 
 ## Deviations from the docs
 - **14 § 6.1:**
