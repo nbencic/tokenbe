@@ -1,5 +1,5 @@
 # Postmortem — Stage 7.1 Apps bound to provider keys
-Date: 2026-11-15 · Branch: s7.1-apps-by-key · PR: #30 · Planned size: L · Commits: 7
+Date: 2026-11-15 · Branch: s7.1-apps-by-key · PR: #30 · Planned size: L · Commits: 7 (squashed in #30)
 
 ## Outcome
 An OpenAI account's page shows a **By app** table (08 `20N-0`). Each row is one provider key, with:
