@@ -41,7 +41,8 @@ for later in "Export"; do
 done
 
 # Step 3: popover stale overlay, Offline banner, dashed glyph.
-check "glyph dashed when any account is stale or offline (08)" grep -qF 'isOffline || accounts.contains(where: \.isStale) ? .dashed : .solid' $app/AppModel.swift
+# 5.5 moved the rule to Core's `GlyphState.state` (dashed first; 5.5.sh checks the notch).
+check "glyph dashed when any account is stale or offline (08)" bash -c "grep -qF 'if offline || accounts.contains(where: \\.isStale) { return .dashed }' Sources/TokenBeCore/Model/GlyphState.swift && grep -qF 'offline: isOffline' $app/AppModel.swift"
 check "glyph state is exposed as glyph.<state>" grep -qF '.accessibilityIdentifier("glyph.\(state.rawValue)")' $app/Components/MenuBarGlyph.swift
 check "Offline banner while offline" bash -c "grep -qF 'if model.isOffline { offlineBanner }' $app/Popover/PopoverView.swift"
 check "offline puts every card under the overlay" grep -qF 'dimmed: summary.isStale || model.isOffline' $app/Popover/PopoverView.swift
