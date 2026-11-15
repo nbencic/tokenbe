@@ -10,13 +10,14 @@ import Testing
   static let fetchedAt = "2026-11-10T12:00:00.000Z"
 
   /// `grain` is model, provider key id and service tier.
-  static func usageRow(_ start: String, _ grain: [String], _ classes: TokenClasses,
+  /// `cents`: 05's cost formula over `prices/litellm.snapshot.json`, by hand (14 § Stage 5.2).
+  static func usageRow(_ start: String, _ grain: [String], _ classes: TokenClasses, cents: Int64,
                        provisional: Bool) -> UsageBucketRecord {
     UsageBucketRecord(
       accountId: Harness.account.id, bucketStart: start, bucketWidth: "1h", model: grain[0], providerKeyId: grain[1],
       serviceTier: grain[2], source: "provider", inputUncached: classes.inputUncached, cacheWrite5m: classes.cacheWrite5m,
       cacheWrite1h: classes.cacheWrite1h, cacheRead: classes.cacheRead, output: classes.output,
-      reasoning: classes.reasoning, requests: classes.requests, estCostCents: nil, unpriced: false,
+      reasoning: classes.reasoning, requests: classes.requests, estCostCents: cents, unpriced: false,
       provisional: provisional, fetchedAt: fetchedAt
     )
   }
@@ -24,13 +25,13 @@ import Testing
   /// `usage_completions.ok` + `.page2`, by hand from the fixtures and 05's row 1 (sorted like `fetchUsageBuckets`).
   static let usageRows = [
     usageRow("2026-11-09T10:00:00.000Z", ["gpt-4o-2024-08-06", "key_fixture_a1b2", "default"],
-             TokenClasses(inputUncached: 1000, cacheRead: 200, output: 300, requests: 4), provisional: false),
+             TokenClasses(inputUncached: 1000, cacheRead: 200, output: 300, requests: 4), cents: 1, provisional: false),
     usageRow("2026-11-09T10:00:00.000Z", ["gpt-4o-mini", "key_fixture_c3d4", "default"],
-             TokenClasses(inputUncached: 500, cacheWrite5m: 50, output: 80, requests: 2), provisional: false),
+             TokenClasses(inputUncached: 500, cacheWrite5m: 50, output: 80, requests: 2), cents: 0, provisional: false),
     usageRow("2026-11-09T11:00:00.000Z", ["gpt-4o-mini", "key_fixture_a1b2", "flex"],
-             TokenClasses(cacheRead: 150, output: 10, requests: 1), provisional: false),
+             TokenClasses(cacheRead: 150, output: 10, requests: 1), cents: 0, provisional: false),
     usageRow("2026-11-10T11:00:00.000Z", ["gpt-4o-2024-08-06", "key_fixture_a1b2", "default"],
-             TokenClasses(inputUncached: 40, cacheRead: 10, output: 5, requests: 1), provisional: true)
+             TokenClasses(inputUncached: 40, cacheRead: 10, output: 5, requests: 1), cents: 0, provisional: true)
   ]
 
   static func cost(_ day: String, _ kind: String, _ key: String, _ cents: Int64, provisional: Bool = false)

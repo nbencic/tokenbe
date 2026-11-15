@@ -36,14 +36,18 @@ public actor Poller {
   let clock: any Clock<Duration>
   let now: @Sendable () -> Date
   let log: EventLog
+  /// Prices every usage row before it is written (05 § Cost formula, 14 § Stage 5.2 step 2). Without a price book
+  /// every row is unpriced (05).
+  let prices: PriceBook?
   var rng: any RandomNumberGenerator & Sendable
 
   /// `logPipeline` is for tests; the app logs through `Log`. Tests pass a `TestClock` and a seeded generator.
   public init(store: any PollStore, keyStore: any KeyStore, registry: ProviderRegistry, transport: any HTTPTransport,
-              clock: any Clock<Duration> = ContinuousClock(),
+              prices: PriceBook? = nil, clock: any Clock<Duration> = ContinuousClock(),
               rng: any RandomNumberGenerator & Sendable = SystemRandomNumberGenerator(),
               logPipeline: LogPipeline? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
     self.store = store
+    self.prices = prices
     self.keyStore = keyStore
     self.registry = registry
     self.transport = transport
@@ -136,8 +140,9 @@ public actor Poller {
         }
         if let next = page.nextCursor, next == cursor { throw PollError.providerRule("\(acct)_usage_cursor_repeated") }
         context.trace.phase.set(.write)
+        let priced = await price(page.rows, provider: adapter.id)
         try await store.writeUsagePage(UsagePageWrite(
-          accountID: context.accountID, rows: page.rows, expected: page.expected, cursor: page.nextCursor,
+          accountID: context.accountID, rows: priced, expected: page.expected, cursor: page.nextCursor,
           lastRaw: page.rawBody
         ))
         rows += page.rows.count
@@ -156,6 +161,12 @@ public actor Poller {
       // No provider with a balance endpoint exists yet; its stage adds `Repository+Balance` and the write (Q-029).
       throw PollError.providerRule("\(acct)_balance_not_stored")
     }
+  }
+
+  /// `est_cost_cents` and `unpriced` for every row (03: never NULL with `unpriced = 0`).
+  private func price(_ rows: [UsageBucketRecord], provider: ProviderID) async -> [UsageBucketRecord] {
+    if let prices { return await prices.price(rows, provider: provider) }
+    return rows.map { CostEstimator.priced($0, entry: nil).0 }
   }
 
   /// 04 § Retry policy within one attempt: transport/server ×3 (2/4/8 s ± 25 %), rate limit ×1 (`Retry-After`,

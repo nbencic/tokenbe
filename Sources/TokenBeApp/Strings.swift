@@ -38,6 +38,15 @@ enum Strings {
   static let range30d = "30 d"
   static let range90d = "90 d"
 
+  // Account page numbers strip (08 § Account detail 3; 14 § Stage 5.2 step 4) and the Overview subline
+  static let spendToday = "Spend today"
+  static let spendInRange = "Spend in range"
+  static let unpricedInRange = "Unpriced in range"
+  /// `Total spend 7 d ≈ $12.40 + 1 non-USD` (05 § Currency: USD accounts only).
+  static func totalSpend(range: String, amount: String, nonUSD: Int) -> String {
+    "Total spend \(range) \(amount)" + (nonUSD > 0 ? " + \(nonUSD) non-USD" : "")
+  }
+
   // Settings window (08 § Settings, 09; 14 § Stage 1.3)
   static let tabGeneral = "General"
   static let tabAccounts = "Accounts"
@@ -239,10 +248,13 @@ enum Strings {
   static let refreshNow = "Refresh now"
   static let priceFeedToggle = "Refresh rates daily"
   /// `Snapshot v2026-11-08 · 412 models · 2 overrides · refreshed 3 h ago · the only other network call`.
-  static func priceSnapshotCaption(version: String?, models: Int, overrides: Int, refreshed: String) -> String {
+  /// `N unpriced` (models with unpriced usage in the last 90 days) appears after the overrides when N > 0 (5.2).
+  static func priceSnapshotCaption(version: String?, models: Int, overrides: Int, unpriced: Int = 0,
+                                   refreshed: String) -> String {
     let snapshot = version.map { $0.first?.isNumber == true ? "Snapshot v\($0)" : "Snapshot \($0)" } ?? "No snapshot"
-    return sourceLine([snapshot, count(models, "model"), count(overrides, "override"), "refreshed \(refreshed)",
-                       "the only other network call"])
+    return sourceLine([snapshot, count(models, "model"), count(overrides, "override")]
+                      + (unpriced > 0 ? ["\(unpriced) unpriced"] : [])
+                      + ["refreshed \(refreshed)", "the only other network call"])
   }
   static let priceStaleAfter = "Stale after"
   static let priceOverridesTitle = "Your overrides win over the feed"

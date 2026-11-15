@@ -51,8 +51,8 @@ D1–D13 are met. Gate H2 is still open (PM-3.6-1); it does not block this stage
 - Q-038: the rate unit, the override JSON and its UI units, lookup with V5, snapshot versioning and staleness, failure reasons, startup step 4 and the daily step, the 07 ctx additions, the Paper/08 reconciliation, and the strip chip.
 
 ## Carry-forward actions
-- PM-5.1-1 · agent · 5.2 · Add `N unpriced` to the Price book snapshot line once unpriced models are counted. Reprice on a snapshot change (and on an override change, Q in 5.2), which closes PM-3.4-3.
-- PM-5.1-2 · agent · 11.2 · `tokenbe_no_silent_catch` uses `try\?` with no word boundary, so it flags any identifier ending in `try` followed by `?` (`PriceEntry?`, `Registry?`). Change it to `\btry\?` with a lint self-test.
+- PM-5.1-1 · agent · 5.2 · **closed (Stage 5.2)** · Add `N unpriced` to the Price book snapshot line once unpriced models are counted. Reprice on a snapshot change (and on an override change, Q in 5.2), which closes PM-3.4-3.
+- PM-5.1-2 · agent · 11.2 · **closed early (Stage 5.2)** · `tokenbe_no_silent_catch` uses `try\?` with no word boundary, so it flags any identifier ending in `try` followed by `?` (`PriceEntry?`, `Registry?`). Change it to `\btry\?` with a lint self-test.
 - PM-5.1-3 · agent · process · Do not nest a SwiftUI `Table` in a grouped `Form` in Settings; use plain rows. When a UI test runner dies with `signal kill`, suspect the accessibility tree of the newest view first.
 - PM-5.1-4 · agent · process · Network fetches (`curl`) are denied in agent sessions. A step that needs a download goes in a script the owner runs with `! <script>`; ask for it at the start of the stage, not at the end.
 - PM-5.1-5 · agent · process · When a UI-on verify fails at `0.4`, run `TB_UI_TESTS=0 scripts/verify-stage.sh <id>` at once. A `0.4` failure hides every later stage's checks. Stage checks own an order, not a full list: assert the neighbours the stage adds, so later insertions don't break them.

@@ -24,5 +24,5 @@ done
 
 no_print() { [[ "$(grep -R "print(" Sources/ | wc -l | tr -d ' ')" == "0" ]]; }
 check "no print( in Sources/" no_print
-no_silent_catch() { ! grep -RnE 'catch[[:space:]]*\{[[:space:]]*\}|try\?' Sources Tests --include='*.swift' | grep -v '/Allowlist.swift:'; }
+no_silent_catch() { ! grep -RnE 'catch[[:space:]]*\{[[:space:]]*\}|[^[:alnum:]_]try[?]|^try[?]' Sources Tests --include='*.swift' | grep -v '/Allowlist.swift:'; }
 check "no silent catch / try? outside Allowlist.swift (07 DoD 1)" no_silent_catch

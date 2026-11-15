@@ -141,7 +141,8 @@ struct PriceBookSection: View {
     let status = prices.status
     let refreshed = Formatters.freshness(status.fetchedAt, now: now, calendar: .current, stale: status.isStale)
     return Strings.priceSnapshotCaption(version: status.version, models: status.models,
-                                        overrides: status.overrides.count, refreshed: refreshed)
+                                        overrides: status.overrides.count, unpriced: status.unpricedModels,
+                                        refreshed: refreshed)
   }
 }
 

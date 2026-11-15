@@ -70,6 +70,9 @@ final class AppModel {
   @ObservationIgnored private var settingsWatcher: Task<Void, Never>?
   @ObservationIgnored private var summaryWatcher: Task<Void, Never>?
   @ObservationIgnored private var coordinatorWatcher: Task<Void, Never>?
+  @ObservationIgnored private var pricesWatcher: Task<Void, Never>?
+  /// The price book's rates, for the unpriced estimate (05 `unpriced_cents`).
+  @ObservationIgnored private var pricer = Pricer()
   /// Sleeps until the next account turns stale, then rebuilds (stale needs no database write, 14 § Stage 4.2).
   @ObservationIgnored private var staleWatcher: Task<Void, Never>?
 
@@ -111,6 +114,18 @@ final class AppModel {
       for await next in inputs {
         self?.lastInputs = next
         self?.rebuild()
+      }
+    }
+  }
+
+  /// Follows the price book: new rates change the unpriced estimate (14 § Stage 5.2).
+  func observe(_ book: PriceBook) {
+    pricesWatcher?.cancel()
+    pricesWatcher = Task { [weak self] in
+      for await status in await book.updates() {
+        guard let self, status.pricer != self.pricer else { continue }
+        self.pricer = status.pricer
+        self.rebuild()
       }
     }
   }
@@ -164,7 +179,9 @@ final class AppModel {
 
   private func rebuild() {
     if records != lastInputs.accounts { records = lastInputs.accounts }
-    var next = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys) { record, invalid in
+    let range = DashboardRange(setting: environment?.settings.uiDashboardRange ?? DashboardRange.default.rawValue)
+    let spend = AccountSummaryBuilder.SpendContext(range: range, now: Date(), pricer: pricer)
+    var next = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys, spend: spend) { record, invalid in
       Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
         "view": "accounts"
       ])
@@ -200,7 +217,9 @@ final class AppModel {
 
   private static let watchedKeys: Set<SettingsKey> = [.uiAppearance, .uiUseSystemAccent, .menubarMetric, .popoverSort]
   /// Keys the stale threshold reads (09 `tb.alerts.staleMultiplier`, § Sources).
-  private static let freshnessKeys: Set<SettingsKey> = ScheduleSettings.keys.union([.alertsStaleMultiplier])
+  /// … and the range the numbers strip and the Overview subline sum over (09 `tb.ui.dashboardRange`).
+  private static let freshnessKeys: Set<SettingsKey> = ScheduleSettings.keys.union([.alertsStaleMultiplier,
+                                                                                    .uiDashboardRange])
 
   private func apply(_ settings: TokenBeCore.Settings) {
     appearance = Appearance(rawValue: settings.uiAppearance) ?? .system

@@ -25,6 +25,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       if let coordinator = startup.environment?.coordinator {
         model.observe(coordinator)
       }
+      if let prices = startup.environment?.prices {
+        model.observe(prices.book)
+      }
       if let settings = startup.environment?.settings, !settings.uiOnboardingDone, startup.accountCount == 0 {
         model.showOnboarding()
       }

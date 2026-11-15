@@ -3,9 +3,23 @@ import Foundation
 /// Maps `SummaryInputs` to the `[AccountSummary]` the UI shows (04 I3: Core computes, the UI renders).
 /// Stage 2.2 fills the identity fields: id, provider, label, balance mode and currency (14 § Stage 2.2); 3.5 adds
 /// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3); 4.2 adds the
-/// capabilities, the interval override and the Sources strip (`Freshness` then sets `isStale` at a given time).
-/// Later stages fill the rest from the inputs they add.
+/// capabilities, the interval override and the Sources strip (`Freshness` then sets `isStale` at a given time); 5.2
+/// today's and the range's spend and the unpriced estimate (`SpendContext`). Later stages fill the rest from the
+/// inputs they add.
 public enum AccountSummaryBuilder {
+  /// What the spend figures depend on besides the database: the Dashboard range, the time and the price book.
+  public struct SpendContext: Sendable {
+    public var range: DashboardRange
+    public var now: Date
+    public var pricer: Pricer
+
+    public init(range: DashboardRange = .default, now: Date = Date(), pricer: Pricer = Pricer()) {
+      self.range = range
+      self.now = now
+      self.pricer = pricer
+    }
+  }
+
   /// A stored value the model has no case for. 03's CHECKs rule this out for `provider` and `balance_mode`;
   /// `currency` has no CHECK.
   public struct InvalidRow: Error, Sendable, Equatable, CustomStringConvertible {
@@ -19,7 +33,8 @@ public enum AccountSummaryBuilder {
   /// `missingKeys` holds the `keychain_ref`s startup step 3 found without a Keychain item (04): those accounts
   /// get `needsKey`, and their card reads `Key missing · Fix…` (08).
   public static func summaries(
-    from inputs: SummaryInputs, missingKeys: Set<String> = [], skipped: (AccountRecord, InvalidRow) -> Void = { _, _ in }
+    from inputs: SummaryInputs, missingKeys: Set<String> = [], spend: SpendContext = SpendContext(),
+    skipped: (AccountRecord, InvalidRow) -> Void = { _, _ in }
   ) -> [AccountSummary] {
     let states = Dictionary(grouping: inputs.pollStates, by: \.accountId)
     return inputs.accounts.compactMap { record in
@@ -29,6 +44,7 @@ public enum AccountSummaryBuilder {
         apply(record, to: &summary)
         summary.sources = SourceStatus.all(capabilities: summary.capabilities, states: states[record.id] ?? [])
         summary.needsKey = missingKeys.contains(record.keychainRef)
+        apply(inputs, spend, to: &summary)
         return summary
       case .failure(let invalid):
         skipped(record, invalid)
@@ -51,6 +67,17 @@ public enum AccountSummaryBuilder {
   static func apply(_ record: AccountRecord, to summary: inout AccountSummary) {
     summary.capabilities = Result { try Capabilities.decode(json: record.capabilities) }.success
     summary.intervalOverride = IntervalOverride.parse(record.intervalOverrideJson, provider: summary.provider).override
+  }
+
+  /// 05 § Spend definitions, once the account has had a usage or cost poll (before that the card reads "No data
+  /// yet", 08).
+  static func apply(_ inputs: SummaryInputs, _ context: SpendContext, to summary: inout AccountSummary) {
+    guard (summary.freshness[.usage] ?? nil) != nil || (summary.freshness[.cost] ?? nil) != nil else { return }
+    let today = DailyOnce.utcDay(context.now)
+    let days = Spend.days(context.range, now: context.now)
+    summary.todaySpend = Spend.spend(summary, days: [today], today: today, inputs: inputs)
+    summary.rangeSpend = Spend.spend(summary, days: days, today: today, inputs: inputs)
+    summary.unpriced = Spend.unpriced(summary, days: days, inputs: inputs, pricer: context.pricer)
   }
 
   public static func summary(for record: AccountRecord) -> Result<AccountSummary, InvalidRow> {

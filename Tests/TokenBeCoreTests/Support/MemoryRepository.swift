@@ -87,6 +87,21 @@ actor MemoryRepository: Repository {
     usage.filter { $0.accountId == accountID }
   }
 
+  func repriceUsage(accountID: String, since: String,
+                    price: @escaping @Sendable (UsageBucketRecord) -> UsageBucketRecord) async throws -> Int {
+    var changed = 0
+    for index in usage.indices where usage[index].accountId == accountID && usage[index].bucketStart >= since {
+      let priced = price(usage[index])
+      if priced != usage[index] { changed += 1 }
+      usage[index] = priced
+    }
+    return changed
+  }
+
+  func fetchUnpricedModels(since: String) async throws -> [String] {
+    Array(Set(usage.filter { $0.unpriced && $0.bucketStart >= since }.map(\.model))).sorted()
+  }
+
   func replaceCostDays(accountID: String, rows: [CostBucketRecord]) async throws {
     let days = Set(rows.map(\.day))
     costs.removeAll { $0.accountId == accountID && days.contains($0.day) }

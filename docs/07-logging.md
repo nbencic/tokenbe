@@ -84,7 +84,7 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `price.parse_failed` | warn | err, bytes, version or model (the snapshot or override that did not parse; Q-038) |
 | `price.stale` | warn | snapshot_age_days, version |
 | `price.unpriced` | warn | provider, model (once per model per day) |
-| `price.fallback_multiplier` | info | provider, model, field |
+| `price.fallback_multiplier` | info | provider, model, field (once per model and field per day, only for a class with tokens); a `priority`/`batch` bucket priced at the standard rate logs `field: service_tier, tier_priced_as_standard: true` (Q-040) |
 | `price.override_set` | info | model, action (`set`,`removed`,`reset`; Q-038) |
 | `price.repriced` | info | acct, rows, snapshot_version |
 | `ledger.anchor_set` / `ledger.topup` / `ledger.reconcile` | info | acct, amount_cents, source |
