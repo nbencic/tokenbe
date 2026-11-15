@@ -28,6 +28,24 @@ struct AppEnvironment {
   var daily: DailyActivityRegistration?
   /// The price book (05, 14 § Stage 5.1), set by startup step 4; nil before it, or if step 2 failed.
   var prices: PriceBookModel?
+  /// Band notifications (08, 14 § Stage 5.4): the policy and its `Notifier`.
+  let alerts: AlertCenter
+  /// The system notifier, whose `Open`/`Snooze 24 h` actions the app delegate wires; nil in UI tests (Q-043).
+  let systemNotifier: UNNotifier?
+
+  init(settings: TokenBeCore.Settings, clock: ContinuousClock, logSinks: [any LogSink], logsDirectory: URL,
+       transport: any HTTPTransport, registry: ProviderRegistry, keyStore: any KeyStore,
+       notifiers: (any Notifier, UNNotifier?)) {
+    self.settings = settings
+    self.clock = clock
+    self.logSinks = logSinks
+    self.logsDirectory = logsDirectory
+    self.transport = transport
+    self.registry = registry
+    self.keyStore = keyStore
+    alerts = AlertCenter(notifier: notifiers.0)
+    systemNotifier = notifiers.1
+  }
 
   /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.
   var lifecycle: AccountLifecycle? {

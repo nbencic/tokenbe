@@ -52,7 +52,7 @@ Exactly these protocols exist. No other protocol is introduced "for testability"
 | Secrets | `KeyStore` (`Keychain/KeyStore.swift`) | `KeychainKeyStore` | `InMemoryKeyStore` | 3.2 |
 | Provider | `ProviderAdapter` (`Providers/ProviderAdapter.swift`) | 5 adapters | adapters over `StubTransport` | 3.3 |
 | File watching | `FileWatcher` (`Ingest/FileWatcher.swift`) | `FSEventsWatcher`; `PollingWatcher` (fallback, also production) | `ManualWatcher` | 7.2 |
-| Notifications | `Notifier` (`TokenBeApp/Notifications/Notifier.swift`) | `UNNotifier` | `RecordingNotifier` | 5.4 |
+| Notifications | `Notifier` (`TokenBeCore/Notifications/Notifier.swift`, so Core's `AlertCenter` and E2E-4 can use it; Q-043) | `UNNotifier`; `FileNotifier` (DEBUG UI tests) | `RecordingNotifier` | 5.4 |
 | Network reachability | `NetworkMonitor` (`Network/NetworkMonitor.swift`) | `NWPathMonitorAdapter` | `ManualNetworkMonitor`; `FixedNetworkMonitor` (DEBUG UI tests, `TOKENBE_TEST_OFFLINE`, 4.2) | 4.1 |
 
 Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it talks to Core through `AppModel` (`@Observable @MainActor`) which exposes value types only (`AccountSummary`, `AppRow`, `ModelRow`, `SourceStatus`, …).
@@ -521,7 +521,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 2. `Notifications/AlertPolicy.swift` (Core): transitions INTO `low`/`critical`/`unknown>24h`/`stale>6h`; max one per account per band per 24 h; quiet hours queue (flush at end); snooze via `tb.alerts.snoozedUntil.<p>`; body copy per `08`; `ui.notification_sent {suppressed_by_quiet_hours}`.
 3. Alerts tab controls; `Send test notification`.
 
-**Inventory** — Files: `TokenBeApp/Notifications/{Notifier,UNNotifier}.swift`, `Core/Ledger/AlertPolicy.swift`, `Tests/Support/RecordingNotifier.swift`, Alerts tab rows. Settings: `tb.alerts.notify.low`, `tb.alerts.notify.critical`, `tb.alerts.notify.unknown`, `tb.alerts.notify.stale`, `tb.alerts.quietHoursEnabled`, `tb.alerts.quietStart`, `tb.alerts.quietEnd`, `tb.alerts.snoozedUntil.<p>`. Events: `ui.notification_sent`, `ui.notification_denied`.
+**Inventory** — Files: `TokenBeCore/Notifications/Notifier.swift` (the seam and `AlertNotice`, Q-043), `TokenBeApp/Notifications/{Notifier,UNNotifier}.swift` (the factory; `UNNotifier`, DEBUG `FileNotifier`), `TokenBeCore/Ledger/AlertPolicy.swift` (`AlertSettings`, `AlertPolicy`, `AlertCenter`), `Ledger/BandEvaluator.swift` (`record` returns its transitions), `Core/CoreStrings.swift` (notification copy), `Tests/TokenBeCoreTests/Support/RecordingNotifier.swift`, Alerts tab rows (`SettingsUI/{AlertsTab,SettingsView}.swift`, `Strings.swift`), `AppEnvironment.swift`, `Startup.swift`, `AppDelegate.swift` (`Open`/`Snooze 24 h`), `AppModel.swift`, `scripts/stages/5.4.sh`. Settings: `tb.alerts.notify.low`, `tb.alerts.notify.critical`, `tb.alerts.notify.unknown`, `tb.alerts.notify.stale`, `tb.alerts.quietHoursEnabled`, `tb.alerts.quietStart`, `tb.alerts.quietEnd`, `tb.alerts.snoozedUntil.<p>`. Events: `ui.notification_sent`, `ui.notification_denied`.
 **Tests:** `AlertPolicyTests` (every rule incl. quiet-hours wrap past midnight and 24 h dedupe), `TokenBeUITests/NotificationsSettingsUITests`.
 **Verify:** tests; E2E-4 of `11` (fixture drives critical → exactly one notification recorded by `RecordingNotifier` in a Core test; UI test checks the settings).
 **Stage DoD:** D1–D12.

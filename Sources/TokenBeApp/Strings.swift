@@ -358,4 +358,20 @@ extension Strings {
   static let autoReload = "Auto-reload"
   static let autoReloadBelow = "Reloads below"
   static let autoReloadTo = "Adds"
+
+  // Settings → Alerts: notifications (08 § Settings, 09 § Alerts, O-11; 14 § Stage 5.4)
+  static let notifications = "Notifications"
+  static let notifyLow = "Notify when an account turns low"
+  static let notifyCritical = "Notify when an account turns critical"
+  static let notifyUnknown = "Notify when an anchor is missing for a day"
+  static let notifyStale = "Notify when data is stale for 6 h"
+  static let quietHours = "Quiet hours"
+  static let quietFrom = "From"
+  static let quietUntil = "Until"
+  static let sendTestNotification = "Send test notification"
+  static let testSent = "Sent"
+  static let testNotSent = "Not sent: notifications are off"
+  static let notificationsOff = "Notifications are off in System Settings"
+  static let openSystemSettings = "Open System Settings"
+  static let notificationSettingsURL = "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
 }

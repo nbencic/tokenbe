@@ -77,6 +77,8 @@ final class AppModel {
   @ObservationIgnored private var pricer = Pricer()
   /// Writes `band_state` and logs `ui.band_change` when an evaluated band changes (14 § Stage 5.3 step 2).
   @ObservationIgnored private var bands: BandRecorder?
+  /// The user denied notifications (O-11: the Alerts tab shows a banner); nil before the first alert.
+  private(set) var notificationsAllowed: Bool?
   /// Sleeps until the next account turns stale, then rebuilds (stale needs no database write, 14 § Stage 4.2).
   @ObservationIgnored private var staleWatcher: Task<Void, Never>?
 
@@ -198,10 +200,17 @@ final class AppModel {
     }
     let flip = Freshness.apply(to: &next, context: freshnessContext, now: now)
     if accounts != next { accounts = next }
-    if let bands {
+    if let bands, let environment {
       let evaluated = next
       let persisted = lastInputs.bandStates
-      Task { await bands.record(evaluated, persisted: persisted, trigger: trigger, now: now) }
+      let alerts = environment.alerts
+      let alertSettings = AlertSettings(environment.settings)
+      Task { [weak self] in
+        let transitions = await bands.record(evaluated, persisted: persisted, trigger: trigger, now: now)
+        await alerts.process(evaluated, transitions: transitions, settings: alertSettings, now: now)
+        let allowed = await alerts.isAuthorized
+        if self?.notificationsAllowed != allowed { self?.notificationsAllowed = allowed }
+      }
     }
     rebuild(at: flip)
   }
@@ -233,10 +242,18 @@ final class AppModel {
   private static let watchedKeys: Set<SettingsKey> = [.uiAppearance, .uiUseSystemAccent, .menubarMetric, .popoverSort]
   /// Keys the stale threshold reads (09 `tb.alerts.staleMultiplier`, § Sources).
   /// … and the range the numbers strip and the Overview subline sum over (09 `tb.ui.dashboardRange`).
+  /// `Send test notification` (Alerts tab): false when it could not be sent (denied, or the system refused).
+  func sendTestNotification() async -> Bool {
+    guard let alerts = environment?.alerts else { return false }
+    let sent = await alerts.sendTest(sortedAccounts.first)
+    notificationsAllowed = await alerts.isAuthorized
+    return sent
+  }
+
   /// … and the Alerts thresholds the bands use (09).
   private static let freshnessKeys: Set<SettingsKey> = ScheduleSettings.keys.union([.alertsStaleMultiplier,
                                                                                     .uiDashboardRange])
-    .union(BandThresholds.keys)
+    .union(BandThresholds.keys).union(AlertSettings.keys)
 
   private func apply(_ settings: TokenBeCore.Settings) {
     appearance = Appearance(rawValue: settings.uiAppearance) ?? .system

@@ -42,4 +42,18 @@ public enum CoreStrings {
   public static func unexpectedStatus(_ provider: String, status: Int) -> String {
     "\(provider) answered with HTTP \(status)."
   }
+
+  /// Notification copy (08 § Notifications): the runway body is 08's; the rest is authored (Q-043).
+  public enum Alerts {
+    public static let title = "TokenBe"
+    /// `OpenAI: ~1 d of runway left (≈ $9 ± 2).`
+    public static func runwayLeft(_ label: String, runway: String, amount: String?) -> String {
+      "\(label): \(runway) of runway left" + (amount.map { " (\($0))." } ?? ".")
+    }
+    public static func setAnchor(_ label: String) -> String { "\(label): set an anchor to see runway." }
+    public static func stale(_ label: String) -> String { "\(label): no fresh data for over 6 h." }
+    public static let test = "Notifications from TokenBe are on."
+    public static let open = "Open"
+    public static let snooze = "Snooze 24 h"
+  }
 }
