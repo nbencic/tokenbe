@@ -1,0 +1,4 @@
+{"v":1,"ts":"2026-11-10T00:00:00.000Z","provider":"deepseek","app":"weather-collector","key_hint":"a9f2","request_id":"req-deepseek-0000","model":"deepseek-chat","usage":{"prompt_tokens":1000,"completion_tokens":200,"prompt_cache_hit_tokens":600,"prompt_cache_miss_tokens":400},"status":"ok"}
+{"v":1,"ts":"2026-11-10T00:02:00.000Z","provider":"deepseek","app":"weather-collector","key_hint":"a9f2","request_id":"req-deepseek-0001","model":"deepseek-chat","usage":{"prompt_tokens":1001,"completion_tokens":200,"prompt_cache_hit_tokens":600,"prompt_cache_miss_tokens":401},"status":"ok"}
+{"v":1,"ts":"2026-11-10T00:04:00.000Z","provider":"deepseek","app":"weather-collector","key_hint":"a9f2","request_id":"req-deepseek-0002","model":"deepseek-chat","usage":{"prompt_tokens":1002,"completion_tokens":200,"prompt_cache_hit_tokens":600,"prompt_cache_miss_tokens":402},"status":"ok"}
+{"v":1,"ts":"2026-11-10T00:06:00.000Z","

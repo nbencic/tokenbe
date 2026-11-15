@@ -254,41 +254,15 @@ actor MemoryRepository: Repository {
 
   // MARK: - Apps (7.1): plain storage, with the sentinel the migration seeds
 
-  private(set) var apps: [AppRecord] = [
+  var apps: [AppRecord] = [
     AppRecord(id: Attribution.unassignedID, name: "unassigned", displayName: "Unassigned", createdAt: "", isAuto: true)
   ]
-  private(set) var bindings: [AppBindingRecord] = []
+  var bindings: [AppBindingRecord] = []
 
-  func upsertApp(displayName: String, binding: ProviderKeyRef?) async throws -> AppRecord {
-    let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-    let name = AppSlug.make(trimmed, taken: Set(apps.map(\.name)))
-    let app = AppRecord(id: UUIDv7.make(), name: name, displayName: trimmed.isEmpty ? name : trimmed,
-                        createdAt: DBTime.string(Date()), isAuto: false)
-    apps.append(app)
-    if let binding { try await bind(appID: app.id, key: binding) }
-    return app
-  }
+  // MARK: - Ingest (7.2): files and event keys only, enough for code above the store
 
-  func upsertApp(id: String, displayName: String) async throws {
-    guard id != Attribution.unassignedID, let index = apps.firstIndex(where: { $0.id == id }) else {
-      throw StoreError.notFound(id)
-    }
-    apps[index].displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-  }
-
-  func fetchApps() async throws -> [AppRecord] { apps.sorted { ($0.displayName, $0.name) < ($1.displayName, $1.name) } }
-
-  func bind(appID: String, key: ProviderKeyRef) async throws {
-    try await unbind(key: key)
-    bindings.append(AppBindingRecord(appId: appID, accountId: key.accountID, kind: "provider_key",
-                                     value: key.providerKeyID))
-  }
-
-  func unbind(key: ProviderKeyRef) async throws {
-    bindings.removeAll { $0.accountId == key.accountID && $0.kind == "provider_key" && $0.value == key.providerKeyID }
-  }
-
-  func fetchBindings() async throws -> [AppBindingRecord] { bindings }
+  var ingestFiles: [String: IngestFileRecord] = [:]
+  var eventKeys: Set<String> = []
 
   // MARK: - Observation (like `ValueObservation`: the current value first, then one value per change)
 
