@@ -4,7 +4,8 @@ import TokenBeCore
 /// 08 § Account detail 4, the **By app** table (Paper `20N-0`; rows `210-0`, `21A-0`, `21J-0`): App | Key | badge |
 /// Requests | Tokens (a stacked mini-bar by class) | Spend | Share. The `Total` row equals the account's spend for
 /// the range (`Attribution`: Σ rows == provider total). An unbound key offers `Name…`, which creates an app and binds
-/// the key (14 § Stage 7.1). Core computes every figure (04 I3).
+/// the key (14 § Stage 7.1). Harness rows (7.2) carry `≈ split`, `harness` or `inferred` and are named by their app
+/// tag. Core computes every figure (04 I3).
 struct ByAppTable: View {
   let model: AppModel
   let summary: AccountSummary
@@ -57,9 +58,9 @@ struct ByAppTable: View {
   @ViewBuilder private func appCell(_ row: AppRow) -> some View {
     HStack(spacing: 6) {
       Text(Strings.appLabel(row))
-        .accessibilityIdentifier("dashboard.account.byApp.name.\(row.providerKeyID)")
-      // An unbound key (never the keyless `Unassigned` row) can be named here (08).
-      if row.appID == nil, !row.providerKeyID.isEmpty {
+        .accessibilityIdentifier("dashboard.account.byApp.name.\(row.elementID)")
+      // An unbound key (never the keyless `Unassigned` row, never a harness app) can be named here (08).
+      if row.kind == .key, row.appID == nil, !row.providerKeyID.isEmpty {
         Button(Strings.nameKey) {
           naming = NamingTarget(key: ProviderKeyRef(accountID: row.accountID, providerKeyID: row.providerKeyID),
                                 suggestion: row.keyName ?? "")

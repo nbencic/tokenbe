@@ -415,7 +415,41 @@ extension Strings {
   static func badge(_ kind: AttributionKind) -> String {
     switch kind {
     case .key: "key"
+    case .split: "\u{2248} split"
+    case .harness: "harness"
+    case .inferred: "inferred"
     }
+  }
+
+  // Harness reports (08 § Settings → Sources, `21S-0`; 14 § Stage 7.2). Authored copy is logged in Q-049.
+  static let harnessReports = "Harness reports"
+  static let harnessFolder = "Folder"
+  static let revealInFinder = "Reveal in Finder"
+  static let harnessWatch = "Watch the folder"
+  static let harnessMoveWhenDone = "Move files to ingested/ when done"
+  static let harnessOff = "Off"
+  static let harnessUnwritable = "The folder is not writable. Harness reports are off."
+  static let copyReporterSnippet = "Copy reporter snippet"
+  static let snippetPython = "Python"
+  static let snippetNode = "Node"
+  static func snippetCopied(_ language: String) -> String { "\(language) snippet copied" }
+  static func secondsAgo(_ seconds: Int) -> String { "\(seconds) s ago" }
+  /// 08: `Watching · 2 files · last line 14 s ago`.
+  static func harnessWatching(files: Int, lastLine: String?) -> String {
+    "Watching \u{00B7} \(files) \(files == 1 ? "file" : "files") \u{00B7} " + (lastLine.map { "last line \($0)" } ?? "no lines yet")
+  }
+  static func harnessToday(inserted: Int, duplicate: Int, rejected: Int) -> String {
+    "Today: \(inserted) ok \u{00B7} \(duplicate) duplicate \u{00B7} \(rejected) rejected"
+  }
+  /// O-12.
+  static func harnessWithoutAccount(_ lines: Int) -> String { "\(lines) lines for providers you haven\u{2019}t added" }
+  static func harnessRotate(_ file: String) -> String { "\(file) is over 512 MiB. Start a new file to rotate it." }
+  /// 08: the empty By-app table, which opens Settings → Sources.
+  static let reportAppsFromHarness = "Report apps from your harness \u{2192}"
+  /// 08 Sources strip: `Harness · 3 files · 12 lines today` (the title, then this line).
+  static let sourceHarness = "Harness"
+  static func harnessLine(files: Int, linesToday: Int) -> String {
+    "\(files) \(files == 1 ? "file" : "files") \u{00B7} \(linesToday) lines today"
   }
 
   /// The name a By-app row shows: the bound app's display name (O-13), else the provider's key name (01 A2: human

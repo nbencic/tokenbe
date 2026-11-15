@@ -162,7 +162,7 @@ actor StreamRecorder<Value: Sendable> {
   }
 
   /// 7.1 (PM-2.2-3): each table the By-app table reads, changed alone, yields new inputs that carry the change.
-  enum AppTable: String, CaseIterable, Sendable { case app, binding, providerKey, usage, cost, harness, balance }
+  enum AppTable: String, CaseIterable, Sendable { case app, binding, providerKey, usage, cost }
 
   @Test("a change to one app-attribution table alone yields new inputs with it (7.1, PM-2.2-3)",
         arguments: AppTable.allCases)
@@ -209,6 +209,25 @@ actor StreamRecorder<Value: Sendable> {
         await recorder.last?.keyCostDays == [KeyCostDay(accountId: openai.id, day: String(day),
                                                        providerKeyId: "key_a", amountCents: 12)]
       }
+    }
+    #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
+    await recorder.cancel()
+  }
+
+  /// 7.2 (PM-2.2-3): the harness and balance aggregates, each changed alone.
+  enum IngestTable: String, CaseIterable, Sendable { case harness, balance }
+
+  @Test("a harness line or a balance snapshot alone yields new inputs with it (7.2, PM-2.2-3)",
+        arguments: IngestTable.allCases)
+  func ingestTables(_ table: IngestTable) async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the account") { await recorder.last?.accounts.count == 1 }
+    let day = DBTime.string(Date()).prefix(10)
+    switch table {
     case .harness:
       try await repository.applyIngestBatch(IngestBatch(
         file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
