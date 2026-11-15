@@ -76,6 +76,8 @@ extension PollError {
       return status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope
     case .auth where provider == .deepseek:
       return CoreStrings.DeepSeek.keyRejected
+    case .auth where provider == .xai:
+      return CoreStrings.XAI.keyRejected
     case .auth(let status, _):
       return CoreStrings.unexpectedStatus(name, status: status)
     case .rateLimited: return CoreStrings.rateLimited(name)

@@ -15,7 +15,7 @@ for f in "${inventory[@]}"; do check "non-empty $f" test -s "$f"; done
 
 # Step 2: GET /user/balance with a Bearer key; string amounts → cents via Decimal; one snapshot per currency.
 check "DeepSeek calls 02's endpoint on 02's host" bash -c "grep -qF 'static let host = \"api.deepseek.com\"' $ds/DeepSeekClient.swift && grep -qF 'static let balancePath = \"/user/balance\"' $ds/DeepSeekClient.swift"
-check "02's Authorization header" grep -qF '"Authorization": "Bearer \(key)"' $ds/DeepSeekClient.swift
+check "02's Authorization header" bash -c "grep -qF 'BearerRequest.get(host: host, path: balancePath' $ds/DeepSeekClient.swift && grep -qF '\"Authorization\": \"Bearer \\(key)\"' $core/Providers/BearerRequest.swift"
 check "amounts are strings parsed strictly into cents (R7: no Double)" bash -c "grep -qF 'MinorUnits.decimal(text)' $ds/DeepSeekDTOs.swift && ! grep -nE 'Double|Float' $ds/*.swift"
 check "02's fields and nothing else" bash -c "for k in is_available balance_infos total_balance granted_balance topped_up_balance; do grep -qF \"\\\"\$k\\\"\" $ds/DeepSeekDTOs.swift || exit 1; done"
 check "the probe's currency is the first entry's (02)" grep -qF 'balance.balanceInfos.first, let currency = Currency(rawValue: first.currency)' $ds/DeepSeekProbe.swift
