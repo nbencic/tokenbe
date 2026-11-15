@@ -1,5 +1,5 @@
 # Postmortem — Stage 5.2 Cost estimation & unpriced surfacing
-Date: 2026-11-15 · Branch: s5.2-cost-estimation · PR: #24 · Planned size: M · Commits: 2
+Date: 2026-11-15 · Branch: s5.2-cost-estimation · PR: #24 · Planned size: M · Commits: 4
 
 ## Outcome
 Every usage row now gets `est_cost_cents` and `unpriced` before it is written. The `Poller` prices each page through `PriceBook.price`. A poller without a price book writes the rows as unpriced, so 14's Verify query (`est_cost_cents IS NULL AND unpriced = 0`) returns 0, and `RepriceTests` asserts it after a fixture poll.
@@ -31,7 +31,9 @@ D1–D13 are met. UI tests did not run in this stage: the owner asked on 2026-11
 
 ## Verify and CI failures
 - Verify run 1 (`TB_UI_TESTS=0`): failed at `0.2 no silent catch / try?` on `entry: PriceEntry?` in `CostEstimator.swift` (item 3).
-- Verify run 2 (`TB_UI_TESTS=0`): see the PR body for the summary line.
+- Verify run 2: failed at `5.2 no _above_200k rate is applied`. The check grepped the doc comment that says the variants are not applied. **Fix:** the check skips `///` lines.
+- Verify run 3: failed at `5.2 no Double in the cost formula (R7)` on the range-day arithmetic (`-Double($0) * 86_400`, time, not money). **Fix:** `TimeInterval(-86_400 * $0)`. From then on, the stage's own checks ran alone first (a local copy of `verify-stage.sh` started at 5.2), so each fix cost seconds, not a 10-minute regression run.
+- Verify run 4 (`TB_UI_TESTS=0`): `STAGE 5.2 OK`, 965 `ok`, 22 `skip` (UI, Q-041).
 
 ## Deviations from the docs
 - **14 § Stage 5.2:**
