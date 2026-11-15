@@ -1,5 +1,5 @@
 # Postmortem — Stage 7.2 Harness ingest
-Date: 2026-11-15 · Branch: s7.2-harness-ingest · PR: #32 · Planned size: L · Commits: 9
+Date: 2026-11-15 · Branch: s7.2-harness-ingest · PR: #32 · Planned size: L · Commits: 13
 
 ## Outcome
 A harness can now report its requests to TokenBe. It appends one v1 JSON line per request to a file in the drop folder, and TokenBe attributes the spend to the line's app within seconds.
@@ -59,7 +59,10 @@ D1–D13 are met. Gates H2 and H3 are still open (owner) and do not block.
   - **Fix:** the list is back on one line.
   - **Lesson:** sweep for every check that names the file being edited, not only those that name the changed literal.
 - **Verify run 3 (`TB_UI_TESTS=0`):** every stage check `ok` (1 250); only D13 failed, before this file existed.
-- **The UI run, the final verify and CI:** see the addendum below.
+- **CI run 1** (PR #32, 8e58c78): the tests did not compile on Swift 6.1. `try #require(LineParser.parse(…).get())` in two `ObservationTests` cases failed with "call can throw, but it is not marked with 'try'": 6.1's macro expansion calls the throwing `get()` without `try`, and the local toolchain accepts it. **Fix:** the `#require` was redundant (the value is not optional) and was removed (7042ee5).
+- **CI run 2** (7042ee5): the Release app build failed with "actor-isolated property 'folder' can not be referenced from the main actor" (`SettingsView`). Swift 6.1 does not allow a synchronous read of an actor's `let` from another isolation; the local toolchain does. **Fix:** `nonisolated let folder` (d86d9bf). This is the same class as PM-7.1-7.
+- **CI run 3** (d86d9bf): green.
+- **The UI run and the final verify:** see the addendum below.
 
 ## Deviations from the docs
 - **04:** the FSEvents flags add 06's `NoDefer`; the main queue delivers the events; polling is only the fallback; the daily activity gains a `harness drift` step.
@@ -89,6 +92,7 @@ D1–D13 are met. Gates H2 and H3 are still open (owner) and do not block.
 - PM-7.2-1 · agent · 9.1 · `tb.retention.rawHarnessDays` can be as low as 7, but split and harness weights read `harness_event` over ranges up to 90 days. When 9.1 purges raw events, the split must read rolled-up weights or the By-app table loses its split for older days.
 - PM-7.2-2 · agent · 7.3 · The drift chip (`DriftChip.swift`) reads `Attribution.harnessDrift`. The `Unassigned` row 7.2 shows for harness days without lines should match 7.3's surfacing.
 - PM-7.2-3 · agent · 10.2 · OpenRouter harness buckets are priced from the book, not `cost_cents` (Q-049); revisit when OpenRouter is verified.
+- PM-7.2-5 · agent · every stage · CI's Swift 6.1 is stricter than the local toolchain in two more ways (PM-7.1-7): no `#require` around a throwing call, and no synchronous read of an actor's `let` from another isolation (mark it `nonisolated`). Push a draft PR as soon as a new module compiles.
 - PM-7.2-4 · agent · every stage · The guard sweep before a first verify greps for every stage check that names the files being edited, including multi-element literals (5.5's step list).
 - Earlier actions closed here:
   - PM-6.1-3 (DeepSeek burn from harness spend; single-app inference from balance deltas): closed (649dff9, `AttributionTests.burnFromHarness`, `inferred`).
