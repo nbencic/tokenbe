@@ -69,7 +69,8 @@ final class Startup {
       StartupStep("prices") { [self] in await loadPrices() },
       StartupStep("login item") { [self] in startLoginItem() },
       StartupStep("scheduler") { [self] in await startScheduler() },
-      StartupStep("daily activity") { [self] in startDailyActivity() }
+      StartupStep("daily activity") { [self] in startDailyActivity() },
+      StartupStep("glyph") { [self] in await loadGlyphBands() }
     ])
     let succeeded = await sequence.run()
     if succeeded, let recovery = databaseRecovery {
@@ -292,5 +293,19 @@ final class Startup {
       ])
     }
     await Log.current?.shutdown()
+  }
+}
+
+extension Startup {
+  /// 04 step 8: the persisted bands, so the menu-bar glyph shows the last known state (notch) from launch until the
+  /// first polls complete (14 § Stage 5.5 step 2). A read failure leaves the glyph to the first evaluation.
+  func loadGlyphBands() async {
+    guard var environment, let repository = environment.repository else { return }
+    do {
+      environment.initialBands = try await repository.fetchBandStates()
+      self.environment = environment
+    } catch {
+      Log.error(.uiError, cat: .ui, msg: "band states not loaded", err: error, ctx: ["view": "startup"])
+    }
   }
 }

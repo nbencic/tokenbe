@@ -50,14 +50,23 @@ struct TokenBeApp: App {
   }
 }
 
-/// The menu-bar label: the glyph, plus the hand-over of `openWindow` to the model for the global shortcut and for
-/// onboarding at launch.
+/// The menu-bar label: the glyph and the optional metric text (09 `tb.menubar.metric`, at most 64 pt; 5.5), plus the
+/// hand-over of `openWindow` to the model for the global shortcut and for onboarding at launch.
 private struct StatusLabel: View {
   let model: AppModel
   @Environment(\.openWindow) private var openWindow
 
   var body: some View {
-    MenuBarGlyph(state: model.glyphState)
+    HStack(spacing: 4) {
+      MenuBarGlyph(state: model.glyphState)
+      if let text = model.menuBarText {
+        Text(text)
+          .monospacedDigit()
+          .lineLimit(1)
+          .frame(maxWidth: 64)
+          .accessibilityIdentifier("glyph.metric")
+      }
+    }
       .onAppear {
         let open = openWindow
         model.openDashboard = { open(id: DashboardView.windowID) }

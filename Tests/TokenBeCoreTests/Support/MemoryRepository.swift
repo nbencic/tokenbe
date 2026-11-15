@@ -103,6 +103,10 @@ actor MemoryRepository: Repository {
     bands[state.accountId] = state
   }
 
+  func fetchBandStates() async throws -> [BandStateRecord] {
+    bands.values.sorted { $0.accountId < $1.accountId }
+  }
+
   func deleteUserLedgerEvent(id: String) async throws -> Bool {
     let before = ledger.count
     ledger.removeAll { $0.id == id && $0.source == "user" }

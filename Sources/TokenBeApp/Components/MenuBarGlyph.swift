@@ -1,18 +1,9 @@
 import AppKit
 import SwiftUI
-
-/// The glyph's three shapes (08 § Menu bar glyph). Colour is never used in the menu bar; the shape carries the state.
-enum GlyphState: String, CaseIterable {
-  /// All accounts healthy or watch.
-  case solid
-  /// Any account low or critical.
-  case notched
-  /// Any account stale, or offline.
-  case dashed
-}
+import TokenBeCore
 
 /// An 18 pt template image with a 1.5 pt ring (O-2), drawn in code. Menu-bar labels render images, not SwiftUI
-/// shapes, so each state is drawn once into an `NSImage`.
+/// shapes, so each state is drawn once into an `NSImage`. `GlyphState` (Core) decides the shape (5.5).
 struct MenuBarGlyph: View {
   static let size = CGSize(width: 18, height: 18)
   static let lineWidth: CGFloat = 1.5

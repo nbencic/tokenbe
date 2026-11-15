@@ -36,6 +36,7 @@ import Testing
       if failing { throw StoreError.notFound("injected") }
       written.append(state)
     }
+    func fetchBandStates() async throws -> [BandStateRecord] { written }
   }
 
   static func summary(_ band: Band, remaining: Int64? = 9_000) -> AccountSummary {
@@ -135,6 +136,7 @@ import Testing
     #expect(try await memory.deleteUserLedgerEvent(id: "m"))
     try await memory.recordBand(BandStateRecord(accountId: "a", band: "low", since: "t", inputsJson: "{}"))
     #expect(await memory.bands["a"]?.band == "low")
+    #expect(try await memory.fetchBandStates().map(\.band) == ["low"])
   }
 
   @Test("top-ups log ledger.topup; the observation carries ledger, balances, band_state and the anchor day")

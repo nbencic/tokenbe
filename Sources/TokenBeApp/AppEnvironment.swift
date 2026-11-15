@@ -28,6 +28,8 @@ struct AppEnvironment {
   var daily: DailyActivityRegistration?
   /// The price book (05, 14 § Stage 5.1), set by startup step 4; nil before it, or if step 2 failed.
   var prices: PriceBookModel?
+  /// `band_state` at launch (04 step 8): the glyph's state until the accounts are observed and polled (5.5).
+  var initialBands: [BandStateRecord] = []
   /// Band notifications (08, 14 § Stage 5.4): the policy and its `Notifier`.
   let alerts: AlertCenter
   /// The system notifier, whose `Open`/`Snooze 24 h` actions the app delegate wires; nil in UI tests (Q-043).

@@ -6,6 +6,8 @@ public protocol BandRepository: Sendable {
   /// Inserts or replaces the account's row: band, `since` and `inputs_json` in one statement, so a band never
   /// changes without its inputs (04 V6).
   func recordBand(_ state: BandStateRecord) async throws
+  /// Every `band_state` row (04 startup step 8: the glyph's state before the first polls).
+  func fetchBandStates() async throws -> [BandStateRecord]
 }
 
 extension GRDBRepository {
@@ -13,5 +15,9 @@ extension GRDBRepository {
     try await database.write("recordBand") { db in
       try state.insert(db, onConflict: .replace)
     }
+  }
+
+  public func fetchBandStates() async throws -> [BandStateRecord] {
+    try await database.read { db in try BandStateRecord.order(Column("account_id")).fetchAll(db) }
   }
 }
