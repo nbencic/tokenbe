@@ -28,6 +28,18 @@ public enum Formatters {
       + magnitude(absolute(bandCents), hideCents: hideCents, locale: locale)
   }
 
+  /// A spend figure: `$42.17`, or `≈ $42.17` when any of it is a usage estimate (Q-040).
+  public static func spend(_ figure: SpendFigure, currency: Currency, hideCents: Bool, locale: Locale) -> String {
+    let amount = money(Money(cents: figure.cents, currency: currency), hideCents: hideCents, locale: locale)
+    return figure.isEstimate ? "\(approx) \(amount)" : amount
+  }
+
+  /// `Unpriced in range` (05 `unpriced_cents`): always an estimate, `≈ $3.10`; `—` when no priced model gave a rate.
+  public static func unpriced(_ figure: UnpricedFigure, currency: Currency, hideCents: Bool, locale: Locale) -> String {
+    guard let cents = figure.cents else { return "\u{2014}" }
+    return "\(approx) " + money(Money(cents: cents, currency: currency), hideCents: hideCents, locale: locale)
+  }
+
   /// Non-negative cents without a symbol: whole units (half up) or units plus two decimals, grouped per locale.
   static func magnitude(_ cents: Int64, hideCents: Bool, locale: Locale) -> String {
     if hideCents { return grouped(roundedQuotient(cents, 100), locale: locale) }

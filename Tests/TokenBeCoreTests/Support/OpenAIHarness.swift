@@ -16,6 +16,8 @@ struct OpenAIHarness {
   let clock = TestClock()
   let date = ManualDate(OpenAIHarness.now)
   let adapter: OpenAIAdapter
+  /// Loaded from `prices/litellm.snapshot.json`, so usage polls price their rows (14 § Stage 5.2).
+  let prices: PriceBook
   let poller: Poller
   /// Built at run time so no key-shaped literal is committed (Q-028).
   let key: String
@@ -28,9 +30,13 @@ struct OpenAIHarness {
     key = "sk-" + "admin-" + String(repeating: "Zq7", count: 14)
     keys = InMemoryKeyStore([Self.account.keychainRef: key])
     adapter = OpenAIAdapter(logPipeline: store.pipeline)
+    prices = PriceBook(store: repository, logPipeline: store.pipeline, now: date.provider)
+    let snapshot = try Data(contentsOf: PriceLookupTests.fixtureURL())
+    try await prices.load(bundled: PriceBook.Bundled(data: snapshot, sha256: PriceFeedFetcher.sha256(snapshot),
+                                                     appVersion: "test"), staleAfterDays: 7)
     poller = Poller(
       store: repository, keyStore: keys, registry: ProviderRegistry(adapters: [adapter]), transport: transport,
-      clock: clock, rng: SeededRNG(seed: seed), logPipeline: store.pipeline, now: date.provider
+      prices: prices, clock: clock, rng: SeededRNG(seed: seed), logPipeline: store.pipeline, now: date.provider
     )
   }
 

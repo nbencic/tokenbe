@@ -487,12 +487,12 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 **Steps**
 1. `Pricing/CostEstimator.swift`: `05 § Cost formula` (cents, round half-up once; fallback multipliers → `price.fallback_multiplier`; tier priced as standard logged `tier_priced_as_standard` in ctx); `_above_200k` not applied (05).
-2. Applied in `upsertUsageBuckets` (every write) and by `repriceUsage(accountID, since: now−90 d)` when the current price snapshot changes (`price.repriced {rows}`) — one transaction per account.
+2. Applied to every usage page just before `writeUsagePage` (the `Poller` prices the rows through `PriceBook.price`; a GRDB write closure cannot await the actor, Q-040) and by `repriceUsage(accountID, since: now−90 d)` when the current price snapshot or an override changes (`price.repriced {rows}`) — one transaction per account.
 3. `price.unpriced {provider, model}` once per model per UTC day (dedupe table in memory keyed by day).
 4. Numbers strip (`Dashboard/NumbersStrip.swift`) with the cells above; Overview subline `Total spend <range> $X`.
 
-**Inventory** — Files: `Pricing/CostEstimator.swift`, `Dashboard/NumbersStrip.swift`, `Store/Repository+Usage.swift` (`repriceUsage`). Events: `price.fallback_multiplier`, `price.unpriced`, `price.repriced`.
-**Tests:** `CostFormulaTests` (`expected/pricing.csv`), `RepriceTests` (snapshot change updates rows, unpriced flips when a price appears).
+**Inventory** — Files: `Pricing/CostEstimator.swift`, `Pricing/PriceBook.swift` (row pricing, reprice triggers, `Pricer`, the `N unpriced` count), `Scheduling/Poller.swift`, `Ledger/Spend.swift`, `Ledger/AccountSummaryBuilder.swift`, `Model/{AccountSummary,Formatters}.swift`, `Store/Observation.swift` (daily usage/cost/priced-model aggregates), `Dashboard/NumbersStrip.swift`, `Dashboard/{AccountDetailView,OverviewView}.swift`, `SettingsUI/PriceBookSection.swift`, `AppModel.swift`, `AppDelegate.swift`, `Startup.swift`, `Strings.swift`, `Store/Repository+Usage.swift` (`repriceUsage`, `fetchUnpricedModels`), `Tests/Fixtures/expected/pricing.csv`, `scripts/stages/5.2.sh`, `scripts/run.sh` (`build-uitest`, Q-041), `.swiftlint.yml` (PM-5.1-2). Events: `price.fallback_multiplier`, `price.unpriced`, `price.repriced`.
+**Tests:** `CostFormulaTests` (`expected/pricing.csv`), `RepriceTests` (snapshot change updates rows, unpriced flips when a price appears), `SpendTests` (range days, truth vs estimate, `unpriced_cents`, the USD total; Q-040).
 **Verify:** tests; after a usage poll in fixture mode, `select count(*) from usage_bucket where est_cost_cents is null and unpriced=0` == 0.
 **Stage DoD:** D1–D12.
 

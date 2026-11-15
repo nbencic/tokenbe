@@ -2,8 +2,8 @@ import SwiftUI
 import TokenBeCore
 
 /// 08 § Account detail (Paper `8T-0`), Stage 4.2's shell: the header (`AM-0`, `AR-0`), the badges row (`B1-0`) and
-/// the sources strip (`HP-0`). The numbers strip and the tables arrive in 5.2/5.3, 7.1 and 8.1; the anchor and
-/// top-up buttons arrive with their sheets in 5.3 (D6).
+/// the sources strip (`HP-0`); 5.2 adds the numbers strip's spend cells. Remaining, runway and burn arrive in 5.3,
+/// the tables in 7.1 and 8.1; the anchor and top-up buttons arrive with their sheets in 5.3 (D6).
 struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
@@ -15,6 +15,7 @@ struct AccountDetailView: View {
         if let capabilities = summary.capabilities {
           BadgesRow(provider: summary.provider, badges: AccountBadges(mode: summary.mode, capabilities: capabilities))
         }
+        NumbersStrip(summary: summary, hideCents: model.environment?.settings.uiHideCents ?? true)
         SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status)
       }
       .padding(24)

@@ -16,6 +16,19 @@ import Testing
     calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute)) ?? Date()
   }
 
+  @Test("spend: `≈` only when part of it is an estimate; unpriced: always `≈`, `—` without a rate (Q-040)")
+  func spendAndUnpriced() {
+    let truth = SpendFigure(cents: 4_217, isEstimate: false)
+    let estimate = SpendFigure(cents: 4_217, isEstimate: true)
+    #expect(Formatters.spend(truth, currency: .usd, hideCents: false, locale: Self.posix) == "$42.17")
+    #expect(Formatters.spend(estimate, currency: .usd, hideCents: false, locale: Self.posix) == "\u{2248} $42.17")
+    #expect(Formatters.spend(estimate, currency: .cny, hideCents: true, locale: Self.posix) == "\u{2248} CN¥42")
+    #expect(Formatters.unpriced(UnpricedFigure(tokens: 5, cents: 310), currency: .usd, hideCents: false,
+                                locale: Self.posix) == "\u{2248} $3.10")
+    #expect(Formatters.unpriced(UnpricedFigure(tokens: 5, cents: nil), currency: .usd, hideCents: false,
+                                locale: Self.posix) == "\u{2014}")
+  }
+
   @Test("the pinned locales have the separators these tests assume")
   func separators() {
     #expect(Self.posix.decimalSeparator == ".")

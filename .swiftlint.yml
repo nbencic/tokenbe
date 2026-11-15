@@ -16,7 +16,7 @@ identifier_name:
 
 custom_rules:
   tokenbe_no_silent_catch:
-    regex: 'catch\s*\{\s*\}|try\?'
+    regex: 'catch\s*\{\s*\}|\btry\?'
     message: "Every error must be logged (07). Use `catch { Log.error(...) }`."
     severity: error
   tokenbe_no_userdefaults:

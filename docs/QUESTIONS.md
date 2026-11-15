@@ -493,3 +493,25 @@ Options and choices:
 - **Diagnosis:** `scripts/ui-kill-reason.sh [<xcresult>]` prints each system termination of the runner, with its time, code and explanation, and calls out `CacheDelete` as low disk. `scripts/wait.sh` runs it after a failed `uitest` whose log has `Test crashed with signal kill`.
 - Not chosen: turning off XCTest's screen recording to save disk. The recordings are what showed the overlapping windows, and the purge is driven by total free space, not by this run alone.
 Blocking: no
+
+## Q-040 Stage 5.2: cost-estimation and spend rules the docs leave open            (2026-11-15)
+Context: 14 § Stage 5.2; `Pricing/{CostEstimator,PriceBook}.swift`, `Scheduling/Poller.swift`, `Ledger/Spend.swift`, `Store/{Observation,Repository+Usage}.swift`, `Dashboard/{NumbersStrip,OverviewView}.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **Where rows are priced:** in the `Poller`, just before `writeUsagePage`, through `PriceBook.price` (the GRDB write closure is synchronous and cannot await the actor). 14's `upsertUsageBuckets` is the existing `writeUsagePage`. A poller without a price book writes every row unpriced (05: without prices every model is unpriced), so `est_cost_cents IS NULL AND unpriced = 0` never happens.
+- **Arithmetic:** rates are picodollars per token (Q-038). Every term is summed in `Int128` over the common denominator 20 (1.25 = 25/20, 2.0 = 40/20, 0.1 = 2/20), then rounded half-up to cents once. Products and sums saturate instead of trapping (R5); the result clamps to `Int64`.
+- **Fallback logging:** `price.fallback_multiplier` only for a class with tokens (otherwise every OpenAI bucket would log a missing cache-write rate), once per model and field per UTC day. Tiers: `priority`/`batch` are priced at the standard rate and logged once per model per day as `price.fallback_multiplier {field: service_tier, tier_priced_as_standard: true}` (07 updated); there is no separate event.
+- **Reprice:** every `usage_bucket` row of each account with `bucket_start` within the last 90 days, whatever its source, in one transaction per account; only changed rows are written; `price.repriced {acct: provider, rows: changed, snapshot_version}`. Triggers: a new feed snapshot and every override change (set, `−`, `Reset to feed`), which closes PM-3.4-3 and PM-5.1-1.
+- **`N unpriced`** in the Price book snapshot line: distinct models with an unpriced bucket in the last 90 days (from the database at launch and after a reprice; kept current as rows are priced). Shown only when N > 0. Not chosen: unpriced feed entries (the user cannot act on those).
+- **Spend:** per UTC day, a closed day with a provider `total` cost row uses that cost (truth); the open day, and closed days without a cost row, use Σ `est_cost_cents` (estimate), like 05's `spend_since_anchor`. Usage sources: `provider` and `rollup`; `harness` only for an account without a usage API (05). Ranges are UTC days ending today: `Today` = today, `7 d` = today and the 6 days before (30/90 the same). The aggregates are observed for the last 91 days.
+- **`≈` on spend:** a spend figure that includes any estimated day is shown `≈ $X`, without `±`, because 05 defines a band only for remaining; provider-cost-only figures have no `≈`. `Unpriced in range` is always `≈ $X`.
+- **`unpriced_cents`:** the median of the window's priced models' input rates (for an even count, the mean of the two middle rates, rounded down). With unpriced tokens but no priced model in the window, the cell still shows, with `—`. The cell appears when the range has unpriced tokens (08: "shown only if > 0").
+- **Before the first poll** the spend cells read `No data yet`; after a usage or cost poll they show the figure, `$0.00` included.
+- **Overview subline:** `Total spend <range> $X` (+ `+ N non-USD` when other currencies exist, 05 § Currency), under the title; 5.3 adds the headline above it.
+- **Paper:** Paper Desktop was not running in this session, so the numbers strip and the subline follow 08's copy only; reconciliation is 11.3's.
+Blocking: no
+
+## Q-041 Process: phase 5 UI tests run once, at its end            (2026-11-15)
+Context: the owner's instruction of 2026-11-15: "complete all stages in phase 5, then at the end run UI tests".
+Options: A) every 5.x verify runs UI tests (Q-031: a branch that changes app code turns them on); B) 5.2–5.4 verify with `TB_UI_TESTS=0`, and the 5.5 verify, which closes the phase, runs the full UI suite.
+Chosen for now: B — the owner asked for it; it overrides Q-031 for 5.2–5.4 only. So a UI-test compile break does not surface only at the end, each stage builds the UI-test target with the new `scripts/run.sh build-uitest` (`xcodebuild build-for-testing`), and the stage scripts check that it built. A UI failure found in 5.5 is fixed on the 5.5 branch and named in its postmortem.
+Blocking: no

@@ -239,7 +239,7 @@ final class Startup {
     guard var environment, let repository = environment.repository else { return }
     let clock = ContinuousClock()
     let runner = Poller(store: repository, keyStore: environment.keyStore, registry: environment.registry,
-                        transport: environment.transport, clock: clock)
+                        transport: environment.transport, prices: environment.prices?.book, clock: clock)
     let settings = environment.settings
     let coordinator = PollCoordinator(clock: clock, runner: runner, settings: ScheduleSettings(settings),
                                       lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)

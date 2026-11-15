@@ -1,7 +1,9 @@
 import SwiftUI
+import TokenBeCore
 
 /// 08 § Overview. No placeholder headline (14 § 1.2): with no accounts it shows the real empty state and the
-/// `Spend by day` card's empty text. The headline, runway board, chart and tiles arrive with their data.
+/// `Spend by day` card's empty text. 5.2 adds the `Total spend` subline (USD accounts only, 05 § Currency); the
+/// headline, runway board, chart and tiles arrive with their data.
 struct OverviewView: View {
   let model: AppModel
 
@@ -21,6 +23,11 @@ struct OverviewView: View {
           .padding(.vertical, 24)
           .accessibilityElement(children: .contain)
           .accessibilityIdentifier("dashboard.overview.empty")
+        } else {
+          Text(totalSpend)
+            .font(.callout.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("dashboard.overview.totalSpend")
         }
         spendByDay
       }
@@ -28,6 +35,16 @@ struct OverviewView: View {
     }
     .navigationTitle(Strings.overview)
     .accessibilityIdentifier("dashboard.overview")
+  }
+
+  /// `Total spend 7 d ≈ $12.40 + 1 non-USD`, over the Dashboard range.
+  private var totalSpend: String {
+    let settings = model.environment?.settings
+    let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
+    let total = Spend.totalUSD(model.accounts)
+    let amount = Formatters.spend(total.spend, currency: .usd, hideCents: settings?.uiHideCents ?? true,
+                                  locale: .current)
+    return Strings.totalSpend(range: RangePicker.label(range), amount: amount, nonUSD: total.nonUSD)
   }
 
   private var spendByDay: some View {

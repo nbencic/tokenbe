@@ -38,14 +38,20 @@ public actor PriceBook {
     public var overrides: [Override]
     /// `fetchedAt` is older than `tb.price.staleAfterDays` (09).
     public var isStale: Bool
+    /// Distinct models with unpriced usage in the last 90 days (the snapshot line's `N unpriced`, PM-5.1-1, Q-040).
+    public var unpricedModels: Int
+    /// The rates in use, for pricing outside the actor (the unpriced estimate of the numbers strip).
+    public var pricer: Pricer
 
     public init(version: String? = nil, fetchedAt: Date? = nil, models: Int = 0, overrides: [Override] = [],
-                isStale: Bool = false) {
+                isStale: Bool = false, unpricedModels: Int = 0, pricer: Pricer = Pricer()) {
       self.version = version
       self.fetchedAt = fetchedAt
       self.models = models
       self.overrides = overrides
       self.isStale = isStale
+      self.unpricedModels = unpricedModels
+      self.pricer = pricer
     }
   }
 
@@ -55,18 +61,30 @@ public actor PriceBook {
   /// 14 § Stage 5.1 step 3: `prunePriceSnapshots(keep: 4)` (03: current + previous 3).
   public static let keepSnapshots = 4
 
-  let store: any PriceRepository
+  /// 14 § Stage 5.2 step 2: a price change reprices the last 90 days.
+  public static let repriceWindow: TimeInterval = 90 * 86_400
+
+  let store: any PriceBookStore
   let log: EventLog
   let now: @Sendable () -> Date
-  private var table = PriceTable()
-  private var overrides: [String: PriceEntry] = [:]
+  private var table = PriceTable() {
+    didSet { if table != oldValue { revision += 1 } }
+  }
+  private var overrides: [String: PriceEntry] = [:] {
+    didSet { if overrides != oldValue { revision += 1 } }
+  }
+  private var revision = 0
+  /// Models with unpriced usage in the reprice window.
+  private var unpriced: Set<String> = []
+  /// `price.unpriced` and `price.fallback_multiplier` are logged once per model (and field) per UTC day (05).
+  private let once = DailyOnce()
   /// The current snapshot without its blob.
   private var current: PriceSnapshotRecord?
   private var staleAfterDays = 7
   private var observers: [UUID: AsyncStream<Status>.Continuation] = [:]
 
   /// `logPipeline` is for tests; the app logs through `Log`.
-  public init(store: any PriceRepository, logPipeline: LogPipeline? = nil,
+  public init(store: any PriceBookStore, logPipeline: LogPipeline? = nil,
               now: @escaping @Sendable () -> Date = { Date() }) {
     self.store = store
     log = EventLog(pipeline: logPipeline)
@@ -103,6 +121,7 @@ public actor PriceBook {
                err: MissingBundle(), ctx: ["bytes": 0])
     }
     try await loadOverrides()
+    try await loadUnpriced()
     checkStale()
     publish()
   }
@@ -155,6 +174,7 @@ public actor PriceBook {
     overrides[name] = entry
     log.emit(.info, .priceOverrideSet, cat: .price, msg: "price override set",
              ctx: ["model": .string(name), "action": "set"])
+    try await repriceAll()
     publish()
   }
 
@@ -164,6 +184,7 @@ public actor PriceBook {
     overrides[model] = nil
     log.emit(.info, .priceOverrideSet, cat: .price, msg: "price override removed",
              ctx: ["model": .string(model), "action": "removed"])
+    try await repriceAll()
     publish()
   }
 
@@ -176,6 +197,7 @@ public actor PriceBook {
       log.emit(.info, .priceOverrideSet, cat: .price, msg: "price override removed",
                ctx: ["model": .string(model), "action": "reset"])
     }
+    try await repriceAll()
     publish()
   }
 
@@ -218,6 +240,7 @@ public actor PriceBook {
         "source": "feed", "changed": true, "entries": .int(parsed.entries.count),
         "etag": etag.map { .string($0) } ?? .null, "bytes": .int(body.count), "version": .string(record.version)
       ])
+      try await repriceAll()
     case .failed:
       break
     }
@@ -249,7 +272,8 @@ public actor PriceBook {
     return Status(
       version: current?.version, fetchedAt: fetched, models: table.entries.count,
       overrides: overrides.map { Override(model: $0.key, entry: $0.value) }.sorted { $0.model < $1.model },
-      isStale: fetched.map { now().timeIntervalSince($0) > Double(staleAfterDays) * 86_400 } ?? false
+      isStale: fetched.map { now().timeIntervalSince($0) > Double(staleAfterDays) * 86_400 } ?? false,
+      unpricedModels: unpriced.count, pricer: pricer
     )
   }
 
@@ -276,5 +300,99 @@ public actor PriceBook {
     var copy = record
     copy.json = Data()
     return copy
+  }
+}
+
+/// Cost estimation (14 § Stage 5.2): pricing rows before they are written, and repricing after a price change.
+extension PriceBook {
+  // MARK: - Cost estimation (14 § Stage 5.2)
+
+  /// The rates in use, as a value (`repriceUsage` prices inside a database transaction, outside this actor).
+  public var pricer: Pricer {
+    Pricer(overrides: overrides, feed: table.entries, revision: revision)
+  }
+
+  /// Every row with `est_cost_cents` and `unpriced` set (05 § Cost formula), just before it is written. Logs
+  /// `price.unpriced` and `price.fallback_multiplier` once per model (and field) per UTC day.
+  public func price(_ rows: [UsageBucketRecord], provider: ProviderID) -> [UsageBucketRecord] {
+    let current = pricer
+    let before = unpriced
+    let priced = rows.map { row in
+      let (copy, estimate) = current.price(row, provider: provider)
+      record(estimate, provider: provider, model: row.model)
+      return copy
+    }
+    if unpriced != before { publish() }
+    return priced
+  }
+
+  private func record(_ estimate: CostEstimator.Estimate, provider: ProviderID, model: String) {
+    let time = now()
+    let base: [String: LogValue] = ["provider": .string(provider.rawValue), "model": .string(model)]
+    if estimate.isUnpriced {
+      unpriced.insert(model)
+      if once.first("unpriced \(provider.rawValue) \(model)", on: time) {
+        log.emit(.warn, .priceUnpriced, cat: .price, msg: "model has no price", ctx: base)
+      }
+      return
+    }
+    unpriced.remove(model)
+    for field in estimate.fallbackFields where once.first("fallback \(provider.rawValue) \(model) \(field)", on: time) {
+      log.emit(.info, .priceFallbackMultiplier, cat: .price, msg: "fallback multiplier used",
+               ctx: base.merging(["field": .string(field)]) { $1 })
+    }
+    if estimate.tierPricedAsStandard, once.first("tier \(provider.rawValue) \(model)", on: time) {
+      log.emit(.info, .priceFallbackMultiplier, cat: .price, msg: "tier priced as standard",
+               ctx: base.merging(["field": "service_tier", "tier_priced_as_standard": true]) { $1 })
+    }
+  }
+
+  /// 14 § Stage 5.2 step 2: after the current snapshot or an override changes, every account's buckets of the last
+  /// 90 days are priced again, one transaction per account (`price.repriced {acct, rows, snapshot_version}`).
+  public func repriceAll() async throws {
+    let current = pricer
+    let since = DBTime.string(now().addingTimeInterval(-Self.repriceWindow))
+    for account in try await store.fetchAccounts() {
+      guard let provider = ProviderID(rawValue: account.provider) else { continue }
+      let rows = try await store.repriceUsage(accountID: account.id, since: since) { current.price($0, provider: provider).0 }
+      log.emit(.info, .priceRepriced, cat: .price, msg: "usage repriced", acct: account.provider, ctx: [
+        "rows": .int(rows), "snapshot_version": .string(self.current?.version ?? "")
+      ])
+    }
+    try await loadUnpriced()
+  }
+
+  private func loadUnpriced() async throws {
+    unpriced = Set(try await store.fetchUnpricedModels(since: DBTime.string(now().addingTimeInterval(-Self.repriceWindow))))
+  }
+}
+
+/// What the price book reads and writes: prices, the accounts to reprice and their usage rows.
+public typealias PriceBookStore = PriceRepository & AccountRepository & UsageRepository
+
+/// A value copy of the overrides and the current table (05 § Price lookup), so rows can be priced outside the
+/// `PriceBook` actor. Two pricers are equal when they come from the same revision of the book.
+public struct Pricer: Sendable, Equatable {
+  public var overrides: [String: PriceEntry]
+  public var feed: [String: PriceEntry]
+  var revision: Int
+
+  public init(overrides: [String: PriceEntry] = [:], feed: [String: PriceEntry] = [:], revision: Int = 0) {
+    self.overrides = overrides
+    self.feed = feed
+    self.revision = revision
+  }
+
+  public static func == (lhs: Pricer, rhs: Pricer) -> Bool {
+    lhs.revision == rhs.revision && lhs.overrides.count == rhs.overrides.count && lhs.feed.count == rhs.feed.count
+  }
+
+  public func lookup(provider: ProviderID, model: String) -> Lookup.Hit? {
+    Lookup.find(provider: provider, model: model, overrides: overrides, feed: feed)
+  }
+
+  /// The row priced by 05 § Cost formula.
+  public func price(_ row: UsageBucketRecord, provider: ProviderID) -> (UsageBucketRecord, CostEstimator.Estimate) {
+    CostEstimator.priced(row, entry: lookup(provider: provider, model: row.model)?.entry)
   }
 }

@@ -22,11 +22,14 @@ case "$task" in
                       -derivedDataPath build/DerivedData build);                timeout=900 ;;
   build-app-release) cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Release
                       -derivedDataPath build/DerivedData build CODE_SIGNING_ALLOWED=NO); timeout=900 ;;
+  # Compiles the app and the UI tests without running them (Q-041: phase 5 runs its UI tests once, at its end).
+  build-uitest)  cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
+                      -derivedDataPath build/DerivedData build-for-testing);    timeout=900 ;;
   # `TB_UI_ONLY=<Suite>[/<test>]` runs one UI-test suite or case (reruns and spikes); unset runs them all.
   uitest)        cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
                       -derivedDataPath build/DerivedData test ${TB_UI_ONLY:+-only-testing:TokenBeUITests/$TB_UI_ONLY});
                  timeout=1800 ;;
-  *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint build-app build-app-release uitest" >&2; exit 2 ;;
+  *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint build-app build-app-release build-uitest uitest" >&2; exit 2 ;;
 esac
 
 # A UI run on a nearly full disk gets its runner killed by macOS's cache purge (`Test crashed with signal kill`,

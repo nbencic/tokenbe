@@ -33,6 +33,12 @@ public protocol UsageRepository: Sendable {
   func writeUsagePage(_ page: UsagePageWrite) async throws
   /// Oldest bucket first.
   func fetchUsageBuckets(accountID: String) async throws -> [UsageBucketRecord]
+  /// 14 § Stage 5.2 step 2: in ONE transaction, prices again every bucket of the account that starts at or after
+  /// `since` and stores the `est_cost_cents` and `unpriced` that changed. Returns the number of rows changed.
+  func repriceUsage(accountID: String, since: String,
+                    price: @escaping @Sendable (UsageBucketRecord) -> UsageBucketRecord) async throws -> Int
+  /// Distinct models with an unpriced bucket starting at or after `since` (the Price book's `N unpriced`).
+  func fetchUnpricedModels(since: String) async throws -> [String]
 }
 
 extension GRDBRepository {
@@ -66,6 +72,33 @@ extension GRDBRepository {
       try UsageBucketRecord.filter(Column("account_id") == accountID)
         .order(Column("bucket_start"), Column("model"), Column("provider_key_id"), Column("service_tier"))
         .fetchAll(db)
+    }
+  }
+}
+
+extension GRDBRepository {
+  public func repriceUsage(accountID: String, since: String,
+                           price: @escaping @Sendable (UsageBucketRecord) -> UsageBucketRecord) async throws -> Int {
+    try await database.write("repriceUsage") { db in
+      var changed = 0
+      let rows = try UsageBucketRecord
+        .filter(Column("account_id") == accountID && Column("bucket_start") >= since)
+        .fetchAll(db)
+      for row in rows {
+        let priced = price(row)
+        guard priced.estCostCents != row.estCostCents || priced.unpriced != row.unpriced else { continue }
+        try priced.update(db, columns: ["est_cost_cents", "unpriced"])
+        changed += 1
+      }
+      return changed
+    }
+  }
+
+  public func fetchUnpricedModels(since: String) async throws -> [String] {
+    try await database.read { db in
+      try String.fetchAll(db, sql: """
+        SELECT DISTINCT model FROM usage_bucket WHERE unpriced = 1 AND bucket_start >= ? ORDER BY model
+        """, arguments: [since])
     }
   }
 }

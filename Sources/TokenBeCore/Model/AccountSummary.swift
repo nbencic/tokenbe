@@ -52,12 +52,16 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var isPaused: Bool
   public var needsKey: Bool
   public var circuitOpenUntil: Date?
-  public var todaySpendCents: Int64?
+  /// Today's spend (UTC day; 05: the usage estimate for the open day). Nil before the first usage or cost poll.
+  public var todaySpend: SpendFigure?
+  /// Spend over the Dashboard range (`tb.ui.dashboardRange`), for the numbers strip and the Overview subline.
+  public var rangeSpend: SpendFigure?
   public var spend30dCents: Int64?
   public var autoReload: AutoReload?
   public var anchorAgeDays: Int?
   public var topApps: [AppSpend]
-  public var unpricedCents: Int64
+  /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
+  public var unpriced: UnpricedFigure?
   /// `account.capabilities`; nil when the stored JSON cannot be read (the coordinator logs that once).
   public var capabilities: Capabilities?
   /// `account.interval_override_json`, clamped (09); the stale threshold uses the same interval as the scheduler.
@@ -71,8 +75,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     burnTodayCents: Int64? = nil, runway7d: TimeInterval? = nil, runwayToday: TimeInterval? = nil,
     runwayMin: TimeInterval? = nil, band: Band = .unknown, bandSince: Date? = nil, freshness: [Job: Date?] = [:],
     isStale: Bool = false, isPaused: Bool = false, needsKey: Bool = false, circuitOpenUntil: Date? = nil,
-    todaySpendCents: Int64? = nil, spend30dCents: Int64? = nil, autoReload: AutoReload? = nil,
-    anchorAgeDays: Int? = nil, topApps: [AppSpend] = [], unpricedCents: Int64 = 0, capabilities: Capabilities? = nil,
+    todaySpend: SpendFigure? = nil, rangeSpend: SpendFigure? = nil, spend30dCents: Int64? = nil, autoReload: AutoReload? = nil,
+    anchorAgeDays: Int? = nil, topApps: [AppSpend] = [], unpriced: UnpricedFigure? = nil, capabilities: Capabilities? = nil,
     intervalOverride: IntervalOverride = IntervalOverride(), sources: [SourceStatus] = []
   ) {
     self.id = id
@@ -94,16 +98,20 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     self.isPaused = isPaused
     self.needsKey = needsKey
     self.circuitOpenUntil = circuitOpenUntil
-    self.todaySpendCents = todaySpendCents
+    self.todaySpend = todaySpend
+    self.rangeSpend = rangeSpend
     self.spend30dCents = spend30dCents
     self.autoReload = autoReload
     self.anchorAgeDays = anchorAgeDays
     self.topApps = topApps
-    self.unpricedCents = unpricedCents
+    self.unpriced = unpriced
     self.capabilities = capabilities
     self.intervalOverride = intervalOverride
     self.sources = sources
   }
+
+  /// Row 2's `todaySpend` metric (09 `tb.popover.pinnedMetric`).
+  public var todaySpendCents: Int64? { todaySpend?.cents }
 
   /// Most recent successful poll of any job, nil before the first one ("No data yet", 08).
   public var lastSuccessAt: Date? {
