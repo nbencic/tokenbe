@@ -38,7 +38,7 @@ E2E-4 runs as a Core test with `RecordingNotifier`: a fixture driven to critical
 ## Verify and CI failures
 - Stage-only run 1: failed at `5.4 UI tests never reach macOS notifications`. The check looked 2 lines above `struct FileNotifier`, but the doc comment put `#if DEBUG` 3 lines up. **Fix:** 4 lines of context.
 - Stage-only run 2: every 5.4 check ok; only D13 (this file) failed, as expected.
-- Full verify (`TB_UI_TESTS=0`): see the PR body.
+- Full verify run 1 (`TB_UI_TESTS=0`, in a separate worktree while 5.5 was built): `STAGE 5.4 OK`, 1071 `ok`, 24 `skip` (23 UI, Q-041; 1 H2). It passed first time: PM-5.3-4's guard sweep found nothing in earlier scripts to update for this stage.
 
 ## Deviations from the docs
 - **14 § 0.3:** `Notifier` lives in Core. The production implementations are `UNNotifier` and, in DEBUG UI tests, `FileNotifier` (Q-043).
