@@ -21,7 +21,7 @@ D1–D13 are met. UI tests compile (`build-uitest`) but did not run: the owner c
   - the balance job's interval and capability gating;
   - the recorder's `deepseek` case.
 - **Asked at the start (PM-5.1-4).** H3 and the phase's UI-test cadence were both asked before any code, in one question.
-- **The guard sweep before the first full verify (PM-5.3-4)** found one literal check on a line this stage changed: 3.4's `ProviderRegistry(adapters: [OpenAIAdapter()])`. It now checks the prefix. 3.4's FixtureTransport check, 5.3's band-order awk and 2.1/3.4's `Repository` greps still hold by construction.
+- **The guard sweep before the first full verify (PM-5.3-4)** found one literal check on a line this stage changed: 3.4's `ProviderRegistry(adapters: [OpenAIAdapter()])` (`3.4.sh` is in 14's 6.1 inventory). It now checks the prefix. 3.4's FixtureTransport check, 5.3's band-order awk and 2.1/3.4's `Repository` greps still hold by construction.
 - **6.1's static checks were dry-run on their own (PM-1.3-5)** before the full verify; all passed.
 - **Coverage:** 97.47 % (gate 97 %, PM-5.5-2).
 
@@ -32,6 +32,7 @@ D1–D13 are met. UI tests compile (`build-uitest`) but did not run: the owner c
 4. **Found in review, not by a test.** A forced `critical` has no runway, so the banner and notification would have read `DeepSeek: < 1 h left`, which is false. **Fix:** both say the account is unavailable (Q-045, 08), and `OverviewTotalsTests` asserts the wording.
 
 ## Verify and CI failures
+- Full verify run 1 (`TB_UI_TESTS=0`): `FAIL 2.1 001_initial.sql contains 03's DDL verbatim`. **Root cause:** to note `unavailable` (advisor's D9 point), I edited the `inputs_json` comment inside 03's DDL. 2.1 checks that 03's DDL and the forward-only migration match byte for byte, comments included. **Fix:** reverted; the key is documented in 07 and Q-045, and 03's comment stays as migrated. **Lesson:** 03's DDL block is the migration; never edit it outside a new migration. Cost: one 12-minute verify.
 - `swift test` run 1: 19 issues, all in `DeepSeekTests` (item 2). Run 2: 451 tests passed.
 - `swiftlint --strict`: one `type_body_length` on `Poller` (item 3); clean after.
 - Full verify (`TB_UI_TESTS=0`, Q-041): see the PR description for its summary line.
