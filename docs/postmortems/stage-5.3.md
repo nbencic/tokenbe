@@ -80,9 +80,9 @@ D1–D13 are met, with the UI part deferred. Per the owner's instruction (Q-041)
 
 ## Carry-forward actions
 - PM-5.3-1 · agent · 5.4 · **closed (Stage 5.4)** · `AlertPolicy` should consume `ui.band_change`'s transitions through `BandRecorder` (the one place a change is known). It should not notify on `launch` changes that only restore a persisted band, and should define whether a `launch` change into `low` notifies.
-- PM-5.3-2 · agent · 5.5 · Run `AnchorRunwayUITests` (with E2E-9 on its log) and the existing suites whose card text changed: `OnboardingUITests` now accepts `≈ $200` or `No data yet` in row 2.
+- PM-5.3-2 · agent · 5.5 · **closed (Stage 5.5)** · Run `AnchorRunwayUITests` (with E2E-9 on its log) and the existing suites whose card text changed: `OnboardingUITests` now accepts `≈ $200` or `No data yet` in row 2.
 - PM-5.3-4 · agent · process · Before a stage's first full verify, grep earlier stage scripts for D6 "not yet" guards and literal greps on the files the stage touched, and run the stage range from the oldest affected stage (a local copy of `verify-stage.sh` started at that index). Three of 5.3's four verify failures were such checks.
-- PM-5.3-3 · agent · 5.5 · Startup step 8 renders the glyph from persisted `band_state`. `BandRecorder` already seeds from it; the glyph must not wait for the first evaluation.
+- PM-5.3-3 · agent · 5.5 · **closed (Stage 5.5)** · Startup step 8 renders the glyph from persisted `band_state`. `BandRecorder` already seeds from it; the glyph must not wait for the first evaluation.
 - Earlier actions that targeted this stage:
   - PM-5.2-1: closed (`Spend.daily` feeds burn, since-anchor and the strip).
   - PM-5.2-3 (reprice race): accepted in Q-040; no change.

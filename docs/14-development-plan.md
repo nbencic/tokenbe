@@ -533,7 +533,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 1. `AppModel.glyphState`: `.dashed` if any stale/offline, else `.notched` if any `low`/`critical`, else `.solid`. Text from `AccountSummary` per metric, width ≤ 64 pt.
 2. Startup step 8: render from persisted `band_state` before the first poll.
 
-**Inventory** — Files: `Components/MenuBarGlyph.swift`, `AppModel.swift`. Settings: `tb.menubar.metric` (consumed). Events: none new.
+**Inventory** — Files: `Components/MenuBarGlyph.swift`, `AppModel.swift`, `TokenBeApp.swift` (the label: glyph + metric), `Model/GlyphState.swift` (Core: `GlyphState`, `MenuBarMetric`), `Store/Repository+Band.swift` (`fetchBandStates`), `Startup.swift` + `AppEnvironment.swift` (step 8 `glyph`), `Tests/TokenBeCoreTests/StartupSequenceTests.swift` (D7), `scripts/stages/5.5.sh`. Settings: `tb.menubar.metric` (consumed). Events: none new.
 **Tests:** `GlyphStateTests` (Core logic extracted to `Model/GlyphState.swift`), `TokenBeUITests/GlyphMetricUITests`.
 **Verify:** tests.
 **Stage DoD:** D1–D12.

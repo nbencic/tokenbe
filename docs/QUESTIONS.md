@@ -552,3 +552,12 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Copy:** 08's runway body (`OpenAI: ~1 d of runway left (≈ $9 ± 2).`; without a remaining amount, the parenthesis is left out). Authored: the title `TokenBe`; `OpenAI: set an anchor to see runway.`; `OpenAI: no fresh data for over 6 h.`; the test body `Notifications from TokenBe are on.`; the toggle labels; `Sent` / `Not sent: notifications are off`.
 - **Quiet-hours times:** time pickers that write 09's `HH:mm` strings. The 01 S11 "optional Shortcut" is not built: no doc defines it, and R9 forbids adding controls 08/09 do not list.
 Blocking: no
+
+## Q-044 Stage 5.5: glyph and menu-bar metric rules the docs leave open            (2026-11-15)
+Context: 14 § Stage 5.5; `Model/GlyphState.swift`, `TokenBeApp.swift`, `Startup.swift` (step 8).
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **Step 8:** a startup step `glyph` after `daily activity` reads `band_state` into the environment. Until the accounts are observed, the glyph uses those bands. Afterwards, an account with no poll yet uses its stored band, and a polled one its computed band.
+- **Metric text:** `minRunway` is the shortest `runway_min` among accounts not `unknown`, in 05's rule without spaces or `~` (`<1h`, `30h`, `12d`, `>60d`). `minRemaining` is the lowest remaining (negative as 0) in that account's currency. `todaySpend` is today's spend summed over USD accounts (05 § Currency), without `≈` (the menu bar has no room; the popover keeps it). Nothing known yet → no text. Width: `.frame(maxWidth: 64)`, one line.
+- **UI test:** the metric is set with a launch argument (`-tb.menubar.metric`), so the shared UI-test settings suite is not changed (PM-4.2-5).
+- **Accessibility:** a `MenuBarExtra` status item exposes only the glyph image's label, not the text beside it, so the glyph's label carries the metric: `TokenBe, 12d`. VoiceOver reads it, and the UI test asserts it.
+Blocking: no

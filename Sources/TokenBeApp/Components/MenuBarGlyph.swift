@@ -1,27 +1,21 @@
 import AppKit
 import SwiftUI
-
-/// The glyph's three shapes (08 § Menu bar glyph). Colour is never used in the menu bar; the shape carries the state.
-enum GlyphState: String, CaseIterable {
-  /// All accounts healthy or watch.
-  case solid
-  /// Any account low or critical.
-  case notched
-  /// Any account stale, or offline.
-  case dashed
-}
+import TokenBeCore
 
 /// An 18 pt template image with a 1.5 pt ring (O-2), drawn in code. Menu-bar labels render images, not SwiftUI
-/// shapes, so each state is drawn once into an `NSImage`.
+/// shapes, so each state is drawn once into an `NSImage`. `GlyphState` (Core) decides the shape (5.5).
 struct MenuBarGlyph: View {
   static let size = CGSize(width: 18, height: 18)
   static let lineWidth: CGFloat = 1.5
 
   let state: GlyphState
+  /// 09 `tb.menubar.metric`'s text, also read out with the name (`TokenBe, 12d`): the status item exposes only the
+  /// glyph's label to accessibility, not the text beside it (Q-044).
+  var metric: String?
 
   var body: some View {
     Image(nsImage: Self.image(for: state))
-      .accessibilityLabel(Strings.appName)
+      .accessibilityLabel(metric.map { "\(Strings.appName), \($0)" } ?? Strings.appName)
       // The shape, for VoiceOver and the UI tests (`glyph.dashed`, 14 § Stage 4.2).
       .accessibilityValue(state.rawValue)
       .accessibilityIdentifier("glyph.\(state.rawValue)")

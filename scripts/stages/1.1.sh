@@ -19,8 +19,9 @@ done
 # A control appears only with its action (D6). `Open dashboard` arrived in 1.2, `Settings…` in 1.3, `Add account…`
 # in 3.5, and `Pause polling for 1 h` and the refresh button (`arrow.clockwise`) in 4.1, each with its action; 4.1.sh
 # checks the last two.
-for shape in "case solid" "case notched" "case dashed"; do
-  check "glyph shape: $shape" grep -qF "$shape" Sources/TokenBeApp/Components/MenuBarGlyph.swift
+# The three shapes: 5.5 moved `GlyphState` to Core (`Model/GlyphState.swift`); the app draws each case.
+for shape in solid notched dashed; do
+  check "glyph shape: $shape" bash -c "grep -qE 'case [a-z, ]*$shape' Sources/TokenBeCore/Model/GlyphState.swift && grep -qF 'case .$shape: $shape' Sources/TokenBeApp/Components/MenuBarGlyph.swift"
 done
 check "PopoverTracker emits ui.popover_open" grep -q "uiPopoverOpen" Sources/TokenBeCore/Presentation/PopoverTracker.swift
 check "PopoverTracker emits ui.popover_close" grep -q "uiPopoverClose" Sources/TokenBeCore/Presentation/PopoverTracker.swift

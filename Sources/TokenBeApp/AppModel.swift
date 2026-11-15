@@ -33,6 +33,8 @@ final class AppModel {
   private(set) var records: [AccountRecord] = []
   /// Every `ledger_event` row, oldest first, for the account page's ledger list (08 § Account detail 7).
   private(set) var ledgerEvents: [LedgerEventRecord] = []
+  /// `band_state` as observed, for the glyph before an account's first poll (04 step 8).
+  private(set) var bandStates: [BandStateRecord] = []
   /// Keychain refs with no item (04 startup step 3); cleared for an account once its key is replaced.
   var missingKeys: Set<String> = [] {
     didSet { rebuild() }
@@ -82,10 +84,18 @@ final class AppModel {
   /// Sleeps until the next account turns stale, then rebuilds (stale needs no database write, 14 § Stage 4.2).
   @ObservationIgnored private var staleWatcher: Task<Void, Never>?
 
-  /// 08 § Menu bar glyph: dashed when any account is stale or the Mac is offline (4.2); low/critical (5.5) wires
-  /// the notch.
+  /// 08 § Menu bar glyph (Core `GlyphState`): dashed when any account is stale or the Mac is offline, notched when
+  /// any is low or critical, else solid. Until the accounts are observed and polled, the persisted bands decide
+  /// (04 step 8).
   var glyphState: GlyphState {
-    isOffline || accounts.contains(where: \.isStale) ? .dashed : .solid
+    let persisted = lastInputs.accounts.isEmpty ? environment?.initialBands ?? [] : bandStates
+    return GlyphState.state(accounts: accounts, offline: isOffline, persisted: persisted)
+  }
+
+  /// The text right of the glyph (09 `tb.menubar.metric`); nil for `none` or before anything is known.
+  var menuBarText: String? {
+    MenuBarMetric(rawValue: menuBarMetric)?.text(accounts, hideCents: environment?.settings.uiHideCents ?? true,
+                                                  locale: .current)
   }
 
   /// The accent every scene uses (09 `tb.ui.useSystemAccent`): nil follows the system accent colour, otherwise
@@ -188,6 +198,7 @@ final class AppModel {
   private func rebuild(trigger: BandRecorder.Trigger = .clock) {
     if records != lastInputs.accounts { records = lastInputs.accounts }
     if ledgerEvents != lastInputs.ledgerEvents { ledgerEvents = lastInputs.ledgerEvents }
+    if bandStates != lastInputs.bandStates { bandStates = lastInputs.bandStates }
     let settings = environment?.settings
     let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
     let now = Date()
@@ -239,7 +250,8 @@ final class AppModel {
     }
   }
 
-  private static let watchedKeys: Set<SettingsKey> = [.uiAppearance, .uiUseSystemAccent, .menubarMetric, .popoverSort]
+  private static let watchedKeys: Set<SettingsKey> = [.uiAppearance, .uiUseSystemAccent, .menubarMetric, .popoverSort,
+                                                      .uiHideCents]
   /// Keys the stale threshold reads (09 `tb.alerts.staleMultiplier`, § Sources).
   /// … and the range the numbers strip and the Overview subline sum over (09 `tb.ui.dashboardRange`).
   /// `Send test notification` (Alerts tab): false when it could not be sent (denied, or the system refused).

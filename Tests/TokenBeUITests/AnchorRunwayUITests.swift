@@ -31,8 +31,11 @@ final class AnchorRunwayUITests: XCTestCase {
     try onboard(app, anchor: "100")
     let pinned = control(app, "popover.card.openai.pinned")
     XCTAssertTrue(openPopover(app, until: pinned), "the popover shows the card")
-    XCTAssertTrue(waitFor { self.text(pinned).hasPrefix("\u{2248} $100 \u{00B1} ") }, "set anchor → `≈ $100 ± …`")
-    XCTAssertEqual(text(control(app, "popover.card.openai.row3")), "Collecting\u{2026} runway after 2 days of data")
+    // `≈ $100 ± 0` or `≈ $100,00 ± 0,00`: the locale and the shared suite's `tb.ui.hideCents` decide the cents.
+    XCTAssertTrue(waitFor { self.text(pinned).hasPrefix("\u{2248} $100") && self.text(pinned).contains(" \u{00B1} ") },
+                  "set anchor → `≈ $100 ± …`, got `\(text(pinned))` / `\(text(control(app, "popover.card.openai.row3")))`")
+    XCTAssertTrue(text(control(app, "popover.card.openai.row3")).hasSuffix("Collecting\u{2026} runway after 2 days of data"),
+                  "Day-1: row 3 ends with 08's collecting text")
     XCTAssertFalse(control(app, "popover.banner.alert").exists, "no banner while the band is unknown with an anchor")
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
@@ -50,7 +53,8 @@ final class AnchorRunwayUITests: XCTestCase {
                   "the banner opens the account page")
     XCTAssertTrue(control(again, "dashboard.ledger.row.anchor").exists, "the ledger lists the anchor")
     // PM-4.2-1: the header's band pill names the band (08 § Accessibility: colour is never the only carrier).
-    XCTAssertTrue(control(again, "dashboard.account.band").label.contains("critical"), "the pill says critical")
+    let pill = control(again, "dashboard.account.band")
+    XCTAssertTrue(waitFor { self.text(pill) == "Band: critical" }, "the pill says critical: `\(text(pill))`")
     again.typeKey("q", modifierFlags: .command)
     XCTAssertTrue(waitFor { self.logLinesOrNone().contains { $0.contains("\"evt\":\"ui.band_change\"") } },
                   "the change to critical is logged")
