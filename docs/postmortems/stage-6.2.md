@@ -1,5 +1,5 @@
 # Postmortem — Stage 6.2 xAI adapter
-Date: 2026-11-15 · Branch: s6.2-xai-adapter · PR: #29 · Planned size: S · Commits: 4
+Date: 2026-11-15 · Branch: s6.2-xai-adapter · PR: #29 · Planned size: S · Commits: 5
 
 ## Outcome
 A user can add an xAI account with a standard API key (Debug builds; Release only once `xai/RECORDED` exists). The mode is set by the probe (D-xai-balance), which calls `GET /v1/api-key`:
@@ -22,12 +22,14 @@ This stage closes phase 6. Its verify ran the full UI suite once (Q-041, the own
 - **Coverage:** 97.40 %.
 
 ## What went wrong
-- One compile error in the new test: `LogRecord`'s level property is `lvl`. **Cost:** one build. Nothing else; the evidence is in the next section.
+1. **A doc comment tripped the URL guard.** **Symptom:** `0.5 check-no-secrets.sh`: `URL outside the allowlist in Sources/: https://<host><path>`. **Root cause:** `BearerRequest.swift`'s comment wrote a URL template, and the guard reads any `https://` text in `Sources/` as an outbound host (R4). **Fix:** the comment says "an HTTPS GET of a host and path". **Cost:** one full verify (its UI suite had already passed). **Lesson:** extends PM-1.2-1 to the URL guard: run `scripts/check-no-secrets.sh` after adding comments that mention URLs.
+2. One compile error in the new test: `LogRecord`'s level property is `lvl`. **Cost:** one build.
 
 ## Verify and CI failures
 - `swift test`: 460 tests passed on the first full run.
 - `swiftlint --strict`: clean on the first run.
-- The full verify (UI on) is recorded below once it finishes.
+- Full verify run 1 (UI on, phase close): the whole UI suite passed, 18 tests with 0 failures in 881 s. The run then stopped at `0.5 check-no-secrets.sh` (item 1). Run 1 checks 0.x first and runs the UI suite inside 0.4, so nothing after 0.5 had run yet.
+- Full verify run 2 (`TB_UI_TESTS=0`, PM-5.1-5): `STAGE 6.2 OK`, 1155 `ok`, 28 `skip`. The skips are 27 UI checks plus H2. The only change between the runs is the comment, so run 1's UI result stands for this tree.
 
 ## Deviations from the docs
 - **14 § 6.2:** the files are prefixed (`XAI{DTOs,Probe,Client}.swift`). The fixtures include `api_key.401`. The inventory names every touched file, including `BearerRequest.swift` and `6.1.sh`. The tests include `DirectBalanceUITests`.

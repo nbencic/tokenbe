@@ -30,7 +30,11 @@ Date: 2026-11-15 · Stages: 6.1 (#28), 6.2 (#29)
   - the banner's `DeepSeek: account unavailable`.
 - **11:** the 401 fixtures of both providers.
 - **Judgment calls:** Q-045 (6.1), Q-046 (6.2).
-- **Process:** the owner chose Q-041's cadence for phase 6 too: one full UI run, at 6.2.
+- **Process:** the owner chose Q-041's cadence for phase 6 too: one full UI run, at 6.2. From phase 7 the owner wants UI tests run only where code was added or changed (confirmed 2026-11-15). 7.1 builds this as Q-047:
+  - each suite declares the app paths it covers, and verify runs the suites whose paths the branch touched;
+  - the launch and empty-popover smoke tests always run;
+  - a change to shared files (`AppModel`, `Startup`, `AppEnvironment`, UI-test support) runs the full suite;
+  - the full suite runs once more before 11.5.
 - **Proposed for later phases:**
   - 7.2 makes harness spend the burn of both providers (PM-6.1-3, PM-6.2-2).
   - D-deepseek-single-app's inferred attribution should read balance deltas from `balance_snapshot`.
