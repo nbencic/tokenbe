@@ -591,3 +591,15 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Shared request:** DeepSeek and xAI each call one Bearer-authenticated endpoint, so both use `BearerRequest.get` rather than two copies.
 - **Step 3 (H3):** the owner has an xAI key and runs the recorder (open gate). When it is recorded, the PR that consumes H3 updates `13 § D-xai-balance` with the recorded shape and `Verified += .xai`. This is not "resolved-by-scope".
 Blocking: no
+
+## Q-047 Process: UI tests run only for the suites that cover changed code            (2026-11-15)
+Context: the owner's request of 2026-11-15 ("run UI tests only for suites covering changed/added code", confirmed "yes, do it that way from phase 7"); `scripts/{verify-stage,run,ui-select}.sh`, `Tests/TokenBeUITests/*.swift`.
+Options: A) keep Q-031 (any app change runs every suite) and Q-041 (phases 5–6: one full run at the phase end); B) each suite declares the paths it covers and verify runs the suites the branch touched.
+Chosen for now: B — the owner asked for it. It supersedes Q-031 and Q-041 from phase 7 on:
+- Every suite has `// ui-covers:` lines: repo-relative path prefixes (app or Core), or `always`. `scripts/ui-select.sh` (`--explain` says why) selects a suite when the branch (commits since main, uncommitted edits, untracked files) changes one of its paths or the suite's own file.
+- `LaunchSmokeTests` and `PopoverEmptyStateUITests` always run. A change to a shared file runs every suite: the owner's list (`AppModel`, `Startup`, `AppEnvironment`, `UITestSupport`) plus the files every suite equally depends on (`TokenBeApp.swift`, the scene root; Core's `Store/Observation.swift`, the UI's only data feed; `TokenBe.xcodeproj/`, `Config/`).
+- UI tests stay off for a branch that changes no `Sources/`, UI-test, project or `Config/` file. A phase-closing stage no longer forces the full suite.
+- `TB_UI_TESTS=0` turns UI tests off; `TB_UI_TESTS=1` runs every suite. The full suite runs once more before 11.5 (14 § 11.5).
+- A `ui_check` reads the suite its command names (`Test Suite 'X'`, `TokenBeUITests.X`) and prints `skip` when that suite was not selected. Checks that read what a suite leaves behind name it with `ui_check_for <Suite>`: 1.3's settings values (`SettingsGeneralUITests`) and 4.1's 190 s cadence run (`RefreshPauseUITests`, whose paths include `Scheduling/`).
+- 7.1's stage script checks that every suite declares its paths and that every declared path exists.
+Blocking: no

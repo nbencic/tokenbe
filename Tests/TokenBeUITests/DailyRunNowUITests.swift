@@ -1,5 +1,8 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/DailyActivityRegistration.swift Sources/TokenBeApp/SettingsUI/SourcesTab.swift
+// ui-covers: Sources/TokenBeApp/SettingsUI/AdvancedTab.swift Sources/TokenBeApp/Dashboard/SourcesStrip.swift
+// ui-covers: Sources/TokenBeCore/Scheduling/DailyActivity.swift
 /// 14 § Stage 4.3 Tests, `DailyRunNowUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT` (Q-014):
 /// Settings → Sources → `Run daily tasks now` runs the daily activity out of band (04). The log shows
 /// `sched.daily_start … poll.ok cost … db.backup … db.vacuum … sched.daily_end` in that order (14 Verify), with no

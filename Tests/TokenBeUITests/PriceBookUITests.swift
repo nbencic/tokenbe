@@ -1,6 +1,9 @@
 import SQLite3
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/SettingsUI/PriceBookSection.swift Sources/TokenBeApp/SettingsUI/SourcesTab.swift
+// ui-covers: Sources/TokenBeApp/PriceBookModel.swift Sources/TokenBeApp/Resources/prices.bundled
+// ui-covers: Sources/TokenBeCore/Pricing/
 /// 14 § Stage 5.1 Tests, `PriceBookUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT` (Q-014), so no
 /// request reaches the feed. First launch installs the bundled snapshot (`price.feed_ok source=bundled`, one
 /// `price_snapshot` row: 14 Verify). Settings → Sources → Price book: `+` adds an override (one `price_override` row,

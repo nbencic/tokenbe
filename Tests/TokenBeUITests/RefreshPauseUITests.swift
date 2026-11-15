@@ -1,5 +1,7 @@
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Popover/PopoverView.swift Sources/TokenBeApp/SettingsUI/SourcesTab.swift
+// ui-covers: Sources/TokenBeApp/SettingsUI/AccountsTab.swift Sources/TokenBeCore/Scheduling/
 /// 14 § Stage 4.1 Tests, `RefreshPauseUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT` (Q-014):
 /// - a new account is polled at once by the coordinator, and the header reads `Refreshed …`;
 /// - the refresh button runs the jobs again;

@@ -1,6 +1,11 @@
 import SQLite3
 import XCTest
 
+// ui-covers: Sources/TokenBeApp/Onboarding/ Sources/TokenBeApp/Popover/AccountCardView.swift
+// ui-covers: Sources/TokenBeApp/Popover/AlertBanner.swift Sources/TokenBeApp/Dashboard/AccountDetailView.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/LedgerList.swift Sources/TokenBeApp/Dashboard/NumbersStrip.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/SetAnchorSheet.swift Sources/TokenBeCore/Ledger/
+// ui-covers: Sources/TokenBeCore/Presentation/AccountPresentation.swift
 /// 14 § Stage 5.3 Tests, `AnchorRunwayUITests` (E2E-2), in fixture mode under a throwaway `TOKENBE_TEST_ROOT`:
 /// - onboarding with a $100 anchor and empty usage fixtures → the card reads `≈ $100 ± 0` with Day-1's
 ///   `Collecting… runway after 2 days of data`, and the banner offers nothing;

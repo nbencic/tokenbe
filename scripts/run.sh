@@ -25,9 +25,12 @@ case "$task" in
   # Compiles the app and the UI tests without running them (Q-041: phase 5 runs its UI tests once, at its end).
   build-uitest)  cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
                       -derivedDataPath build/DerivedData build-for-testing);    timeout=900 ;;
-  # `TB_UI_ONLY=<Suite>[/<test>]` runs one UI-test suite or case (reruns and spikes); unset runs them all.
-  uitest)        cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
-                      -derivedDataPath build/DerivedData test ${TB_UI_ONLY:+-only-testing:TokenBeUITests/$TB_UI_ONLY});
+  # `TB_UI_ONLY="<Suite>[/<test>] …"` runs those UI-test suites or cases (reruns and spikes). Otherwise
+  # `TB_UI_SUITES` (set by verify-stage.sh from scripts/ui-select.sh, Q-047) picks the suites; unset or ALL runs all.
+  uitest)        only="${TB_UI_ONLY:-${TB_UI_SUITES:-ALL}}"; [[ "$only" == ALL ]] && only=""
+                 cmd=(xcodebuild -project TokenBe.xcodeproj -scheme TokenBe -configuration Debug
+                      -derivedDataPath build/DerivedData test)
+                 for suite in $only; do cmd+=("-only-testing:TokenBeUITests/$suite"); done
                  timeout=1800 ;;
   *) echo "run.sh: unknown task '${task}'. Known: build build-release test lint build-app build-app-release build-uitest uitest" >&2; exit 2 ;;
 esac

@@ -47,6 +47,6 @@ check "the test asserts launch at login after its relaunch" grep -qF '"launch at
 for pair in tb.menubar.metric=todaySpend tb.popover.pinnedMetric=remaining \
             tb.popover.sort=name tb.ui.hideCents=0 tb.ui.useSystemAccent=0 tb.ui.appearance=dark \
             tb.ui.shortcut=ctrl+alt+t tb.log.level=info; do
-  ui_check "UI-test suite: ${pair%%=*} = ${pair#*=}" suite_is "${pair%%=*}" "${pair#*=}"
+  ui_check_for SettingsGeneralUITests "UI-test suite: ${pair%%=*} = ${pair#*=}" suite_is "${pair%%=*}" "${pair#*=}"
 done
 check "owner's real TokenBe settings (tb.*) unchanged after the Settings UI tests" real_tb_unchanged
