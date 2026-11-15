@@ -508,6 +508,7 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Before the first poll** the spend cells read `No data yet`; after a usage or cost poll they show the figure, `$0.00` included.
 - **Overview subline:** `Total spend <range> $X` (+ `+ N non-USD` when other currencies exist, 05 § Currency), under the title; 5.3 adds the headline above it.
 - **Paper:** Paper Desktop was not running in this session, so the numbers strip and the subline follow 08's copy only; reconciliation is 11.3's.
+- **Known race:** a poll that priced its rows just before an override change can write them just after the reprice; the next reprice or the next poll of that hour corrects them. Accepted (no lock between the poller and the price book).
 Blocking: no
 
 ## Q-041 Process: phase 5 UI tests run once, at its end            (2026-11-15)

@@ -8,7 +8,7 @@ Every usage row now gets `est_cost_cents` and `unpriced` before it is written. T
 - **Throttled logs:** `price.unpriced` and `price.fallback_multiplier` log once per model per UTC day.
 - **UI:** the account page has a numbers strip with `Spend today`, `Spend in range` and `Unpriced in range` (only with unpriced usage, in `HealthWatch`). The Overview shows `Total spend <range>` for USD accounts plus `+ N non-USD`. The Price book line shows `N unpriced`.
 
-D1–D13 are met. UI tests did not run in this stage: the owner asked on 2026-11-15 for phase 5's UI tests to run once at its end (Q-041). The UI-test target compiles (`run.sh build-uitest`). Gate H2 is still open (PM-3.6-1) and does not block this stage. Paper Desktop was not running, so the strip follows 08's copy (Q-040).
+D1–D13 are met, with one deferral. D10's launch checks ran: 0.4 and 2.1, clean launch and relaunch with zero `error`/`fault`. The check with a polled account is a UI check (4.1) and is deferred to 5.5. UI tests did not run in this stage: the owner asked on 2026-11-15 for phase 5's UI tests to run once at its end (Q-041). The UI-test target compiles (`run.sh build-uitest`). Gate H2 is still open (PM-3.6-1) and does not block this stage. Paper Desktop was not running, so the strip follows 08's copy (Q-040).
 
 ## What went as planned
 - Pure Core:
@@ -50,6 +50,7 @@ D1–D13 are met. UI tests did not run in this stage: the owner asked on 2026-11
 
 ## Carry-forward actions
 - PM-5.2-1 · agent · 5.3 · Burn and `spend_since_anchor` should reuse `Spend.spend`'s per-day truth-then-estimate rule (Q-040), so the strip and the runway never disagree.
+- PM-5.2-3 · agent · 5.3 · Reprice race (non-blocking): a poll that priced its rows before an override change can write them after `repriceAll` finished. The next reprice, or the next poll of that hour, corrects them. Noted in Q-040; no fix planned.
 - PM-5.2-2 · agent · 5.5 · Run the full UI suite (Q-041). It covers every phase-5 UI test, including those that 5.2–5.4 compiled but did not run.
 - Earlier actions that targeted this stage:
   - PM-5.1-1: closed (`N unpriced` in the snapshot line; reprice on a snapshot or override change).
