@@ -1,0 +1,17 @@
+case,remaining,burn_7d,burn_today,estimate_band,auto_reload_below,runway_min_s,band
+long runway,100000,1000,,0,,8640000,healthy
+watch,10000,1000,,0,,864000,watch
+low,5000,1000,,0,,432000,low
+critical by runway,1500,1000,,0,,129600,critical
+critical by floor,400,10,,0,,3456000,critical
+two paces take the shorter,10000,1000,2000,0,,432000,low
+today pace only,10000,,2000,0,,432000,low
+no burn,10000,,,0,,,unknown
+no remaining,,1000,,0,,,unknown
+M at least remaining,10000,1000,,10000,,864000,unknown
+zero remaining,0,1000,,0,,0,critical
+negative within one day of burn,-500,1000,,0,,0,critical
+negative past one day of burn (V1),-1500,1000,,0,,0,unknown
+auto-reload forces watch,3000,1000,,0,5000,259200,watch
+auto-reload above threshold,30000,1000,,0,5000,2592000,healthy
+zero burn,1000,0,,0,,,unknown

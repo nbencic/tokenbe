@@ -10,12 +10,17 @@ struct PopoverView: View {
   @Environment(\.openWindow) private var openWindow
   @Environment(\.openSettings) private var openSettings
   @Environment(\.dismiss) private var dismiss
+  /// The card ↑/↓ moves to and ⏎ opens (08 § Popover 4).
+  @FocusState private var focusedCard: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       header
       Divider()
       if model.isOffline { offlineBanner }
+      if let alert = AlertBannerPick.pick(model.sortedAccounts) {
+        AlertBanner(account: alert.account, kind: alert.kind) { openAccount(alert.account.id) }
+      }
       content
       Divider()
       footer
@@ -30,6 +35,20 @@ struct PopoverView: View {
       if NSEvent.modifierFlags.contains(.option) { openDashboard() }
     }
     .onDisappear { model.popoverDidClose() }
+  }
+
+  private func openAccount(_ id: String) {
+    model.showAccount(id)
+    dismiss()
+  }
+
+  /// ↑/↓ move the focus between cards in their order; ⏎ opens the focused card's page (08 § Popover 4).
+  private func moveFocus(by step: Int) -> KeyPress.Result {
+    let ids = model.sortedAccounts.map(\.id)
+    guard !ids.isEmpty else { return .ignored }
+    let index = focusedCard.flatMap { ids.firstIndex(of: $0) }.map { $0 + step } ?? (step > 0 ? 0 : ids.count - 1)
+    focusedCard = ids[min(max(index, 0), ids.count - 1)]
+    return .handled
   }
 
   private func openDashboard() {
@@ -127,16 +146,26 @@ struct PopoverView: View {
   private var cards: some View {
     VStack(spacing: 8) {
       ForEach(model.sortedAccounts) { summary in
-        AccountCardView(summary: summary, dimmed: summary.isStale || model.isOffline) {
+        AccountCardView(summary: summary, dimmed: summary.isStale || model.isOffline,
+                        isFocused: focusedCard == summary.id) {
           model.settingsTab = .accounts
           showSettings()
         } open: {
-          model.showAccount(summary.id)
-          dismiss()
+          openAccount(summary.id)
         }
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focusedCard, equals: summary.id)
       }
     }
     .padding(12)
+    .onKeyPress(.downArrow) { moveFocus(by: 1) }
+    .onKeyPress(.upArrow) { moveFocus(by: -1) }
+    .onKeyPress(.return) {
+      guard let focusedCard else { return .ignored }
+      openAccount(focusedCard)
+      return .handled
+    }
   }
 
   /// 08's four footer actions do not fit one 360 pt row, so they wrap to two (Q-034; Paper check in 11.3).

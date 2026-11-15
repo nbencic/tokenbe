@@ -16,6 +16,17 @@ enum Strings {
   static let keyMissingFix = "Key missing \u{00B7} Fix\u{2026}"
   static let modeAnchored = "\u{2248}"
   static let modeSpendOnly = "spend"
+  /// Day-1 collecting (08 § Popover states, `1XL-0`).
+  static let collecting = "Collecting\u{2026} runway after 2 days of data"
+  /// 05: auto-reload on and remaining at or below its threshold.
+  static func reloadsAt(_ amount: String) -> String { "reloads at \(amount)" }
+  /// Row 3 of a spend-only card (08): `today $3.10 · 30 d $84`; also the `todaySpend` metric outside row 2.
+  static func todaySpend(_ amount: String) -> String { "today \(amount)" }
+  static func spend30d(_ amount: String) -> String { "30 d \(amount)" }
+
+  // Popover — alert banner (08 § Popover 2)
+  static func bannerRunway(_ runway: String) -> String { ": \(runway) left" }
+  static let bannerSetAnchor = ": set an anchor to see runway"
 
   // Popover — footer (08 § Popover 4)
   static func refreshed(_ freshness: String) -> String { "Refreshed \(freshness)" }
@@ -136,7 +147,6 @@ enum Strings {
   static let captionOpenRouter = "Management key"
   static let captionBalanceOnly = "Balance only \u{00B7} apps via harness"
   static let added = "Added"
-  static let cancel = "Cancel"
   static let continueButton = "Continue"
   static let back = "Back"
   static func keyTitle(_ provider: String) -> String { "\(provider) admin key" }
@@ -279,4 +289,73 @@ enum Strings {
   // Sources strip: the price snapshot's chip, `Prices · Nov 8 · ok` (14 § Stage 5.1 step 6)
   static let sourcePrices = "Prices"
   static let sourceStale = "stale"
+}
+
+/// Stage 5.3's copy: the numbers strip, Overview headline and board, account page, sheets, Alerts, auto-reload.
+extension Strings {
+  // Numbers strip (08 § Account detail 3)
+  static let remaining = "Remaining"
+  static let runway = "Runway"
+  static let burn7d = "Burn 7 d"
+  static func perDay(_ amount: String) -> String { "\(amount)/day" }
+
+  // Overview headline and runway board (08 § Overview 1–2)
+  static func shortestRunway(_ label: String, _ runway: String) -> String { "Shortest runway: \(label) \u{00B7} \(runway)" }
+  static func totalRemaining(_ amount: String, usdAccounts: Int, nonUSD: Int) -> String {
+    "Total remaining \(amount) across \(usdAccounts) USD account\(usdAccounts == 1 ? "" : "s")"
+      + (nonUSD > 0 ? " + \(nonUSD) non-USD" : "")
+  }
+  static let boardAccount = "Account"
+  static let boardRemaining = "Remaining"
+  static let boardRunway = "Runway"
+  static let boardBurn = "Burn 7 d/day"
+  static let boardToday = "Today"
+  static let boardFreshness = "Freshness"
+  static let boardBand = "Band"
+
+  // Account page: header, nudges, ledger (08 § Account detail 1, 7; 09 `tb.alerts.anchorAgeDays`; Q-042)
+  static let addTopUp = "Add top-up\u{2026}"
+  static func anchorOld(_ days: Int) -> String { "The anchor is \(days) days old. Set a new one to tighten the estimate." }
+  static let reanchor = "Spend has passed the anchor by more than a day. Set a new anchor."
+  static let ledger = "Ledger"
+  static let ledgerEmpty = "No anchor or top-up yet"
+  static let delete = "Delete"
+  static func ledgerKind(_ kind: String) -> String {
+    switch kind {
+    case "anchor": "Anchor"
+    case "topup": "Top-up"
+    case "reconcile": "Reconcile"
+    case "note": "Note"
+    default: "Auto-zero"
+    }
+  }
+
+  // Set anchor and Add top-up sheets (08)
+  static let amount = "Amount"
+  static let asOf = "As of"
+  static let date = "Date"
+  static let note = "Note"
+  static let anchorHelp = "Enter the balance shown on the provider\u{2019}s billing page right now."
+  static let cancel = "Cancel"
+  static let setAnchorButton = "Set anchor"
+  static let addTopUpButton = "Add top-up"
+  static let ledgerSaveFailed = "TokenBe could not save this entry. Try again."
+
+  // Settings → Alerts (08 § Settings, 09 § Alerts)
+  static let tabAlerts = "Alerts"
+  static let thresholds = "Thresholds"
+  static let watchDays = "Watch below"
+  static let lowDays = "Low below"
+  static let criticalDays = "Critical below"
+  static let dollarFloor = "Critical below amount"
+  static let staleMultiplier = "Stale after"
+  static let driftThreshold = "Flag drift above"
+  static let anchorAge = "Anchor age nudge after"
+  static func intervals(_ value: Int) -> String { "\(value) \u{00D7} interval" }
+  static func percent(_ value: Int) -> String { "\(value) %" }
+
+  // Settings → Accounts: auto-reload (09 `account.auto_reload_*`, 05)
+  static let autoReload = "Auto-reload"
+  static let autoReloadBelow = "Reloads below"
+  static let autoReloadTo = "Adds"
 }

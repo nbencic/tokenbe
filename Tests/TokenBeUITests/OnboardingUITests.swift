@@ -40,7 +40,10 @@ final class OnboardingUITests: XCTestCase {
     // the identifiers.
     XCTAssertTrue(openPopover(app, until: control(app, "popover.card.openai.label")), "the popover shows the card")
     XCTAssertEqual(text(control(app, "popover.card.openai.label")), "OpenAI")
-    XCTAssertEqual(text(control(app, "popover.card.openai.pinned")), "No data yet")
+    // Before the first usage poll the card reads `No data yet`; once it lands (5.3), Day-1 shows the remaining
+    // amount in row 2 (`≈ $200 ± …`), whichever comes first.
+    let pinned = text(control(app, "popover.card.openai.pinned"))
+    XCTAssertTrue(pinned == "No data yet" || pinned.hasPrefix("\u{2248} $200"), "row 2: \(pinned)")
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
 

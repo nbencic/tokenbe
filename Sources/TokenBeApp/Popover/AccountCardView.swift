@@ -2,7 +2,8 @@ import SwiftUI
 import TokenBeCore
 
 /// One account card (08 § Popover 3). Row 1: label, mode chip, band dot. Row 2: the pinned metric
-/// (09 `tb.popover.pinnedMetric`), or "No data yet". Row 3 and 4 fill in as the data exists (Phases 3–7).
+/// (09 `tb.popover.pinnedMetric`), or "No data yet"; row 3: the other two metrics (`CardRows`), Day-1's
+/// `Collecting…`, `reloads at $X`, or a spend-only account's `today $3.10 · 30 d $84` (5.3). Row 4 arrives in 7.1.
 /// The stale overlay (08: opacity 0.6, freshness `stale · 3 h ago` in `HealthLow`) covers a stale account, and every
 /// card while offline, so the state is in the text too, not only in the opacity (08 § Accessibility). A click opens
 /// the account's page in the Dashboard (08).
@@ -10,6 +11,8 @@ struct AccountCardView: View {
   let summary: AccountSummary
   /// Stale, or the Mac is offline (08 § Popover states).
   let dimmed: Bool
+  /// Keyboard focus (↑/↓, 08 § Popover 4): an accent outline.
+  var isFocused = false
   /// `Key missing · Fix…` opens Settings → Accounts (08).
   let fixKey: () -> Void
   let open: () -> Void
@@ -37,9 +40,16 @@ struct AccountCardView: View {
           .font(.system(size: 13, weight: .semibold))
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).fixKey")
       } else {
-        Text(pinnedText)
+        let rows = self.rows
+        Text(rows.row2 ?? Strings.noDataYet)
           .font(.system(size: 20, weight: .semibold).monospacedDigit())
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).pinned")
+        if !rows.row3.isEmpty {
+          Text(rows.row3.joined(separator: " \u{00B7} "))
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).row3")
+        }
       }
       Text(Formatters.freshness(summary.lastSuccessAt, now: Date(), calendar: .current, stale: dimmed))
         .font(.caption.monospacedDigit())
@@ -49,6 +59,9 @@ struct AccountCardView: View {
     .padding(12)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(Color(.ground), in: RoundedRectangle(cornerRadius: 8))
+    .overlay {
+      if isFocused { RoundedRectangle(cornerRadius: 8).strokeBorder(Color.accentColor, lineWidth: 2) }
+    }
     .opacity(dimmed ? 0.6 : 1)
     .contentShape(RoundedRectangle(cornerRadius: 8))
     .onTapGesture(perform: open)
@@ -64,18 +77,45 @@ struct AccountCardView: View {
     }
   }
 
-  /// Row 2 (09 `tb.popover.pinnedMetric`); a metric not known yet reads "No data yet".
-  private var pinnedText: String {
+  /// Rows 2 and 3. Before the first successful poll row 2 reads "No data yet" and row 3 is empty (08).
+  private var rows: (row2: String?, row3: [String]) {
+    guard summary.lastSuccessAt != nil else { return (nil, []) }
     let hideCents = environment?.settings.uiHideCents ?? true
-    switch environment?.settings.popoverPinnedMetric ?? "runway" {
-    case "remaining":
-      guard let cents = summary.remainingCents else { return Strings.noDataYet }
-      return Formatters.remaining(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
-    case "todaySpend":
-      guard let cents = summary.todaySpendCents else { return Strings.noDataYet }
-      return Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
-    default:
-      return Formatters.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday) ?? Strings.noDataYet
+    func money(_ cents: Int64) -> String {
+      Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
     }
+    let today = summary.todaySpend.map {
+      Formatters.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current)
+    }
+    if summary.mode == .spendOnly {
+      let thirty = summary.spend30dCents.map { Strings.spend30d(money($0)) }
+      return (today, [today.map(Strings.todaySpend), thirty].compactMap { $0 })
+    }
+    var values: [CardRows.Metric: String] = [:]
+    values[.remaining] = remainingText(hideCents: hideCents)
+    values[.runway] = runwayText(money: money)
+    values[.todaySpend] = today.map(Strings.todaySpend)
+    let pinned = CardRows.Metric(rawValue: environment?.settings.popoverPinnedMetric ?? "runway") ?? .runway
+    var rows = CardRows.rows(pinned: pinned, values: values)
+    // The pinned metric itself reads without its `today` prefix in row 2.
+    if pinned == .todaySpend, let today, rows.row2 == values[.todaySpend] { rows.row2 = today }
+    return rows
+  }
+
+  /// `≈ $42 ± 3` for an anchored account, `$42` for a direct one (08).
+  private func remainingText(hideCents: Bool) -> String? {
+    guard let cents = summary.remainingCents else { return nil }
+    let amount = Money(cents: cents, currency: summary.currency)
+    if summary.mode == .anchored, let band = summary.estimateBandCents {
+      return Formatters.estimate(amount, bandCents: band, hideCents: hideCents, locale: .current)
+    }
+    return Formatters.remaining(amount, hideCents: hideCents, locale: .current)
+  }
+
+  /// `~12 d · ~9 d today`; `reloads at $X` (05); Day-1 `Collecting…` while `burn_7d` is nil (08).
+  private func runwayText(money: (Int64) -> String) -> String? {
+    if summary.reloadPending, let reload = summary.autoReload { return Strings.reloadsAt(money(reload.belowCents)) }
+    if summary.burn7dCents == nil { return summary.needsAnchor ? nil : Strings.collecting }
+    return Formatters.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday)
   }
 }

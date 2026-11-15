@@ -31,6 +31,8 @@ final class AppModel {
 
   /// The `account` rows behind `accounts`, for the Accounts tab's edits (label, paused, remove).
   private(set) var records: [AccountRecord] = []
+  /// Every `ledger_event` row, oldest first, for the account page's ledger list (08 § Account detail 7).
+  private(set) var ledgerEvents: [LedgerEventRecord] = []
   /// Keychain refs with no item (04 startup step 3); cleared for an account once its key is replaced.
   var missingKeys: Set<String> = [] {
     didSet { rebuild() }
@@ -73,6 +75,8 @@ final class AppModel {
   @ObservationIgnored private var pricesWatcher: Task<Void, Never>?
   /// The price book's rates, for the unpriced estimate (05 `unpriced_cents`).
   @ObservationIgnored private var pricer = Pricer()
+  /// Writes `band_state` and logs `ui.band_change` when an evaluated band changes (14 § Stage 5.3 step 2).
+  @ObservationIgnored private var bands: BandRecorder?
   /// Sleeps until the next account turns stale, then rebuilds (stale needs no database write, 14 § Stage 4.2).
   @ObservationIgnored private var staleWatcher: Task<Void, Never>?
 
@@ -100,7 +104,7 @@ final class AppModel {
     settingsWatcher = Task { [weak self] in
       for await key in changes {
         if Self.watchedKeys.contains(key) { self?.apply(settings) }
-        if Self.freshnessKeys.contains(key) { self?.rebuild() }
+        if Self.freshnessKeys.contains(key) { self?.rebuild(trigger: .settings) }
       }
     }
   }
@@ -109,11 +113,12 @@ final class AppModel {
   /// by Core's `AccountSummaryBuilder` (04 I2, I3). A row Core cannot read is left out and logged `ui.error`.
   func observe(_ repository: any Repository) {
     let inputs = repository.observeSummaryInputs()
+    bands = BandRecorder(store: repository)
     summaryWatcher?.cancel()
     summaryWatcher = Task { [weak self] in
       for await next in inputs {
         self?.lastInputs = next
-        self?.rebuild()
+        self?.rebuild(trigger: .data)
       }
     }
   }
@@ -125,7 +130,7 @@ final class AppModel {
       for await status in await book.updates() {
         guard let self, status.pricer != self.pricer else { continue }
         self.pricer = status.pricer
-        self.rebuild()
+        self.rebuild(trigger: .settings)
       }
     }
   }
@@ -177,17 +182,27 @@ final class AppModel {
 
   static let pauseDuration: TimeInterval = 3600
 
-  private func rebuild() {
+  /// `trigger` says why (a database change, a setting, time passing); `ui.band_change` carries it (Q-042).
+  private func rebuild(trigger: BandRecorder.Trigger = .clock) {
     if records != lastInputs.accounts { records = lastInputs.accounts }
-    let range = DashboardRange(setting: environment?.settings.uiDashboardRange ?? DashboardRange.default.rawValue)
-    let spend = AccountSummaryBuilder.SpendContext(range: range, now: Date(), pricer: pricer)
+    if ledgerEvents != lastInputs.ledgerEvents { ledgerEvents = lastInputs.ledgerEvents }
+    let settings = environment?.settings
+    let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
+    let now = Date()
+    let spend = AccountSummaryBuilder.SpendContext(range: range, now: now, pricer: pricer,
+                                                   thresholds: settings.map(BandThresholds.init) ?? BandThresholds())
     var next = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys, spend: spend) { record, invalid in
       Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
         "view": "accounts"
       ])
     }
-    let flip = Freshness.apply(to: &next, context: freshnessContext, now: Date())
+    let flip = Freshness.apply(to: &next, context: freshnessContext, now: now)
     if accounts != next { accounts = next }
+    if let bands {
+      let evaluated = next
+      let persisted = lastInputs.bandStates
+      Task { await bands.record(evaluated, persisted: persisted, trigger: trigger, now: now) }
+    }
     rebuild(at: flip)
   }
 
@@ -218,8 +233,10 @@ final class AppModel {
   private static let watchedKeys: Set<SettingsKey> = [.uiAppearance, .uiUseSystemAccent, .menubarMetric, .popoverSort]
   /// Keys the stale threshold reads (09 `tb.alerts.staleMultiplier`, § Sources).
   /// … and the range the numbers strip and the Overview subline sum over (09 `tb.ui.dashboardRange`).
+  /// … and the Alerts thresholds the bands use (09).
   private static let freshnessKeys: Set<SettingsKey> = ScheduleSettings.keys.union([.alertsStaleMultiplier,
                                                                                     .uiDashboardRange])
+    .union(BandThresholds.keys)
 
   private func apply(_ settings: TokenBeCore.Settings) {
     appearance = Appearance(rawValue: settings.uiAppearance) ?? .system
@@ -243,7 +260,7 @@ final class AppModel {
 
 /// The Settings window's tabs, in Paper's order (08 § Settings).
 enum SettingsTab: Hashable {
-  case general, accounts, sources, privacy, advanced
+  case general, accounts, sources, alerts, privacy, advanced
 }
 
 /// `tb.ui.appearance` (09).

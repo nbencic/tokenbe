@@ -190,6 +190,9 @@ actor StreamRecorder<Value: Sendable> {
     // 4.2's fields (capabilities, override, sources) are covered by `FreshnessTests.builder`.
     summaries[0].capabilities = nil
     summaries[0].sources = []
+    // 5.3's floor (the Alerts threshold in force) is covered by `LedgerTests`.
+    #expect(summaries[0].dollarFloorCents == 500)
+    summaries[0].dollarFloorCents = nil
     #expect(summaries == [AccountSummary(id: "acct-ds", provider: .deepseek, label: "DeepSeek", mode: .direct,
                                          currency: .cny, isPaused: true)])
   }

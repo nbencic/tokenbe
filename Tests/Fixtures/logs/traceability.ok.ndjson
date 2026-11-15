@@ -1,0 +1,8 @@
+{"ts":"2026-11-10T12:00:00.100Z","lvl":"info","cat":"poll.openai","evt":"poll.ok","msg":"usage poll ok","acct":"openai","job":"usage","ctx":{"rows":4},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T12:00:01.900Z","lvl":"info","cat":"ui","evt":"ui.band_change","msg":"band changed","acct":"openai","ctx":{"from":"watch","inputs":"{}","to":"low","trigger":"data"},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T12:05:00.000Z","lvl":"info","cat":"ledger","evt":"ledger.anchor_set","msg":"anchor recorded","acct":"openai","ctx":{"amount_cents":100,"source":"user"},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T12:05:00.300Z","lvl":"info","cat":"ui","evt":"ui.band_change","msg":"band changed","acct":"openai","ctx":{"from":"low","inputs":"{}","to":"healthy","trigger":"data"},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T13:00:00.000Z","lvl":"info","cat":"ui","evt":"ui.band_change","msg":"band changed","acct":"openai","ctx":{"from":"healthy","inputs":"{}","to":"watch","trigger":"settings"},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T14:00:00.000Z","lvl":"info","cat":"ui","evt":"ui.band_change","msg":"band changed","acct":"openai","ctx":{"from":"watch","inputs":"{}","to":"low","trigger":"data"},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T14:00:00.040Z","lvl":"info","cat":"poll.openai","evt":"poll.ok","msg":"usage poll ok","acct":"openai","job":"usage","ctx":{"rows":4},"pid":1,"thr":"main","v":"1.0"}
+{"ts":"2026-11-10T15:00:00.000Z","lvl":"info","cat":"ui","evt":"ui.band_change","msg":"band changed","acct":"openai","ctx":{"from":"low","inputs":"{}","to":"critical","trigger":"launch"},"pid":1,"thr":"main","v":"1.0"}

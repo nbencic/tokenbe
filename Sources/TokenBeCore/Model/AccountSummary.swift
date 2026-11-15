@@ -62,6 +62,14 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var topApps: [AppSpend]
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
   public var unpriced: UnpricedFigure?
+  /// 09 `tb.alerts.dollarFloorCents` at evaluation (logged with a band change, 03 `inputs_json`).
+  public var dollarFloorCents: Int64?
+  /// The latest anchor's time (anchored accounts); nil without one.
+  public var anchorAt: Date?
+  /// V1 broke (`remaining < −burn_7d`): the band is `unknown` and the account page asks for a new anchor (04).
+  public var needsReanchor: Bool = false
+  /// Auto-reload is on and `remaining ≤ auto_reload_below`: runway reads `reloads at $X`, band `watch` (05).
+  public var reloadPending: Bool = false
   /// `account.capabilities`; nil when the stored JSON cannot be read (the coordinator logs that once).
   public var capabilities: Capabilities?
   /// `account.interval_override_json`, clamped (09); the stale threshold uses the same interval as the scheduler.
@@ -109,6 +117,9 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
     self.intervalOverride = intervalOverride
     self.sources = sources
   }
+
+  /// Anchored and no anchor yet: the banner and the runway board offer `Set anchor…` (08).
+  public var needsAnchor: Bool { mode == .anchored && anchorAt == nil }
 
   /// Row 2's `todaySpend` metric (09 `tb.popover.pinnedMetric`).
   public var todaySpendCents: Int64? { todaySpend?.cents }
