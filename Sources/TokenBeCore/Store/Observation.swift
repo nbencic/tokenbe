@@ -5,7 +5,8 @@ import GRDB
 /// The set grows stage by stage: 2.2 observes `account`, 3.5 adds each job's last success and circuit from
 /// `poll_state` (card freshness, `never` before the first poll), and 4.2 each job's last error (the account page's
 /// Sources strip); 5.2 the daily usage, cost and priced-model aggregates of the last 91 UTC days (the numbers strip);
-/// band_state, the latest balance and the ledger join with the stages that fill those fields (PM-2.2-3).
+/// 5.3 the ledger, the latest balance, `band_state` and the anchor day's remainder, and the aggregates reach back
+/// to the oldest current anchor (PM-2.2-3).
 public struct SummaryInputs: Sendable, Equatable {
   /// Oldest first, like `fetchAccounts()`.
   public var accounts: [AccountRecord]
@@ -17,22 +18,41 @@ public struct SummaryInputs: Sendable, Equatable {
   public var pricedModels: [PricedModelDay]
   /// Per account and UTC day, the provider's `total` cost row (05 `spend_truth`).
   public var costDays: [CostDay]
+  /// Every `ledger_event` row, oldest first.
+  public var ledgerEvents: [LedgerEventRecord]
+  /// The latest `balance_snapshot` of each account (direct providers).
+  public var balances: [BalanceSnapshotRecord]
+  /// `band_state`, one row per evaluated account.
+  public var bandStates: [BandStateRecord]
+  /// Per account and source, Σ `est_cost_cents` of the buckets on the latest anchor's UTC day that start at or after
+  /// the anchor (05: "the anchor day's remainder"); `day` is the anchor day.
+  public var anchorDayUsage: [UsageDay]
 
   /// How far back the aggregates reach: the longest Dashboard range (90 d) plus today.
   public static let window: TimeInterval = 91 * 86_400
 
   public init(accounts: [AccountRecord], pollStates: [PollStateSummary] = [], usageDays: [UsageDay] = [],
-              pricedModels: [PricedModelDay] = [], costDays: [CostDay] = []) {
+              pricedModels: [PricedModelDay] = [], costDays: [CostDay] = [], ledgerEvents: [LedgerEventRecord] = [],
+              balances: [BalanceSnapshotRecord] = [], bandStates: [BandStateRecord] = [],
+              anchorDayUsage: [UsageDay] = []) {
     self.accounts = accounts
     self.pollStates = pollStates
     self.usageDays = usageDays
     self.pricedModels = pricedModels
     self.costDays = costDays
+    self.ledgerEvents = ledgerEvents
+    self.balances = balances
+    self.bandStates = bandStates
+    self.anchorDayUsage = anchorDayUsage
   }
 
   static func fetch(_ db: Database) throws -> SummaryInputs {
+    let ledger = try LedgerEventRecord.order(Column("ts"), Column("id")).fetchAll(db)
+    // The aggregates reach back 91 days, or to the oldest current anchor if that is older (05 spend_since_anchor).
+    let anchors = Set(ledger.map(\.accountId)).compactMap { Remaining.anchor(accountID: $0, events: ledger) }
+    let oldestAnchorDay = anchors.map { String($0.ts.prefix(10)) + "T00:00:00.000Z" }.min()
     let since = Date().addingTimeInterval(-window)
-    let start = DBTime.string(since)
+    let start = min(DBTime.string(since), oldestAnchorDay ?? DBTime.string(since))
     return SummaryInputs(
       accounts: try AccountRecord.order(Column("created_at"), Column("id")).fetchAll(db),
       pollStates: try PollStateSummary.fetchAll(db, sql: """
@@ -56,9 +76,23 @@ public struct SummaryInputs: Sendable, Equatable {
       costDays: try Row.fetchAll(db, sql: """
         SELECT account_id, day, SUM(amount_cents) AS amount FROM cost_bucket
         WHERE group_kind = 'total' AND day >= ? GROUP BY account_id, day ORDER BY account_id, day
-        """, arguments: [DailyOnce.utcDay(since)]).map {
+        """, arguments: [String(start.prefix(10))]).map {
           CostDay(accountId: $0["account_id"], day: $0["day"], amountCents: $0["amount"])
+        },
+      ledgerEvents: ledger,
+      balances: try BalanceSnapshotRecord.fetchAll(db, sql: """
+        SELECT b.* FROM balance_snapshot b
+        WHERE b.ts = (SELECT max(ts) FROM balance_snapshot WHERE account_id = b.account_id) ORDER BY b.account_id
+        """),
+      bandStates: try BandStateRecord.order(Column("account_id")).fetchAll(db),
+      anchorDayUsage: try anchors.sorted { $0.accountId < $1.accountId }.flatMap { anchor in
+        try Row.fetchAll(db, sql: """
+          SELECT source, SUM(COALESCE(est_cost_cents, 0)) AS est FROM usage_bucket
+          WHERE account_id = ? AND bucket_start >= ? AND substr(bucket_start, 1, 10) = ? GROUP BY source ORDER BY source
+          """, arguments: [anchor.accountId, anchor.ts, String(anchor.ts.prefix(10))]).map {
+          UsageDay(accountId: anchor.accountId, day: String(anchor.ts.prefix(10)), source: $0["source"], estCents: $0["est"])
         }
+      }
     )
   }
 }

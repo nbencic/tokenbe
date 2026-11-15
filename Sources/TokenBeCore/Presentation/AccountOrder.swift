@@ -6,7 +6,7 @@ public enum AccountOrder {
     case runway, remaining, name, manual
   }
 
-  /// - `runway`: shortest runway first; unknown runways last.
+  /// - `runway`: shortest runway first; unknown runways, and accounts in the `unknown` band, last (08).
   /// - `remaining`: lowest remaining first; unknown amounts last.
   /// - `name`: by label, case- and diacritic-insensitive.
   /// - `manual`: the providers in `manualOrder`, then every missing provider in name order (09).
@@ -14,7 +14,9 @@ public enum AccountOrder {
   public static func sorted(_ accounts: [AccountSummary], by sort: Sort, manualOrder: [String]) -> [AccountSummary] {
     switch sort {
     case .runway:
-      return accounts.sorted { ascending($0.runwayMin, $1.runwayMin, $0, $1) }
+      return accounts.sorted {
+        ascending($0.band == .unknown ? nil : $0.runwayMin, $1.band == .unknown ? nil : $1.runwayMin, $0, $1)
+      }
     case .remaining:
       return accounts.sorted { ascending($0.remainingCents, $1.remainingCents, $0, $1) }
     case .name:

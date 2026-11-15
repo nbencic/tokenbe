@@ -49,7 +49,7 @@ D1–D13 are met, with one deferral. D10's launch checks ran: 0.4 and 2.1, clean
 - Q-041: phase 5 runs its UI tests once, at its end (the owner's instruction). Each stage runs `build-uitest`.
 
 ## Carry-forward actions
-- PM-5.2-1 · agent · 5.3 · Burn and `spend_since_anchor` should reuse `Spend.spend`'s per-day truth-then-estimate rule (Q-040), so the strip and the runway never disagree.
+- PM-5.2-1 · agent · 5.3 · **closed (Stage 5.3)** · Burn and `spend_since_anchor` should reuse `Spend.spend`'s per-day truth-then-estimate rule (Q-040), so the strip and the runway never disagree.
 - PM-5.2-3 · agent · 5.3 · Reprice race (non-blocking): a poll that priced its rows before an override change can write them after `repriceAll` finished. The next reprice, or the next poll of that hour, corrects them. Noted in Q-040; no fix planned.
 - PM-5.2-2 · agent · 5.5 · Run the full UI suite (Q-041). It covers every phase-5 UI test, including those that 5.2–5.4 compiled but did not run.
 - Earlier actions that targeted this stage:

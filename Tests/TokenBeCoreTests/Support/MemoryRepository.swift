@@ -60,6 +60,7 @@ actor MemoryRepository: Repository {
   private(set) var providerKeys: [String: [DiscoveredKey]] = [:]
   private(set) var usage: [UsageBucketRecord] = []
   private(set) var costs: [CostBucketRecord] = []
+  private(set) var bands: [String: BandStateRecord] = [:]
   private var states: [String: PollStateRecord] = [:]
 
   func upsertProviderKeys(accountID: String, keys: [DiscoveredKey], seenAt: Date) async throws {
@@ -96,6 +97,16 @@ actor MemoryRepository: Repository {
       usage[index] = priced
     }
     return changed
+  }
+
+  func recordBand(_ state: BandStateRecord) async throws {
+    bands[state.accountId] = state
+  }
+
+  func deleteUserLedgerEvent(id: String) async throws -> Bool {
+    let before = ledger.count
+    ledger.removeAll { $0.id == id && $0.source == "user" }
+    return ledger.count < before
   }
 
   func fetchUnpricedModels(since: String) async throws -> [String] {

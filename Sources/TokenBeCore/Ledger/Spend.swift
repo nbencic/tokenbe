@@ -89,26 +89,46 @@ public enum Spend {
     return (0..<count).reversed().map { DailyOnce.utcDay(now.addingTimeInterval(TimeInterval(-86_400 * $0))) }
   }
 
-  /// Spend of one account over `days` (05: `spend_truth` for closed days, `spend_est` for the open day).
-  public static func spend(_ account: AccountSummary, days: [String], today: String,
-                           inputs: SummaryInputs) -> SpendFigure {
-    let (accountID, capabilities, usage, costs) = (account.id, account.capabilities, inputs.usageDays, inputs.costDays)
-    let wanted = Set(days)
-    let usageAPI = capabilities?.usage ?? true
-    var truth: [String: Int64] = [:]
-    if capabilities?.cost ?? false {
-      for cost in costs where cost.accountId == accountID && wanted.contains(cost.day) && cost.day < today {
-        truth[cost.day, default: 0] += cost.amountCents
+  /// Spend of one account per UTC day (05): a closed day with a provider `total` cost row is that cost (truth);
+  /// the open day, and closed days without a cost row, are Σ `est_cost_cents` (estimate). Days without data are
+  /// absent. The strip, burn and `spend_since_anchor` all use this one rule (Q-040, PM-5.2-1).
+  public static func daily(_ account: AccountSummary, today: String, inputs: SummaryInputs) -> [String: SpendFigure] {
+    var result: [String: SpendFigure] = [:]
+    if account.capabilities?.cost ?? false {
+      for cost in inputs.costDays where cost.accountId == account.id && cost.day < today {
+        result[cost.day, default: SpendFigure(cents: 0, isEstimate: false)].cents += cost.amountCents
       }
     }
-    var cents = truth.values.reduce(0, +)
-    var isEstimate = false
-    for row in usage where row.accountId == accountID && wanted.contains(row.day) && truth[row.day] == nil
+    let truthDays = Set(result.keys)
+    let usageAPI = account.capabilities?.usage ?? true
+    for row in inputs.usageDays where row.accountId == account.id && !truthDays.contains(row.day)
       && counts(row.source, usageAPI: usageAPI) {
-      cents += row.estCents
-      isEstimate = true
+      result[row.day, default: SpendFigure(cents: 0, isEstimate: true)].cents += row.estCents
     }
-    return SpendFigure(cents: cents, isEstimate: isEstimate)
+    return result
+  }
+
+  /// Spend of one account over `days`.
+  public static func spend(_ account: AccountSummary, days: [String], today: String,
+                           inputs: SummaryInputs) -> SpendFigure {
+    sum(days.compactMap { daily(account, today: today, inputs: inputs)[$0] })
+  }
+
+  static func sum(_ figures: [SpendFigure]) -> SpendFigure {
+    SpendFigure(cents: figures.reduce(0) { $0 + $1.cents }, isEstimate: figures.contains(where: \.isEstimate))
+  }
+
+  /// 05 `spend_since_anchor`: every day after the anchor's UTC day by the daily rule, plus the estimate of the
+  /// anchor day's remainder (buckets starting at or after the anchor, `SummaryInputs.anchorDayUsage`).
+  public static func sinceAnchor(_ account: AccountSummary, anchor: LedgerEventRecord, today: String,
+                                 inputs: SummaryInputs) -> SpendFigure {
+    let anchorDay = String(anchor.ts.prefix(10))
+    let after = daily(account, today: today, inputs: inputs).filter { $0.key > anchorDay }.map(\.value)
+    let usageAPI = account.capabilities?.usage ?? true
+    let remainder = inputs.anchorDayUsage.filter {
+      $0.accountId == account.id && counts($0.source, usageAPI: usageAPI)
+    }.map { SpendFigure(cents: $0.estCents, isEstimate: true) }
+    return sum(after + remainder)
   }
 
   /// 05 `unpriced_cents(window)`: Σ unpriced tokens × the median input rate of the window's priced models, rounded
@@ -140,8 +160,6 @@ public enum Spend {
   /// The Overview subline's `Total spend` (05 § Currency): USD accounts summed; other currencies counted.
   public static func totalUSD(_ accounts: [AccountSummary]) -> (spend: SpendFigure, nonUSD: Int) {
     let usd = accounts.filter { $0.currency == .usd }
-    let figures = usd.compactMap(\.rangeSpend)
-    return (SpendFigure(cents: figures.reduce(0) { $0 + $1.cents }, isEstimate: figures.contains(where: \.isEstimate)),
-            accounts.count - usd.count)
+    return (sum(usd.compactMap(\.rangeSpend)), accounts.count - usd.count)
   }
 }

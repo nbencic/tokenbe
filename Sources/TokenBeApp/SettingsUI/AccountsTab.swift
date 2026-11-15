@@ -94,6 +94,17 @@ private struct AccountDetail: View {
         Toggle(Strings.paused, isOn: Binding(get: { record.paused }, set: { setPaused($0) }))
           .accessibilityIdentifier("settings.accounts.paused")
       }
+      if record.balanceMode == BalanceMode.anchored.rawValue {
+        Section {
+          AutoReloadRows(record: record, currency: Currency(rawValue: record.currency) ?? .usd) { enabled, below, adds in
+            update {
+              $0.autoReloadEnabled = enabled
+              $0.autoReloadBelowCents = below
+              $0.autoReloadToCents = adds
+            }
+          }
+        }
+      }
       if !overridableJobs.isEmpty {
         Section {
           IntervalOverrides(record: record, provider: provider, jobs: overridableJobs,
@@ -323,5 +334,43 @@ private struct IntervalOverrides: View {
     case .usage: 60
     case .keys, .cost: 600
     }
+  }
+}
+
+/// 09 `account.auto_reload_*` (anchored accounts, 14 § Stage 5.3 step 7): the toggle, `Reloads below` (the threshold
+/// that switches runway to `reloads at $X` and the band to `watch`, 05) and `Adds` (shown in the note, not used in
+/// the math). Amounts are typed in the account's currency and committed on Return; the toggle needs a threshold.
+private struct AutoReloadRows: View {
+  let record: AccountRecord
+  let currency: Currency
+  let save: (Bool, Int64?, Int64?) -> Void
+  @State private var below = ""
+  @State private var adds = ""
+
+  var body: some View {
+    Toggle(Strings.autoReload, isOn: Binding(get: { record.autoReloadEnabled }, set: { enabled in
+      save(enabled && parsed(below) != nil, parsed(below), parsed(adds))
+    }))
+    .disabled(parsed(below) == nil && !record.autoReloadEnabled)
+    .accessibilityIdentifier("settings.accounts.autoReload")
+    amountField(Strings.autoReloadBelow, text: $below, id: "settings.accounts.autoReloadBelow")
+    amountField(Strings.autoReloadTo, text: $adds, id: "settings.accounts.autoReloadTo")
+      .onAppear {
+        below = record.autoReloadBelowCents.map(Self.text) ?? ""
+        adds = record.autoReloadToCents.map(Self.text) ?? ""
+      }
+  }
+
+  private func amountField(_ label: String, text: Binding<String>, id: String) -> some View {
+    TextField(label, text: text, prompt: Text(currency.symbol))
+      .onSubmit { save(record.autoReloadEnabled && parsed(below) != nil, parsed(below), parsed(adds)) }
+      .accessibilityIdentifier(id)
+  }
+
+  private func parsed(_ text: String) -> Int64? { Formatters.cents(fromInput: text, locale: .current) }
+
+  /// Cents as a plain amount for editing (`10`, `12.5`).
+  static func text(_ cents: Int64) -> String {
+    cents % 100 == 0 ? "\(cents / 100)" : String(format: "%lld.%02lld", cents / 100, cents % 100)
   }
 }

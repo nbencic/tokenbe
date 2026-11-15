@@ -28,15 +28,16 @@ check "summaries carry each job's last error, never last_raw (PM-2.2-3)" bash -c
 check "poll_state stores the human message (Q-036)" grep -qF 'message: error.humanMessage(provider:' $core/Scheduling/Poller.swift
 check "poll.failed keeps the raw cause in ctx.detail (07)" bash -c "grep -qF '\"detail\": .string(error.summary)' $core/Scheduling/Poller.swift && grep -qF 'attempts, err, detail' docs/07-logging.md"
 
-# Step 2: the account page: header, badges with help, sources strip; Refresh; no 5.3 controls yet (D6).
+# Step 2: the account page: header, badges with help, sources strip; Refresh. `Set anchor…` and `Add top-up…`
+# arrived in 5.3 (5.3.sh checks them); Export… is still later (8.3, D6).
 check "sidebar account rows open the account page" grep -qF '.tag(Item.account(account.id))' $app/Dashboard/SidebarView.swift
 check "the Dashboard shows the selected account's page" grep -qF 'AccountDetailView(model: model, summary: account)' $app/Dashboard/DashboardView.swift
 check "header Refresh runs that account's jobs" grep -qF 'model.refreshNow(summary.id)' $app/Dashboard/AccountDetailView.swift
 check "toolbar Refresh (08)" grep -qF 'dashboard.toolbar.refresh' $app/Dashboard/DashboardView.swift
 check "each badge has a help popover" grep -qF '.popover(isPresented: $showsHelp' $app/Dashboard/BadgesRow.swift
 check "a failed source shows its message in HealthLow" bash -c "grep -qF 'source.state == .failed ? Color(.healthLow)' $app/Dashboard/SourcesStrip.swift"
-for later in "Set anchor" "Add top-up" "Export"; do
-  check "Dashboard has no '$later' yet (5.3, 8.3)" bash -c "! grep -rqF '$later' $app/Dashboard"
+for later in "Export"; do
+  check "Dashboard has no '$later' yet (8.3)" bash -c "! grep -rqF '$later' $app/Dashboard"
 done
 
 # Step 3: popover stale overlay, Offline banner, dashed glyph.
@@ -45,7 +46,8 @@ check "glyph state is exposed as glyph.<state>" grep -qF '.accessibilityIdentifi
 check "Offline banner while offline" bash -c "grep -qF 'if model.isOffline { offlineBanner }' $app/Popover/PopoverView.swift"
 check "offline puts every card under the overlay" grep -qF 'dimmed: summary.isStale || model.isOffline' $app/Popover/PopoverView.swift
 check "overlay: opacity 0.6, freshness HealthLow and stale text (08)" bash -c "grep -qF '.opacity(dimmed ? 0.6 : 1)' $app/Popover/AccountCardView.swift && grep -qF 'stale: dimmed' $app/Popover/AccountCardView.swift"
-check "a card opens its account page (08)" grep -qF 'model.showAccount(summary.id)' $app/Popover/PopoverView.swift
+# 5.3: cards, the banner and ⏎ share `openAccount`, which shows the page.
+check "a card opens its account page (08)" bash -c "grep -qF 'openAccount(summary.id)' $app/Popover/PopoverView.swift && grep -A1 'private func openAccount' $app/Popover/PopoverView.swift | grep -qF 'model.showAccount(id)'"
 
 # Step 4: sidebar rows reflect needsKey.
 check "sidebar rows read Key missing" bash -c "grep -B1 -A2 'if account.needsKey' $app/Dashboard/SidebarView.swift | grep -qF 'Strings.keyMissing'"

@@ -158,15 +158,46 @@ public struct AccountLifecycle: Sendable {
 
   // MARK: - Anchor, startup
 
-  /// Onboarding step 3's anchor amount (08): `ledger_event(kind=anchor, source=user)`, logged `ledger.anchor_set`.
-  /// The ledger math that uses it lands in 5.3.
-  public func setAnchor(_ account: AccountRecord, cents: Int64) async throws {
-    let time = now()
+  /// Onboarding step 3's anchor amount and the `Set anchor` sheet (08): `ledger_event(kind=anchor, source=user)`
+  /// at `at` (default now), logged `ledger.anchor_set`.
+  public func setAnchor(_ account: AccountRecord, cents: Int64, asOf date: Date? = nil,
+                        note: String? = nil) async throws {
+    try await addLedgerEvent(account, .anchor, cents: cents, date: date, note: note)
+  }
+
+  /// The `Add top-up` sheet (08): `ledger_event(kind=topup, source=user)`, logged `ledger.topup`.
+  public func addTopUp(_ account: AccountRecord, cents: Int64, asOf date: Date? = nil,
+                       note: String? = nil) async throws {
+    try await addLedgerEvent(account, .topup, cents: cents, date: date, note: note)
+  }
+
+  /// 08 § Account detail 7: a user row of the ledger list is deleted; a system row never is (R7).
+  @discardableResult
+  public func deleteLedgerEvent(id: String) async throws -> Bool {
+    try await repository.deleteUserLedgerEvent(id: id)
+  }
+
+  /// 08's sheets: the note is at most 140 characters; an empty note is no note.
+  public static let noteLimit = 140
+
+  /// The user-entered ledger kinds and their 07 events.
+  enum UserEntry: String {
+    case anchor, topup
+
+    var evt: Evt { self == .anchor ? .ledgerAnchorSet : .ledgerTopup }
+  }
+
+  private func addLedgerEvent(_ account: AccountRecord, _ entry: UserEntry, cents: Int64, date: Date?,
+                              note: String?) async throws {
+    let kind = entry.rawValue
+    let time = date ?? now()
+    let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
     try await repository.insertLedgerEvent(LedgerEventRecord(
-      id: UUIDv7.make(at: time), accountId: account.id, ts: DBTime.string(time), kind: "anchor", amountCents: cents,
-      currency: account.currency, note: nil, source: "user"
+      id: UUIDv7.make(at: now()), accountId: account.id, ts: DBTime.string(time), kind: kind, amountCents: cents,
+      currency: account.currency, note: trimmed.flatMap { $0.isEmpty ? nil : String($0.prefix(Self.noteLimit)) },
+      source: "user"
     ))
-    log.emit(.info, .ledgerAnchorSet, cat: .ledger, msg: "anchor set", acct: account.provider,
+    log.emit(.info, entry.evt, cat: .ledger, msg: "\(kind) recorded", acct: account.provider,
              ctx: ["amount_cents": .int(Int(cents)), "source": "user"])
   }
 

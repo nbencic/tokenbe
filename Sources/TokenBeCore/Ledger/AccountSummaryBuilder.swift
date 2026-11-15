@@ -7,16 +7,20 @@ import Foundation
 /// today's and the range's spend and the unpriced estimate (`SpendContext`). Later stages fill the rest from the
 /// inputs they add.
 public enum AccountSummaryBuilder {
-  /// What the spend figures depend on besides the database: the Dashboard range, the time and the price book.
+  /// What the money figures depend on besides the database: the Dashboard range, the time, the price book and the
+  /// Alerts thresholds (09).
   public struct SpendContext: Sendable {
     public var range: DashboardRange
     public var now: Date
     public var pricer: Pricer
+    public var thresholds: BandThresholds
 
-    public init(range: DashboardRange = .default, now: Date = Date(), pricer: Pricer = Pricer()) {
+    public init(range: DashboardRange = .default, now: Date = Date(), pricer: Pricer = Pricer(),
+                thresholds: BandThresholds = BandThresholds()) {
       self.range = range
       self.now = now
       self.pricer = pricer
+      self.thresholds = thresholds
     }
   }
 
@@ -65,6 +69,9 @@ public enum AccountSummaryBuilder {
   /// The stored capabilities and interval override. Unreadable capabilities stay nil: the coordinator logs them
   /// once (`poll.failed`, "account capabilities unreadable"), so the summary does not log again.
   static func apply(_ record: AccountRecord, to summary: inout AccountSummary) {
+    if record.autoReloadEnabled, let below = record.autoReloadBelowCents {
+      summary.autoReload = AutoReload(belowCents: below, toCents: record.autoReloadToCents)
+    }
     summary.capabilities = Result { try Capabilities.decode(json: record.capabilities) }.success
     summary.intervalOverride = IntervalOverride.parse(record.intervalOverrideJson, provider: summary.provider).override
   }
@@ -72,12 +79,65 @@ public enum AccountSummaryBuilder {
   /// 05 § Spend definitions, once the account has had a usage or cost poll (before that the card reads "No data
   /// yet", 08).
   static func apply(_ inputs: SummaryInputs, _ context: SpendContext, to summary: inout AccountSummary) {
-    guard (summary.freshness[.usage] ?? nil) != nil || (summary.freshness[.cost] ?? nil) != nil else { return }
-    let today = DailyOnce.utcDay(context.now)
-    let days = Spend.days(context.range, now: context.now)
-    summary.todaySpend = Spend.spend(summary, days: [today], today: today, inputs: inputs)
-    summary.rangeSpend = Spend.spend(summary, days: days, today: today, inputs: inputs)
-    summary.unpriced = Spend.unpriced(summary, days: days, inputs: inputs, pricer: context.pricer)
+    let anchor = Remaining.anchor(accountID: summary.id, events: inputs.ledgerEvents)
+    summary.anchorAt = anchor.flatMap { DBTime.date($0.ts) }
+    summary.dollarFloorCents = context.thresholds.dollarFloorCents
+    if let state = inputs.bandStates.first(where: { $0.accountId == summary.id }) {
+      summary.bandSince = DBTime.date(state.since)
+    }
+    guard (summary.freshness[.usage] ?? nil) != nil || (summary.freshness[.cost] ?? nil) != nil
+      || (summary.freshness[.balance] ?? nil) != nil else {
+      // Before the first poll: the anchor alone is not a runway yet (`No data yet`, 08), so the band is unknown.
+      return
+    }
+    let now = context.now
+    let today = DailyOnce.utcDay(now)
+    let daily = Spend.daily(summary, today: today, inputs: inputs)
+    summary.todaySpend = Spend.sum([daily[today]].compactMap { $0 })
+    summary.rangeSpend = Spend.sum(Spend.days(context.range, now: now).compactMap { daily[$0] })
+    summary.spend30dCents = Spend.sum(Spend.days(.thirtyDays, now: now).compactMap { daily[$0] }).cents
+    summary.unpriced = Spend.unpriced(summary, days: Spend.days(context.range, now: now), inputs: inputs,
+                                      pricer: context.pricer)
+    summary.burn7dCents = Burn.sevenDay(daily: daily, now: now)
+    summary.burnTodayCents = Burn.today(daily: daily, now: now)
+    applyLedger(anchor: anchor, inputs: inputs, context: context, daily: daily, to: &summary)
+  }
+
+  /// 05 § Remaining, § Estimate band, § Runway and § Bands.
+  static func applyLedger(anchor: LedgerEventRecord?, inputs: SummaryInputs, context: SpendContext,
+                          daily: [String: SpendFigure], to summary: inout AccountSummary) {
+    let now = context.now
+    let today = DailyOnce.utcDay(now)
+    let sinceAnchor = anchor.map { Spend.sinceAnchor(summary, anchor: $0, today: today, inputs: inputs) }
+    summary.remainingCents = Remaining.cents(mode: summary.mode, accountID: summary.id, inputs: inputs,
+                                             spendSinceAnchor: sinceAnchor?.cents)
+    if summary.mode == .anchored, let anchor, let sinceAnchor, let anchorAt = summary.anchorAt {
+      let anchorDays = Spend.days(.ninetyDays, now: now).filter { $0 >= String(anchor.ts.prefix(10)) }
+      let unpriced = Spend.unpriced(summary, days: anchorDays, inputs: inputs, pricer: context.pricer).cents ?? 0
+      let age = Int64(max(0, now.timeIntervalSince(anchorAt)))
+      summary.anchorAgeDays = Int(age / 86_400)
+      summary.estimateBandCents = EstimateBand.cents(EstimateBand.Inputs(
+        spendSinceAnchor: sinceAnchor.cents, burn7d: summary.burn7dCents,
+        usageLagSeconds: summary.capabilities?.usageLag.components.seconds ?? 0, unpricedCents: unpriced,
+        anchorAgeSeconds: age, anchorAgeDays: context.thresholds.anchorAgeDays
+      ))
+    } else if summary.mode == .direct, summary.remainingCents != nil {
+      summary.estimateBandCents = 0
+    }
+    let paces = Runway.paces(remaining: summary.remainingCents, burn7d: summary.burn7dCents,
+                             burnToday: summary.burnTodayCents)
+    summary.runway7d = paces.sevenDay
+    summary.runwayToday = paces.today
+    summary.runwayMin = paces.minimum
+    let evaluated = BandEvaluator.band(BandEvaluator.Inputs(
+      mode: summary.mode, remaining: summary.remainingCents, estimateBand: summary.estimateBandCents ?? 0,
+      burn7d: summary.burn7dCents, runwayMin: summary.runwayMin, autoReload: summary.autoReload
+    ), thresholds: context.thresholds)
+    summary.band = evaluated.band
+    summary.needsReanchor = evaluated.needsReanchor
+    if let reload = summary.autoReload, let remaining = summary.remainingCents {
+      summary.reloadPending = remaining <= reload.belowCents
+    }
   }
 
   public static func summary(for record: AccountRecord) -> Result<AccountSummary, InvalidRow> {

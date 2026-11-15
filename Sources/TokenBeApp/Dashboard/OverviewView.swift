@@ -2,10 +2,11 @@ import SwiftUI
 import TokenBeCore
 
 /// 08 § Overview. No placeholder headline (14 § 1.2): with no accounts it shows the real empty state and the
-/// `Spend by day` card's empty text. 5.2 adds the `Total spend` subline (USD accounts only, 05 § Currency); the
-/// headline, runway board, chart and tiles arrive with their data.
+/// `Spend by day` card's empty text. With accounts: the headline and its sublines (5.2, 5.3) and the runway board
+/// (5.3); the chart and tiles arrive with their data (8.2, 7.1).
 struct OverviewView: View {
   let model: AppModel
+  @State private var anchorAccount: AnchorTarget?
 
   var body: some View {
     ScrollView {
@@ -24,10 +25,11 @@ struct OverviewView: View {
           .accessibilityElement(children: .contain)
           .accessibilityIdentifier("dashboard.overview.empty")
         } else {
-          Text(totalSpend)
-            .font(.callout.monospacedDigit())
-            .foregroundStyle(.secondary)
-            .accessibilityIdentifier("dashboard.overview.totalSpend")
+          let hideCents = model.environment?.settings.uiHideCents ?? true
+          OverviewHeadline(accounts: model.accounts, hideCents: hideCents, totalSpend: totalSpend)
+          RunwayBoard(model: model, hideCents: hideCents) { summary in
+            anchorAccount = model.records.first { $0.id == summary.id }.map(AnchorTarget.init)
+          }
         }
         spendByDay
       }
@@ -35,6 +37,9 @@ struct OverviewView: View {
     }
     .navigationTitle(Strings.overview)
     .accessibilityIdentifier("dashboard.overview")
+    .sheet(item: $anchorAccount) { target in
+      SetAnchorSheet(account: target.record, lifecycle: model.environment?.lifecycle)
+    }
   }
 
   /// `Total spend 7 d ≈ $12.40 + 1 non-USD`, over the Dashboard range.
@@ -62,4 +67,10 @@ struct OverviewView: View {
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("dashboard.spendByDay")
   }
+}
+
+/// The runway board's `Set anchor…` target (a sheet needs an `Identifiable` item).
+struct AnchorTarget: Identifiable {
+  let record: AccountRecord
+  var id: String { record.id }
 }

@@ -1,12 +1,16 @@
 import SwiftUI
 import TokenBeCore
 
-/// 08 § Account detail (Paper `8T-0`), Stage 4.2's shell: the header (`AM-0`, `AR-0`), the badges row (`B1-0`) and
-/// the sources strip (`HP-0`); 5.2 adds the numbers strip's spend cells. Remaining, runway and burn arrive in 5.3,
-/// the tables in 7.1 and 8.1; the anchor and top-up buttons arrive with their sheets in 5.3 (D6).
+/// 08 § Account detail (Paper `8T-0`): the header (`AM-0`, `AR-0`) with `Set anchor…` (anchored), `Add top-up…` and
+/// `Refresh`; the badges row (`B1-0`); the anchor nudges (09 `tb.alerts.anchorAgeDays`, 04 V1); the numbers strip;
+/// the sources strip (`HP-0`); the ledger list (anchored). The tables arrive in 7.1 and 8.1.
 struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
+  @State private var sheet: LedgerEntryForm.Kind?
+
+  private var record: AccountRecord? { model.records.first { $0.id == summary.id } }
+  private var settings: TokenBeCore.Settings? { model.environment?.settings }
 
   var body: some View {
     ScrollView {
@@ -15,14 +19,63 @@ struct AccountDetailView: View {
         if let capabilities = summary.capabilities {
           BadgesRow(provider: summary.provider, badges: AccountBadges(mode: summary.mode, capabilities: capabilities))
         }
-        NumbersStrip(summary: summary, hideCents: model.environment?.settings.uiHideCents ?? true)
+        nudge
+        NumbersStrip(summary: summary, hideCents: settings?.uiHideCents ?? true)
         SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status)
+        if summary.mode == .anchored {
+          LedgerList(events: model.ledgerEvents.filter { $0.accountId == summary.id }, currency: summary.currency,
+                     hideCents: settings?.uiHideCents ?? true) { event in
+            deleteLedgerEvent(event)
+          }
+        }
       }
       .padding(24)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .navigationTitle(summary.label)
     .accessibilityIdentifier("dashboard.account")
+    .sheet(item: $sheet) { kind in
+      if let record {
+        switch kind {
+        case .anchor: SetAnchorSheet(account: record, lifecycle: model.environment?.lifecycle)
+        case .topUp: AddTopUpSheet(account: record, lifecycle: model.environment?.lifecycle)
+        }
+      }
+    }
+  }
+
+  /// V1 broke (re-anchor), or the anchor is older than `tb.alerts.anchorAgeDays` (09), with `Set anchor…`.
+  @ViewBuilder private var nudge: some View {
+    let ageLimit = settings?.alertsAnchorAgeDays ?? 30
+    let text: String? = if summary.needsReanchor {
+      Strings.reanchor
+    } else if let age = summary.anchorAgeDays, age > ageLimit {
+      Strings.anchorOld(age)
+    } else {
+      nil
+    }
+    if let text {
+      HStack(spacing: 8) {
+        Text(text)
+          .font(.callout)
+          .foregroundStyle(Color(.healthWatch))
+          .accessibilityIdentifier("dashboard.account.nudge")
+        Button(Strings.setAnchor) { sheet = .anchor }
+          .buttonStyle(.link)
+      }
+    }
+  }
+
+  private func deleteLedgerEvent(_ event: LedgerEventRecord) {
+    guard let lifecycle = model.environment?.lifecycle else { return }
+    Task {
+      do {
+        try await lifecycle.deleteLedgerEvent(id: event.id)
+      } catch {
+        Log.error(.uiError, cat: .ui, msg: "ledger row not deleted", acct: summary.provider.rawValue, err: error,
+                  ctx: ["view": "ledger"])
+      }
+    }
   }
 
   /// Provider glyph, label, mode chip, band pill and freshness; `Refresh` on the right.
@@ -49,9 +102,17 @@ struct AccountDetailView: View {
         }
       }
       Spacer()
-      Button(Strings.refresh) { model.refreshNow(summary.id) }
-        .padding(.top, 4)
-        .accessibilityIdentifier("dashboard.account.refresh")
+      HStack(spacing: 8) {
+        if summary.mode == .anchored {
+          Button(Strings.setAnchor) { sheet = .anchor }
+            .accessibilityIdentifier("dashboard.account.setAnchor")
+        }
+        Button(Strings.addTopUp) { sheet = .topUp }
+          .accessibilityIdentifier("dashboard.account.addTopUp")
+        Button(Strings.refresh) { model.refreshNow(summary.id) }
+          .accessibilityIdentifier("dashboard.account.refresh")
+      }
+      .padding(.top, 4)
     }
   }
 
@@ -81,4 +142,8 @@ struct BandPill: View {
       .accessibilityLabel(Strings.bandLabel(band.word))
       .accessibilityIdentifier("dashboard.account.band")
   }
+}
+
+extension LedgerEntryForm.Kind: Identifiable {
+  var id: String { rawValue }
 }

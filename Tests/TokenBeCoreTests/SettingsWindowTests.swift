@@ -151,9 +151,9 @@ final class FakeLoginItem: LoginItemService {
 /// 09 `tb.popover.sort` and `tb.popover.manualOrder`.
 @Suite struct AccountOrderTests {
   static func account(_ provider: ProviderID, _ label: String, runway: TimeInterval? = nil,
-                      remaining: Int64? = nil) -> AccountSummary {
+                      remaining: Int64? = nil, band: Band = .healthy) -> AccountSummary {
     AccountSummary(id: provider.rawValue, provider: provider, label: label, mode: .direct,
-                   remainingCents: remaining, runwayMin: runway)
+                   remainingCents: remaining, runwayMin: runway, band: band)
   }
 
   let accounts = [
@@ -170,6 +170,13 @@ final class FakeLoginItem: LoginItemService {
   @Test("runway: shortest first, ties by name, unknown last")
   func byRunway() {
     #expect(order(.runway) == [.anthropic, .xai, .openai, .deepseek])
+  }
+
+  @Test("runway: an account in the unknown band sorts last even with a runway (08)")
+  func unknownBandLast() {
+    let mixed = [Self.account(.openai, "OpenAI", runway: 86_400, band: .unknown),
+                 Self.account(.xai, "xAI", runway: 9 * 86_400)]
+    #expect(AccountOrder.sorted(mixed, by: .runway, manualOrder: []).map(\.provider) == [.xai, .openai])
   }
 
   @Test("remaining: lowest first, ties by name, unknown last")
