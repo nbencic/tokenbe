@@ -5,7 +5,7 @@ Purpose: give per-app attribution where the provider cannot (DeepSeek, xAI) and 
 ## Folder layout (fixed; created at first launch)
 
 ```
-~/Library/Application Support/TokenBe/ingest/            ← user drops/appends files here
+~/Library/Application Support/TokenBe/ingest/            ← user drops/appends files here (the support folder the database uses; a UI test's TOKENBE_TEST_ROOT, Q-049)
 ~/Library/Application Support/TokenBe/ingest/ingested/    ← files moved here after EOF + quiescence AND the user enabled "move when done" (default ON)
 ~/Library/Application Support/TokenBe/ingest/rejected/    ← files whose first non-empty line is not valid v1 JSON
 ```
@@ -105,6 +105,6 @@ Rules for reporters (stated in README): append only; one `write` per line (atomi
 | Permission error reading a file | skip, retry on next event, max 5 then mark `state='rejected'` | `ingest.read_failed` |
 
 ## Definition of done
-- E2E-3 (11): append 500 lines in bursts while the app runs → 500 `harness_event` rows, 0 duplicates, offsets correct; `kill -9` mid-write then relaunch → still 500.
+- E2E-3 (11): append 500 lines in bursts while the app runs → one `harness_event` row per distinct request id (488 for `valid_500.jsonl`, whose 12 duplicates repeat earlier lines), none inserted twice, offsets correct; `kill -9` mid-write then relaunch → still the same rows (Q-049).
 - Rejected file lands in `rejected/`, UI shows count.
 - Attribution tests: split (OpenAI key with 2 apps), substitute (DeepSeek), inferred (DeepSeek single app).

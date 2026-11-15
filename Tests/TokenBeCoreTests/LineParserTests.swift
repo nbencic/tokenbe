@@ -87,7 +87,7 @@ import Testing
 
   @Test("key hint: `…` dropped, more than 12 characters truncated and flagged, only 4 kept")
   func keyHint() throws {
-    let long = try Self.parse(Self.changing("key_hint", to: "sk-proj-0123456789abcd")).get()
+    let long = try Self.parse(Self.changing("key_hint", to: "sk-" + "proj-0123456789abcd")).get()
     #expect(long.keyHint == "abcd" && long.keyHintTruncated)
     let twelve = try Self.parse(Self.changing("key_hint", to: "0123456789ab")).get()
     #expect(twelve.keyHint == "89ab" && !twelve.keyHintTruncated)

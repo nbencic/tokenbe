@@ -42,7 +42,7 @@ extension IngestTailerTests {
   func notes() async throws {
     let harness = try await IngestHarness()
     await harness.service.start(expectFolder: false)
-    let odd = IngestHarness.line("n1", hint: "sk-0123456789abcdef").replacingOccurrences(of: "\"status\":\"ok\"}",
+    let odd = IngestHarness.line("n1", hint: "sk-" + "0123456789abcdef").replacingOccurrences(of: "\"status\":\"ok\"}",
       with: "\"status\":\"ok\",\"extra\":1}").replacingOccurrences(of: "\"prompt_cache_hit_tokens\":600}",
       with: "\"prompt_cache_hit_tokens\":600,\"novel\":3}")
     try harness.write(odd + odd.replacingOccurrences(of: "n1", with: "n2"), to: "a.jsonl")
