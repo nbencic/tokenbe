@@ -16,6 +16,12 @@ public enum CoreStrings {
       "DeepSeek did not accept this API key. Check the key at platform.deepseek.com → API keys and paste it again."
   }
 
+  public enum XAI {
+    /// 02 § xai names no copy for a refused key (401/403); authored like DeepSeek's (Q-046).
+    public static let keyRejected =
+      "xAI did not accept this API key. Check the key at console.x.ai → API Keys and paste it again."
+  }
+
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
   public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
 

@@ -578,3 +578,16 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Q-029's interim rule** ("a balance-capable account fails as `providerRule(<p>_balance_not_stored)`") is resolved: the poller writes `balance_snapshot`. An adapter without a balance endpoint still answers its `<p>_no_balance_api` rule.
 - **Process (Q-041 extended, the owner's choice of 2026-11-15):** phase 6 also runs its UI suite once, at its end (6.2). 6.1 compiles the UI tests.
 Blocking: no
+
+## Q-046 Stage 6.2: xAI rules the docs leave open            (2026-11-15)
+Context: 14 § Stage 6.2; `Providers/XAI/*`, `Providers/BearerRequest.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **"Numeric" (D-xai-balance, 02):** `remaining_balance` decoded as a JSON number into `Decimal`. A string (`"42.50"`), a Bool, null or a missing key is "no usable balance": the probe passes as `anchored` with `balance = false` and logs `poll.provider_rule rule=xai_no_balance_field` (warn, job `probe`). A string is not parsed as a number, because 02's rule says "as a number".
+- **Unit:** 02 says USD and gives no unit, so the number is read as dollars, cents rounded half up once (`MinorUnits.cents`). Swift's `JSONDecoder` builds a `Decimal` from the number's digits: `42.505` → 4251 cents, which `XAITests` pins. The recording (H3) confirms or corrects the unit. Until then xAI stays unverified.
+- **A direct account that later loses the field:** the poll fails as `decode(field: "remaining_balance")` (schema drift). It never writes a zero, and it never switches the account to `anchored` on its own. The mode is the probe's (D-xai-balance); `Test` in the Accounts tab re-probes.
+- **Snapshot:** one USD row; `granted_cents`, `topped_up_cents` and `is_available` are NULL. `total_granted` and `spent_balance` are DeepSeek-unlike fields with no column, so they are not stored.
+- **Capabilities:** usage, cost, per-key and key names off; `usageLag` 60 s (02's "seconds"); USD. For an anchored xAI account, spend comes only from harness reports (7.2), so it stays spend-only (`no runway until anchored`) and then `Collecting…` until harness data arrives.
+- **Key refused (401/403):** authored copy, like DeepSeek's (Q-045): `xAI did not accept this API key. Check the key at console.x.ai → API Keys and paste it again.`
+- **Shared request:** DeepSeek and xAI each call one Bearer-authenticated endpoint, so both use `BearerRequest.get` rather than two copies.
+- **Step 3 (H3):** the owner has an xAI key and runs the recorder (open gate). When it is recorded, the PR that consumes H3 updates `13 § D-xai-balance` with the recorded shape and `Verified += .xai`. This is not "resolved-by-scope".
+Blocking: no

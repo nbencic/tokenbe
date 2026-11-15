@@ -16,7 +16,7 @@ Fixtures/
 │        anthropic/api_keys.ok.json, anthropic/no_org.403.json, anthropic/credit_low.400.json,
 │        openrouter/credits.ok.json, openrouter/key.ok.json, openrouter/keys.ok.json,
 │        deepseek/balance.ok.json, deepseek/balance.unavailable.json, deepseek/balance.cny.json, deepseek/balance.401.json,
-│        xai/api_key.ok.json, xai/api_key.no_balance.json
+│        xai/api_key.ok.json, xai/api_key.no_balance.json, xai/api_key.401.json
 ├── harness/
 │   ├── valid_500.jsonl                 # 500 lines, 3 apps, 2 providers, 12 duplicates
 │   ├── partial_write.jsonl             # last line has no trailing newline

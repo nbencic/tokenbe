@@ -55,22 +55,8 @@ public struct DeepSeekAdapter: ProviderAdapter {
 
   // MARK: - Requests
 
-  /// GET with 02's header; a non-2xx status becomes its `PollError` (04). The transport adds the User-Agent.
   static func send(key: String, transport: any HTTPTransport) async throws(PollError) -> HTTPResponse {
-    var components = URLComponents()
-    components.scheme = "https"
-    components.host = host
-    components.path = balancePath
-    guard let url = components.url else { throw .providerRule("deepseek_bad_url \(balancePath)") }
-    let request = HTTPRequest(url: url, headers: ["Authorization": "Bearer \(key)", "Accept": "application/json"])
-    let response: HTTPResponse
-    do {
-      response = try await transport.send(request)
-    } catch {
-      throw PollError.from(error)
-    }
-    if let failure = PollError.from(response) { throw failure }
-    return response
+    try await BearerRequest.get(host: host, path: balancePath, provider: .deepseek, key: key, transport: transport)
   }
 
   /// Keys 02 does not list, once per day each (`poll.unknown_keys`, 07).
