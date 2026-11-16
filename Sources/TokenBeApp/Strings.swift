@@ -454,6 +454,22 @@ extension Strings {
     "\(files) \(files == 1 ? "file" : "files") \u{00B7} \(linesToday) lines today"
   }
 
+  // 7.3 drilldown: 08 gives no copy for the app filter or the drift chip (Q-050).
+  /// The account page's filter chip, `App: news-digest`, and its ✕.
+  static func appFilter(_ name: String) -> String { "App: \(name)" }
+  static let clearAppFilter = "Clear app filter"
+  /// The filtered By-app table's `Total` row, and the table with no row of the app in the range.
+  static let appTotal = "App total"
+  static func noAppSpend(_ name: String) -> String { "No spend for \(name) in this range" }
+  /// 06's drift chip: `Harness drift · Nov 14 · −$4.02`, then ` · 3 days` when more closed days drifted.
+  static func harnessDrift(day: String, amount: String, days: Int) -> String {
+    "Harness drift \u{00B7} \(day) \u{00B7} \(amount)" + (days > 1 ? " \u{00B7} \(days) days" : "")
+  }
+  static func harnessDriftHelp(day: String, harness: String, balance: String) -> String {
+    "On \(day) harness lines add up to \(harness), but the balance fell by \(balance). Lines may be missing, or a "
+      + "request was reported under another provider."
+  }
+
   /// The name a By-app row shows: the bound app's display name (O-13), else the provider's key name (01 A2: human
   /// key names), else 08's `(unnamed key …a9f2)` (Q-048).
   static func appLabel(_ row: AppRow) -> String {

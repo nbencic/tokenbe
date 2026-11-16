@@ -604,8 +604,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 ### Stage 7.3 — Drilldown polish
 **Goal:** every path from Overview to an app's spend works without a console. **Depends on:** 7.2. **Adds:** Overview app row click → account page filtered by app (filter chip with ✕); harness drift chip on account page; `unassigned` sentinel surfaced as `Unassigned` row when any event lacks an app. **Size:** S.
 
-**Inventory** — Files: `Dashboard/{AccountDetailView,ByAppTable}.swift` (filter), `Dashboard/DriftChip.swift`. Events: none new.
-**Tests:** `TokenBeUITests/DrilldownUITests`.
+**Inventory** — Files: `Dashboard/{AccountDetailView,ByAppTable}.swift` (filter), `Dashboard/DriftChip.swift`, `Dashboard/{DashboardView,OverviewView,AppsThisPeriod}.swift` (row click, filter state), `Ledger/{Attribution,Attribution+Harness,AccountSummaryBuilder}.swift` + `Model/{AccountSummary,Formatters}.swift` (drilldown account, filter, drift days), `AppModel.swift` (drift threshold), `Strings.swift`, `scripts/stages/{7.1,7.3}.sh`. Settings: `tb.alerts.driftThresholdPct` (read by the chip). Events: none new.
+**Tests:** `AttributionTests` (drift days, Unassigned id, drilldown account, filter; `AttributionDrilldownTests.swift`), `FormattersTests` (UTC day, signed money), `TokenBeUITests/DrilldownUITests`.
 **Verify:** UI test.
 **Stage DoD:** D1–D12.
 

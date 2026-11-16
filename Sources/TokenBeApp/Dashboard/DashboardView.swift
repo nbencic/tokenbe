@@ -3,13 +3,16 @@ import TokenBeCore
 
 /// 08 § Dashboard window: `NavigationSplitView`, min 920×600, frame kept in `tb.ui.dashboardFrame`.
 /// Stage 1.2: sidebar `Overview`, the range picker and the Overview empty state; 4.2: account pages and the
-/// toolbar's `Refresh`; 7.1: the Apps page. The CSV export (8.3) joins with its action.
+/// toolbar's `Refresh`; 7.1: the Apps page; 7.3: an Overview `Apps this period` row opens the account page filtered
+/// by that app. The CSV export (8.3) joins with its action.
 struct DashboardView: View {
   static let windowID = "dashboard"
   static let minimumSize = CGSize(width: 920, height: 600)
 
   let model: AppModel
   @Environment(\.appEnvironment) private var environment
+  /// The account page's app filter (7.3); cleared when the selection leaves its account.
+  @State private var appFilter: AppFilter?
 
   var body: some View {
     @Bindable var model = model
@@ -17,12 +20,16 @@ struct DashboardView: View {
       SidebarView(accounts: model.accounts, selection: $model.dashboardSelection)
     } detail: {
       if let account = selectedAccount {
-        AccountDetailView(model: model, summary: account)
+        AccountDetailView(model: model, summary: account, filter: $appFilter)
       } else if model.dashboardSelection == .apps {
         AppsPage(model: model)
       } else {
-        OverviewView(model: model)
+        OverviewView(model: model) { total in drill(into: total) }
       }
+    }
+    .onChange(of: model.dashboardSelection) {
+      if case .account(let id) = model.dashboardSelection, id == appFilter?.accountID { return }
+      appFilter = nil
     }
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
@@ -38,6 +45,13 @@ struct DashboardView: View {
     .frame(minWidth: Self.minimumSize.width, minHeight: Self.minimumSize.height)
     .background(WindowFrameKeeper(settings: environment?.settings, minimum: Self.minimumSize))
     .accessibilityIdentifier("dashboard.root")
+  }
+
+  /// 08 Overview 4 "row click → app filter in account detail": the account where the app spent most (Core, Q-050).
+  private func drill(into total: AppTotal) {
+    guard let account = Attribution.drilldownAccount(total, accounts: model.accounts) else { return }
+    appFilter = AppFilter(accountID: account, appKey: total.row.appKey, label: Strings.appLabel(total.row))
+    model.dashboardSelection = .account(account)
   }
 
   /// The selected account; nil on the Overview, or when the selected account was removed (back to the Overview).

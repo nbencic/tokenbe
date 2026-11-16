@@ -31,7 +31,7 @@ check "poll.failed keeps the raw cause in ctx.detail (07)" bash -c "grep -qF '\"
 # Step 2: the account page: header, badges with help, sources strip; Refresh. `Set anchor…` and `Add top-up…`
 # arrived in 5.3 (5.3.sh checks them); Export… is still later (8.3, D6).
 check "sidebar account rows open the account page" grep -qF '.tag(Item.account(account.id))' $app/Dashboard/SidebarView.swift
-check "the Dashboard shows the selected account's page" grep -qF 'AccountDetailView(model: model, summary: account)' $app/Dashboard/DashboardView.swift
+check "the Dashboard shows the selected account's page" grep -qF 'AccountDetailView(model: model, summary: account' $app/Dashboard/DashboardView.swift
 check "header Refresh runs that account's jobs" grep -qF 'model.refreshNow(summary.id)' $app/Dashboard/AccountDetailView.swift
 check "toolbar Refresh (08)" grep -qF 'dashboard.toolbar.refresh' $app/Dashboard/DashboardView.swift
 check "each badge has a help popover" grep -qF '.popover(isPresented: $showsHelp' $app/Dashboard/BadgesRow.swift
