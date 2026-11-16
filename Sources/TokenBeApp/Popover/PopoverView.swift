@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 import TokenBeCore
 
-/// The popover (08 § Popover; width 360 pt, max height 560 pt, scrolls): the header (title; `Refreshed …` and the
-/// refresh button, or `Paused · resumes HH:mm` and `Resume`), the banner slot, the Empty state or the card list,
-/// and the footer with `Open dashboard`, `Settings…`, `Pause polling for 1 h` / `Resume` and `Quit`.
+/// The popover (08 § Popover; width 360 pt, as tall as its content up to 560 pt, the cards scroll): the header
+/// (title; `Refreshed …` and the refresh button, or `Paused · resumes HH:mm` and `Resume`), the banner slot, the
+/// Empty state or the card list, and the footer with `Open dashboard`, `Settings…`, `Pause polling for 1 h` / `Resume` and `Quit`.
 struct PopoverView: View {
   let model: AppModel
   @Environment(\.openWindow) private var openWindow
@@ -12,6 +12,8 @@ struct PopoverView: View {
   @Environment(\.dismiss) private var dismiss
   /// The card ↑/↓ moves to and ⏎ opens (08 § Popover 4).
   @FocusState private var focusedCard: String?
+  /// The cards' natural height; the card list is this tall up to `maxCardsHeight`, then scrolls.
+  @State private var cardsHeight: CGFloat = 0
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -26,7 +28,9 @@ struct PopoverView: View {
       footer
     }
     .frame(width: 360)
-    .frame(maxHeight: 560)
+    // The popover is exactly as tall as its content (Paper `1XL-0`). A `maxHeight` frame here let the menu-bar
+    // window grow to 560 pt and centre a one-card popover between two empty bands; 08's cap is `maxCardsHeight`.
+    .fixedSize(horizontal: false, vertical: true)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("popover.root")
     .onAppear {
@@ -118,12 +122,13 @@ struct PopoverView: View {
         model.showOnboarding()
       }
     } else {
-      // The cards size the popover while they fit; past 08's 560 pt they scroll inside a fixed height.
-      ViewThatFits(in: .vertical) {
-        cards
-        ScrollView { cards }
-          .frame(height: Self.maxCardsHeight)
+      // The cards size the popover while they fit; past 08's 560 pt they scroll. Measured, not `ViewThatFits`:
+      // a content-sized popover offers no height to choose by, so `ViewThatFits` would never pick the scroll view.
+      ScrollView {
+        cards.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { cardsHeight = $0 }
       }
+      .frame(height: min(cardsHeight, Self.maxCardsHeight))
+      .scrollBounceBehavior(.basedOnSize)
       // No identifier here: SwiftUI hands it to a lone card, which then loses `popover.card.<provider>` (4.2).
     }
   }

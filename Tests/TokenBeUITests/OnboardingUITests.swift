@@ -43,6 +43,7 @@ final class OnboardingUITests: XCTestCase {
     // the identifiers.
     XCTAssertTrue(openPopover(app, until: control(app, "popover.card.openai.label")), "the popover shows the card")
     XCTAssertEqual(text(control(app, "popover.card.openai.label")), "OpenAI")
+    assertPopoverHugsContent(app)
     // Before the first usage poll the card reads `No data yet`; once it lands (5.3), Day-1 shows the remaining
     // amount in row 2 (`≈ $200 ± …`), whichever comes first.
     let pinned = text(control(app, "popover.card.openai.pinned"))
@@ -174,6 +175,18 @@ final class OnboardingUITests: XCTestCase {
   }
 
   // MARK: - Helpers
+
+  /// Paper `1XL-0`: with a card or two the popover hugs its content; only past 08's 560 pt do the cards scroll.
+  /// Measured on the window (the MenuBarExtra panel is a `Dialog`), not `popover.root`: a tall window can centre a
+  /// content-sized root inside it. Before the fix the panel was 548 pt tall with ~160 pt bands above and below.
+  @MainActor
+  private func assertPopoverHugsContent(_ app: XCUIApplication) {
+    let window = app.dialogs.containing(.any, identifier: "popover.footer.quit").firstMatch
+    let title = control(app, "popover.header.title").frame
+    let quit = control(app, "popover.footer.quit").frame
+    XCTAssertLessThan(title.minY - window.frame.minY, 24, "no band above the header: \(window.frame), \(title)")
+    XCTAssertLessThan(window.frame.maxY - quit.maxY, 24, "no band below the footer: \(window.frame), \(quit)")
+  }
 
   private func control(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
     app.descendants(matching: .any).matching(identifier: identifier).firstMatch

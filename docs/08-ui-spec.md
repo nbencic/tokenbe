@@ -39,7 +39,7 @@ All text/background pairs must meet WCAG AA 4.5:1 (health colors above were adju
 - Optional text metric right of the glyph, `tb.menubar.metric` ∈ `none | minRunway | minRemaining | todaySpend` (default `minRunway`), formatted compactly (`12d`, `$42`, `$3.10`). Width capped at 64 pt.
 - Click → popover. ⌥-click → opens Dashboard (if `MenuBarExtra` cannot report modifier flags reliably, ⌥-click is dropped — `14 § Pass 2`). No right-click context menu in V1 (D-context-menu): all actions live in the popover footer.
 
-## Popover (Paper `1-0`; width 360 pt, max height 560 pt, scrolls)
+## Popover (Paper `1-0`; width 360 pt, as tall as its content up to 560 pt, then the cards scroll)
 Order top→bottom:
 1. **Header row**: title `TokenBe` (headline), right: `Refreshed 2 min ago` (caption, secondary) and a refresh button (`arrow.clockwise`, spins while any poll in flight).
 2. **Alert banner** (only when any account is `low`/`critical`/`unknown` with anchor missing): single line, band color background at 12 % alpha, text ≤ 60 chars: `Anthropic: ~1 d left` / `OpenAI: set an anchor to see runway` / `DeepSeek: account unavailable` (a `critical` forced by D-deepseek-unavailable, which has no runway to quote; Q-045). Tapping opens that account's detail.

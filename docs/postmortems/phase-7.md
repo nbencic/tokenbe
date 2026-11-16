@@ -25,6 +25,7 @@ Date: 2026-11-16 · Stages: 7.1 (#30, #31), 7.2 (#32), 7.3 (#33)
 2. **The Mac's locked screen cost UI runs in 7.2 and 7.3**, and PM-4.1-4's ⌥-click flake cost one full verify in 7.3 (PM-7.3-3, for 8.4). **Fix:** hold `caffeinate -dims` for the whole session and check `IOConsoleLocked` first (PM-7.3-1).
 3. **Earlier stage scripts guard the future** ("not yet" checks; one-line greps of a list). Each stage of phase 7 had to update one: 7.1's `topApps`, 7.2's step lists, 7.3's "rows are not buttons yet". A grep-based guard sweep (PM-5.3-4, PM-7.2-4) still missed 4.2's and 5.2's exact-text checks in 7.3. From now on the sweep is a cumulative `TB_UI_TESTS=0` verify run first (PM-7.3-2).
 4. **Q-047's change-based UI selection worked**, and gave clear signal per stage. Each phase-7 stage touched `AppModel` or `Startup`, so each ran every suite anyway (about 17 min).
+5. **Manual use found what fixture tests missed.** The owner's first manual run found a stretched popover (since 1.1/3.5; no test measured the panel). My launch for that run stored a live key in a test root's plain-text key file. Fixed in #34 (PM-7.3-4, PM-7.3-5).
 
 ## Plan and doc changes
 - **14:** § 7.1–7.3 inventories completed (D1). E2E-3 asserts A3.
@@ -50,6 +51,8 @@ Date: 2026-11-16 · Stages: 7.1 (#30, #31), 7.2 (#32), 7.3 (#33)
   - PM-7.2-3 · agent · 10.2 · OpenRouter harness buckets priced from the book, not `cost_cents`.
   - PM-7.2-6 · agent · 8.4 · a non-lazy Sources strip for VoiceOver.
   - PM-7.3-3 · agent · 8.4 · instrument the ⌥-click test (PM-4.1-4 recurred).
+  - PM-7.3-4 · agent · 11.3 · measure the popover per state against Paper.
+  - PM-7.3-5 · agent · 9.5 · no live key into a test-root launch unnoticed.
 - **Phase 6 and earlier (unchanged):**
   - PM-6.1-1 and PM-6.2-1 · the H3 PR.
   - PM-6.1-4 · 9.1 · thin `balance_snapshot`.
