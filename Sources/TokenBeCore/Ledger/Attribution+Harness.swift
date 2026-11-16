@@ -67,6 +67,24 @@ public struct BalanceDay: Sendable, Equatable {
   }
 }
 
+/// A closed day whose harness spend drifted from the day's balance delta (06 precedence 2; the drift chip, 7.3).
+public struct HarnessDrift: Sendable, Equatable {
+  /// `YYYY-MM-DD`, UTC.
+  public var day: String
+  /// Σ harness `est_cost_cents` of the day.
+  public var harnessCents: Int64
+  /// How far the balance fell that day.
+  public var balanceCents: Int64
+  /// `harness − balance`: positive when the lines report more than the balance shows.
+  public var deltaCents: Int64 { harnessCents - balanceCents }
+
+  public init(day: String, harnessCents: Int64, balanceCents: Int64) {
+    self.day = day
+    self.harnessCents = harnessCents
+    self.balanceCents = balanceCents
+  }
+}
+
 /// 06 § Attribution precedence 1 (split) and 2 (substitute, inferred), and the reconciliation (`ledger.harness_drift`),
 /// 14 § Stage 7.2 step 5. Every day's spend is `Spend.daily`'s, so the rows still add up to the provider total.
 extension Attribution {
@@ -171,14 +189,26 @@ extension Attribution {
   /// differs from the delta by more than `thresholdPct` % of the delta (09 `tb.alerts.driftThresholdPct`; Q-049).
   public static func harnessDrift(_ account: AccountSummary, day: String, inputs: SummaryInputs,
                                   thresholdPct: Int) -> Int64? {
-    guard account.capabilities?.usage == false, account.mode == .direct, account.currency == .usd,
-          let delta = balanceDeltas(account, inputs: inputs)[day], delta > 0,
-          !inputs.ledgerEvents.contains(where: { $0.accountId == account.id && $0.kind == "topup" && $0.ts.hasPrefix(day) })
-    else { return nil }
-    let lines = inputs.harnessDays.filter { $0.accountId == account.id && $0.day == day }
-    guard !lines.isEmpty else { return nil }
-    let difference = lines.reduce(Int64(0)) { $0 + $1.estCents } - delta
-    return abs(difference) * 100 > Int64(thresholdPct) * delta ? difference : nil
+    harnessDrifts(account, days: [day], today: nil, inputs: inputs, thresholdPct: thresholdPct).first?.deltaCents
+  }
+
+  /// The drift chip's days (7.3; Q-050): every closed day (`< today`; any day when `today` is nil, for the daily step
+  /// that names the day itself) of `days` whose harness spend drifted from the balance delta by more than
+  /// `thresholdPct` %, newest first.
+  public static func harnessDrifts(_ account: AccountSummary, days: [String], today: String?, inputs: SummaryInputs,
+                                   thresholdPct: Int) -> [HarnessDrift] {
+    guard account.capabilities?.usage == false, account.mode == .direct, account.currency == .usd else { return [] }
+    let deltas = balanceDeltas(account, inputs: inputs)
+    let topUps = Set(inputs.ledgerEvents.filter { $0.accountId == account.id && $0.kind == "topup" }
+      .map { String($0.ts.prefix(10)) })
+    let harness = Dictionary(grouping: inputs.harnessDays.filter { $0.accountId == account.id }, by: \.day)
+      .mapValues { $0.reduce(Int64(0)) { $0 + $1.estCents } }
+    let closed = days.filter { day in (today.map { day < $0 } ?? true) && !topUps.contains(day) }
+    return closed.compactMap { day -> HarnessDrift? in
+      guard let delta = deltas[day], delta > 0, let spent = harness[day] else { return nil }
+      let drift = HarnessDrift(day: day, harnessCents: spent, balanceCents: delta)
+      return abs(drift.deltaCents) * 100 > Int64(thresholdPct) * delta ? drift : nil
+    }.sorted { $0.day > $1.day }
   }
 
   /// The daily activity's `harness drift` step: one `ledger.harness_drift {acct, day, delta_cents}` per account whose

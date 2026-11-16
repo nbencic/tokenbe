@@ -183,6 +183,21 @@ public enum Formatters {
     return "\(month) \(parts.day ?? 1)"
   }
 
+  /// A `YYYY-MM-DD` UTC day as `MMM d` (`Nov 14`), read from the text so no time zone shifts it (the drift chip,
+  /// 7.3); the text itself when it is not such a day.
+  public static func day(_ day: String) -> String {
+    let parts = day.split(separator: "-").compactMap { Int($0) }
+    guard parts.count == 3, (1...12).contains(parts[1]) else { return day }
+    return "\(months[parts[1] - 1]) \(parts[2])"
+  }
+
+  /// A signed amount: `+$1.20`, `\u{2212}$4.02` (U+2212 minus), `$0.00` (the drift chip, 7.3).
+  public static func signedMoney(_ amount: Money, hideCents: Bool, locale: Locale) -> String {
+    let body = money(Money(cents: absolute(amount.cents), currency: amount.currency), hideCents: hideCents,
+                     locale: locale)
+    return amount.cents > 0 ? "+" + body : amount.cents < 0 ? "\u{2212}" + body : body
+  }
+
   // MARK: - Price book rates (Q-038)
 
   /// A typed rate in USD per 1M tokens (`1.25`, `0,075` in `locale`) → picodollars per token (`PriceEntry.Rate`),

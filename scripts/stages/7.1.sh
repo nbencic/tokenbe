@@ -47,8 +47,8 @@ check "Keys & apps has the Bound app picker with New app… (08)" bash -c "grep 
 check "popover row 4 reads and writes tb.popover.expanded.<provider> (09)" bash -c "grep -qF 'isPopoverExpanded(summary.provider)' $app/Popover/AccountCardView.swift && grep -qF 'setPopoverExpanded(summary.provider' $app/Popover/AccountCardView.swift"
 check "08's copy: By app, Apps this period, Name…, New app…, (unnamed key …)" bash -c "grep -qF 'static let byApp = \"By app\"' $app/Strings.swift && grep -qF 'static let appsThisPeriod = \"Apps this period\"' $app/Strings.swift && grep -qF 'static let nameKey = \"Name\\u{2026}\"' $app/Strings.swift && grep -qF 'static let newApp = \"New app\\u{2026}\"' $app/Strings.swift && grep -qF '\"(unnamed key \\(hint))\"' $app/Strings.swift"
 check "app writes log ui.error on failure (R5)" bash -c "grep -A8 'private func appsWrite' $app/AppModel.swift | grep -qF 'Log.error(.uiError'"
-# 7.3 adds the row click → app filter; until then the Overview rows are not buttons (D6).
-check "Apps this period rows are not buttons yet (7.3, D6)" bash -c "! grep -qE 'Button|onTapGesture' $app/Dashboard/AppsThisPeriod.swift"
+# 7.3 made the rows buttons (the app filter; 7.3.sh checks the drilldown); the rows still come from Core.
+check "Apps this period rows come from Attribution.totals (04 I3)" grep -qF 'Attribution.totals(accounts)' $app/Dashboard/AppsThisPeriod.swift
 # 7.2 added split, harness and inferred (7.2.sh checks them); the key kind stays first.
 check "the key badge exists (08)" bash -c "grep -A3 'public enum AttributionKind' $core/Ledger/Attribution.swift | grep -qE 'case key'"
 

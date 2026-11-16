@@ -3,11 +3,13 @@ import TokenBeCore
 
 /// 08 § Account detail (Paper `8T-0`): the header (`AM-0`, `AR-0`) with `Set anchor…` (anchored), `Add top-up…` and
 /// `Refresh`; the badges row (`B1-0`); the anchor nudges (09 `tb.alerts.anchorAgeDays`, 04 V1); the numbers strip;
-/// the By-app table (`20N-0`, 7.1); the sources strip (`HP-0`); the ledger list (anchored). The by-model table
-/// arrives in 8.1.
+/// the By-app table (`20N-0`, 7.1), filtered to one app from the Overview (7.3); the harness drift chip beside the
+/// band pill (7.3); the sources strip (`HP-0`); the ledger list (anchored). The by-model table arrives in 8.1.
 struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
+  /// The Dashboard's app filter; this page applies it only when it names this account.
+  @Binding var filter: AppFilter?
   @State private var sheet: LedgerEntryForm.Kind?
   @Environment(\.openSettings) private var openSettings
 
@@ -33,7 +35,8 @@ struct AccountDetailView: View {
           .buttonStyle(.link)
           .accessibilityIdentifier("dashboard.account.byApp.empty")
         } else {
-          ByAppTable(model: model, summary: summary, hideCents: settings?.uiHideCents ?? true)
+          ByAppTable(model: model, summary: summary, hideCents: settings?.uiHideCents ?? true,
+                     filter: filter?.accountID == summary.id ? filter : nil) { filter = nil }
         }
         SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status,
                      harness: summary.hasHarness ? (model.ingestStatus.files, summary.harnessLinesToday) : nil)
@@ -119,6 +122,7 @@ struct AccountDetailView: View {
               .background(Color(.healthCritical).opacity(0.12), in: Capsule())
               .accessibilityIdentifier("dashboard.account.unavailable")
           }
+          DriftChip(drift: summary.harnessDrift, currency: summary.currency, hideCents: settings?.uiHideCents ?? true)
         }
         TimelineView(.periodic(from: .now, by: 30)) { context in
           Text(Formatters.freshness(summary.lastSuccessAt, now: context.date, calendar: .current, stale: dimmed))

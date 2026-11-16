@@ -70,8 +70,13 @@ public struct AppRow: Sendable, Equatable, Identifiable {
   public var id: String {
     appTag.map { "\(accountID)/\(providerKeyID)/\($0)/\(kind.rawValue)" } ?? "\(accountID)/\(providerKeyID)"
   }
-  /// What the UI names the row's elements by: the key for a key row, else the app tag (7.2).
-  public var elementID: String { appTag ?? providerKeyID }
+  /// What the UI names the row's elements by: the app tag (7.2), `unassigned` for the sentinel's rows (keyless
+  /// provider usage, a harness day without lines; 7.3), else the key.
+  public var elementID: String {
+    appTag ?? (appID == Attribution.unassignedID ? "unassigned" : providerKeyID)
+  }
+  /// What the app filter (7.3) and Apps this period match a row by: its app, else (an unbound key) the row itself.
+  public var appKey: String { appID ?? id }
   public var accountID: String
   /// `''` for the usage the provider did not group by key (the `Unassigned` row, Q-048).
   public var providerKeyID: String
@@ -292,7 +297,7 @@ public enum Attribution {
     var seen: [String] = []
     for account in accounts {
       for row in account.byApp {
-        let id = "\(row.appID ?? row.id)/\(row.kind.rawValue)/\(account.currency.rawValue)"
+        let id = "\(row.appKey)/\(row.kind.rawValue)/\(account.currency.rawValue)"
         if totals[id] == nil {
           seen.append(id)
           totals[id] = AppTotal(id: id, row: row, currency: account.currency,
@@ -306,5 +311,26 @@ public enum Attribution {
     }
     let spending = seen.compactMap { totals[$0] }.filter { $0.spend.cents > 0 }
     return Array(spending.sorted { $0.spend.cents > $1.spend.cents }.prefix(limit))
+  }
+
+  /// 7.3 drilldown (08 Overview 4, "row click → app filter in account detail"): the account an Apps-this-period entry
+  /// opens, the one where the app spent most in the entry's currency (any kind); ties go to the first in `accounts`
+  /// order (Q-050). Nil when no account has the app's rows any more.
+  public static func drilldownAccount(_ total: AppTotal, accounts: [AccountSummary]) -> String? {
+    var best: (id: String, cents: Int64)?
+    for account in accounts where account.currency == total.currency {
+      let rows = account.byApp.filter { $0.appKey == total.row.appKey }
+      guard !rows.isEmpty else { continue }
+      let cents = rows.reduce(Int64(0)) { $0 + $1.spend.cents }
+      if best.map({ cents > $0.cents }) ?? true { best = (account.id, cents) }
+    }
+    return best?.id
+  }
+
+  /// The account page's app filter (7.3): the rows of one app (`AppRow.appKey`) and their total; the total is nil
+  /// when the app has no rows in the range.
+  public static func filtered(_ rows: [AppRow], appKey: String) -> (rows: [AppRow], total: AppRowsTotal?) {
+    let kept = rows.filter { $0.appKey == appKey }
+    return (kept, total(kept))
   }
 }

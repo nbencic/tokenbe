@@ -5,17 +5,35 @@ import TokenBeCore
 /// Requests | Tokens (a stacked mini-bar by class) | Spend | Share. The `Total` row equals the account's spend for
 /// the range (`Attribution`: Σ rows == provider total). An unbound key offers `Name…`, which creates an app and binds
 /// the key (14 § Stage 7.1). Harness rows (7.2) carry `≈ split`, `harness` or `inferred` and are named by their app
-/// tag. Core computes every figure (04 I3).
+/// tag. Core computes every figure (04 I3). With an app filter (7.3: an Overview `Apps this period` row) the table
+/// shows that app's rows under a chip `App: <name> ✕`, and its total row reads `App total` (Q-050).
 struct ByAppTable: View {
   let model: AppModel
   let summary: AccountSummary
   let hideCents: Bool
+  var filter: AppFilter?
+  var clearFilter: () -> Void = {}
   @State private var naming: NamingTarget?
 
+  private var shown: (rows: [AppRow], total: AppRowsTotal?) {
+    filter.map { Attribution.filtered(summary.byApp, appKey: $0.appKey) } ?? (summary.byApp, summary.byAppTotal)
+  }
+
   var body: some View {
+    let shown = shown
     VStack(alignment: .leading, spacing: 10) {
-      Text(Strings.byApp)
-        .font(.headline)
+      HStack(spacing: 10) {
+        Text(Strings.byApp)
+          .font(.headline)
+        if let filter {
+          FilterChip(label: Strings.appFilter(filter.label), clear: clearFilter)
+        }
+      }
+      if let filter, shown.rows.isEmpty {
+        Text(Strings.noAppSpend(filter.label))
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier("dashboard.account.byApp.filter.empty")
+      }
       Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
         GridRow {
           ForEach([Strings.columnApp, Strings.columnKey, "", Strings.columnRequests, Strings.columnTokens,
@@ -24,7 +42,7 @@ struct ByAppTable: View {
           }
         }
         Divider().gridCellUnsizedAxes(.horizontal)
-        ForEach(summary.byApp) { row in
+        ForEach(shown.rows) { row in
           GridRow {
             appCell(row)
             Text(row.keyHint.map(Strings.hint) ?? Strings.noApp).monospaced().foregroundStyle(.secondary)
@@ -37,12 +55,12 @@ struct ByAppTable: View {
         }
         Divider().gridCellUnsizedAxes(.horizontal)
         GridRow {
-          Text(Strings.total).fontWeight(.semibold)
+          Text(filter == nil ? Strings.total : Strings.appTotal).fontWeight(.semibold)
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text((summary.byAppTotal?.tokens.requests ?? 0).formatted()).monospacedDigit()
+          Text((shown.total?.tokens.requests ?? 0).formatted()).monospacedDigit()
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text(summary.byAppTotal.map { spend($0.spend) } ?? Strings.noApp).fontWeight(.semibold).monospacedDigit()
+          Text(shown.total.map { spend($0.spend) } ?? Strings.noApp).fontWeight(.semibold).monospacedDigit()
             .accessibilityIdentifier("dashboard.account.byApp.total")
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
         }
@@ -73,6 +91,38 @@ struct ByAppTable: View {
 
   private func spend(_ figure: SpendFigure) -> String {
     Formatters.spend(figure, currency: summary.currency, hideCents: hideCents, locale: .current)
+  }
+}
+
+/// The account page's app filter (7.3): set by an Overview `Apps this period` row for one account, cleared by the
+/// chip's ✕ or by selecting another page (`DashboardView`). Not persisted.
+struct AppFilter: Equatable {
+  let accountID: String
+  /// `AppRow.appKey`.
+  let appKey: String
+  let label: String
+}
+
+/// `App: news-digest ✕`.
+struct FilterChip: View {
+  let label: String
+  let clear: () -> Void
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Text(label)
+        .accessibilityIdentifier("dashboard.account.byApp.filter")
+      Button(Strings.clearAppFilter, systemImage: "xmark.circle.fill") { clear() }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .help(Strings.clearAppFilter)
+        .accessibilityIdentifier("dashboard.account.byApp.filter.clear")
+    }
+    .font(.callout)
+    .padding(.leading, 8)
+    .padding(.trailing, 4)
+    .padding(.vertical, 2)
+    .background(Color.accentColor.opacity(0.12), in: Capsule())
   }
 }
 

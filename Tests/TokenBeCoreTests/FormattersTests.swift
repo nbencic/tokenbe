@@ -178,6 +178,16 @@ import Testing
     #expect(Formatters.date(Self.date(2026, 12, 1, 0, 30), calendar: utc) == "Nov 30", "00:30 Zagreb is still Nov 30 in UTC")
     let all = (1...12).map { Formatters.date(Self.date(2026, $0, 9), calendar: Self.calendar) }
     #expect(all == ["Jan 9", "Feb 9", "Mar 9", "Apr 9", "May 9", "Jun 9", "Jul 9", "Aug 9", "Sep 9", "Oct 9", "Nov 9", "Dec 9"])
+    #expect(Formatters.day("2026-11-09") == "Nov 9" && Formatters.day("2026-01-31") == "Jan 31", "a UTC day as text")
+    #expect(Formatters.day("2026-13-01") == "2026-13-01" && Formatters.day("today") == "today")
+  }
+
+  @Test("signed money: +, U+2212 minus, none for zero (the drift chip)")
+  func signedMoney() {
+    let posix = Locale(identifier: "en_US_POSIX")
+    #expect(Formatters.signedMoney(Money(cents: 120), hideCents: false, locale: posix) == "+$1.20")
+    #expect(Formatters.signedMoney(Money(cents: -402), hideCents: false, locale: posix) == "\u{2212}$4.02")
+    #expect(Formatters.signedMoney(Money(cents: 0), hideCents: true, locale: posix) == "$0")
   }
 
   @Test("bands order by severity; summary picks the latest success")

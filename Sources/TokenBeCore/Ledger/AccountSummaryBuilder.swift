@@ -9,19 +9,21 @@ import Foundation
 /// inputs they add.
 public enum AccountSummaryBuilder {
   /// What the money figures depend on besides the database: the Dashboard range, the time, the price book and the
-  /// Alerts thresholds (09).
+  /// Alerts thresholds (09): the bands' and the harness drift's (`tb.alerts.driftThresholdPct`, 7.3).
   public struct SpendContext: Sendable {
     public var range: DashboardRange
     public var now: Date
     public var pricer: Pricer
     public var thresholds: BandThresholds
+    public var driftThresholdPct: Int
 
     public init(range: DashboardRange = .default, now: Date = Date(), pricer: Pricer = Pricer(),
-                thresholds: BandThresholds = BandThresholds()) {
+                thresholds: BandThresholds = BandThresholds(), driftThresholdPct: Int = 10) {
       self.range = range
       self.now = now
       self.pricer = pricer
       self.thresholds = thresholds
+      self.driftThresholdPct = driftThresholdPct
     }
   }
 
@@ -107,6 +109,8 @@ public enum AccountSummaryBuilder {
     summary.byApp = Attribution.rows(summary, days: Spend.days(context.range, now: now), today: today, inputs: inputs)
     summary.byAppTotal = Attribution.total(summary.byApp)
     summary.todayApps = Attribution.rows(summary, days: [today], today: today, inputs: inputs)
+    summary.harnessDrift = Attribution.harnessDrifts(summary, days: Spend.days(context.range, now: now), today: today,
+                                                     inputs: inputs, thresholdPct: context.driftThresholdPct)
     summary.burn7dCents = Burn.sevenDay(daily: daily, now: now)
     summary.burnTodayCents = Burn.today(daily: daily, now: now)
     applyLedger(anchor: anchor, inputs: inputs, context: context, daily: daily, to: &summary)

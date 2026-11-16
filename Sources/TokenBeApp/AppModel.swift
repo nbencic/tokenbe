@@ -260,7 +260,8 @@ final class AppModel {
     let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
     let now = Date()
     let spend = AccountSummaryBuilder.SpendContext(range: range, now: now, pricer: pricer,
-                                                   thresholds: settings.map(BandThresholds.init) ?? BandThresholds())
+                                                   thresholds: settings.map(BandThresholds.init) ?? BandThresholds(),
+                                                   driftThresholdPct: settings?.alertsDriftThresholdPct ?? 10)
     var next = AccountSummaryBuilder.summaries(from: lastInputs, missingKeys: missingKeys, spend: spend) { record, invalid in
       Log.error(.uiError, cat: .ui, msg: "account row skipped", acct: record.id, err: invalid, ctx: [
         "view": "accounts"
@@ -319,9 +320,10 @@ final class AppModel {
     return sent
   }
 
-  /// … and the Alerts thresholds the bands use (09).
+  /// … and the Alerts thresholds the bands and the harness drift chip use (09; 7.3).
   private static let freshnessKeys: Set<SettingsKey> = ScheduleSettings.keys.union([.alertsStaleMultiplier,
-                                                                                    .uiDashboardRange])
+                                                                                    .uiDashboardRange,
+                                                                                    .alertsDriftThresholdPct])
     .union(BandThresholds.keys).union(AlertSettings.keys)
 
   private func apply(_ settings: TokenBeCore.Settings) {

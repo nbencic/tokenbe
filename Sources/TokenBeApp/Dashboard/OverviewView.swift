@@ -6,6 +6,8 @@ import TokenBeCore
 /// (5.3); `Apps this period` (7.1); the chart and the cache tile arrive with their data (8.2).
 struct OverviewView: View {
   let model: AppModel
+  /// An `Apps this period` row was clicked (7.3: the Dashboard opens its account page filtered by the app).
+  var openApp: (AppTotal) -> Void = { _ in }
   @State private var anchorAccount: AnchorTarget?
 
   var body: some View {
@@ -30,7 +32,7 @@ struct OverviewView: View {
           RunwayBoard(model: model, hideCents: hideCents) { summary in
             anchorAccount = model.records.first { $0.id == summary.id }.map(AnchorTarget.init)
           }
-          AppsThisPeriod(accounts: model.accounts, hideCents: hideCents)
+          AppsThisPeriod(accounts: model.accounts, hideCents: hideCents) { openApp($0) }
         }
         spendByDay
       }
