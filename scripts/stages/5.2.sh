@@ -35,7 +35,7 @@ check "check-log-events.sh (07 ↔ Evt)" scripts/check-log-events.sh
 check "account page shows the numbers strip" grep -qF 'NumbersStrip(summary: summary' $app/Dashboard/AccountDetailView.swift
 check "unpriced cell only when the range has unpriced tokens, in HealthWatch" bash -c "grep -qF 'unpriced.tokens > 0' $app/Dashboard/NumbersStrip.swift && grep -qF 'Color(.healthWatch)' $app/Dashboard/NumbersStrip.swift"
 check "Overview subline sums USD accounts only" bash -c "grep -qF 'Spend.totalUSD(model.accounts)' $app/Dashboard/OverviewView.swift && grep -qF 'non-USD' $app/Strings.swift"
-check "the range setting rebuilds the summaries" grep -qF '.uiDashboardRange])' $app/AppModel.swift
+check "the range setting rebuilds the summaries" bash -c "grep -A3 'private static let freshnessKeys' $app/AppModel.swift | grep -qF '.uiDashboardRange'"
 check "Price book line counts unpriced models (PM-5.1-1)" grep -qF 'unpriced: status.unpricedModels' $app/SettingsUI/PriceBookSection.swift
 for copy in 'Spend today' 'Spend in range' 'Unpriced in range' 'Total spend '; do
   check "Strings has copy: $copy" grep -qF "\"$copy" $app/Strings.swift
