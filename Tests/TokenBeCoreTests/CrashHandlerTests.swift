@@ -140,8 +140,14 @@ import Testing
     #expect(lines.count == 2)
     // The crash line goes straight to disk, so it lands before records still in the sink's buffer.
     #expect(lines.filter { $0.contains("\"crash.signal\"") }.count == 1)
+    var before = stat()
+    #expect(fstat(fd, &before) == 0)
     CrashHandler.setTargetFileDescriptor(-1)
-    #expect(fcntl(fd, F_GETFD) == -1, "previous descriptor closed")
+    // A parallel test may open a file and get the same number at once, so "closed" means the number no longer
+    // refers to this file, not that `fcntl` fails.
+    var after = stat()
+    let sameFile = fstat(fd, &after) == 0 && after.st_dev == before.st_dev && after.st_ino == before.st_ino
+    #expect(!sameFile, "previous descriptor closed")
   }
 
   @Test("running sentinel: absent → running → clean")
