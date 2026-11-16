@@ -48,7 +48,7 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 | `SchedulerTests` | uses `TestClock`: due ordering, tolerance coalescing (two jobs due within 5 s run in one wake), backoff sequence 2/4/8 ±25 % with seeded RNG, 429 Retry-After honored and capped at 300 s, auth ×3 → circuit 24 h, decode no-retry, Low Power ×4, clock jump >30 s reschedules, pause/resume. |
 | `PollStateTests` | consecutive_failures, circuit_open_until, cursor persistence, last_raw ≤ 64 KiB and redacted. |
 | `AdapterTests/<Provider>` | for each fixture case: decode → normalized rows → DB rows count and values; probe sequence returns the exact human message strings from 02 for 401/403/400/429 fixtures; unknown JSON keys logged once. |
-| `IngestTailerTests` | partial line not consumed; offset persisted in same transaction (inject failure after insert → both roll back); inode change → offset 0; truncation → offset 0; dedup; conflict logged; bad file → rejected/; counters. |
+| `IngestTailerTests` | partial line not consumed; offset persisted in same transaction (inject failure after insert → both roll back); inode change → offset 0; truncation → offset 0; dedup; conflict logged; bad file → rejected/; counters; quiescence move; skipped paths; folder recreated / unwritable; FSEvents fallback; read failures; burst batching (7.2). |
 | `RedactorTests` | 7 patterns; real-shaped fake keys; in-memory key exact match; output never contains > last 4 chars. |
 | `LogSinkTests` | NDJSON parseable; key order; rotation at 50 MiB (use 50 KiB override for test); retention deletion; overflow drop counter emits `app.log_dropped`. |
 | `SettingsTests` | every `SettingsKey` has default; clamp + log; `critical < low < watch` repair; reset keeps `onboardingDone`. |
@@ -66,7 +66,7 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 |---|---|---|
 | E2E-1 | Fresh launch, no accounts | Onboarding sheet shown; popover shows Empty state; `app.launch` logged. |
 | E2E-2 | Add OpenAI with fixture key | Probe passes with fixture; Step 3 shows `anchored`; set anchor $100; popover card shows `≈ $100 ± …`; runway shows Day-1 collecting. |
-| E2E-3 | Harness ingest | copy `valid_500.jsonl` into ingest/ in 5 bursts while running → 488 harness_event rows (500−12 dup); `kill -9` after burst 3, relaunch, copy remaining → still 488; By-app table lists 3 apps; `rejected/` receives `bad_json.jsonl`. |
+| E2E-3 | Harness ingest | copy `valid_500.jsonl` into ingest/ in 5 bursts while running → 488 harness_event rows (500−12 dup); `kill -9` after burst 3, relaunch, copy remaining → still 488; By-app table lists 3 apps; `rejected/` receives `bad_json.jsonl`. The test moves each `ts` to the last minutes, turns move-when-done off by launch argument, and asserts A3's 5 s on the first burst (`HarnessIngestUITests`, Q-049). |
 | E2E-4 | Band + notification | drive fixture costs so runway < 2 d → card red, glyph notch, one notification, `ui.band_change` logged; drive back to healthy → no notification. |
 | E2E-5 | Stale/offline | stub transport to fail → after 3× interval cards dim, glyph dashed, banner "Offline"; recover → normal within one interval. |
 | E2E-6 | Settings round-trip | change every control in each tab → UserDefaults value matches; relaunch → UI reflects; Reset keeps onboardingDone. |

@@ -38,6 +38,14 @@ final class DailyActivityRegistration {
     })
     activity = DailyActivity(steps: [
       DailyStep("cost polls") { _ in try await costPolls.run() },
+      // 06 precedence 2: yesterday's harness spend against the balance delta (`ledger.harness_drift`, 14 § 7.2).
+      DailyStep("harness drift") { _ in
+        let threshold = await MainActor.run { settings.alertsDriftThresholdPct }
+        var inputs = repository.observeSummaryInputs().makeAsyncIterator()
+        if let current = await inputs.next() {
+          Attribution.reportDrift(current, now: Date(), thresholdPct: threshold)
+        }
+      },
       // A feed failure is logged by the fetcher and keeps the snapshot; only a store failure fails the step.
       DailyStep("price refresh") { _ in try await prices?.refresh() },
       DailyStep("db backup") { _ in

@@ -49,7 +49,8 @@ check "08's copy: By app, Apps this period, Name…, New app…, (unnamed key �
 check "app writes log ui.error on failure (R5)" bash -c "grep -A8 'private func appsWrite' $app/AppModel.swift | grep -qF 'Log.error(.uiError'"
 # 7.3 adds the row click → app filter; until then the Overview rows are not buttons (D6).
 check "Apps this period rows are not buttons yet (7.3, D6)" bash -c "! grep -qE 'Button|onTapGesture' $app/Dashboard/AppsThisPeriod.swift"
-check "only the key badge exists before 7.2" bash -c "grep -A3 'public enum AttributionKind' $core/Ledger/Attribution.swift | grep -qF 'case key' && ! grep -qE 'case (split|harness|inferred)' $core/Ledger/Attribution.swift"
+# 7.2 added split, harness and inferred (7.2.sh checks them); the key kind stays first.
+check "the key badge exists (08)" bash -c "grep -A3 'public enum AttributionKind' $core/Ledger/Attribution.swift | grep -qE 'case key'"
 
 for suite in AttributionTests ObservationTests SpendTests RepositoryAccountTests; do
   check "suite $suite passed" suite_passed "$suite"

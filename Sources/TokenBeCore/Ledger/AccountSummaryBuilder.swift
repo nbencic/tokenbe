@@ -86,8 +86,13 @@ public enum AccountSummaryBuilder {
     if let state = inputs.bandStates.first(where: { $0.accountId == summary.id }) {
       summary.bandSince = DBTime.date(state.since)
     }
+    let harness = inputs.harnessDays.filter { $0.accountId == summary.id }
+    summary.hasHarness = !harness.isEmpty
+    summary.harnessLinesToday = Int(harness.filter { $0.day == DailyOnce.utcDay(context.now) }
+      .reduce(Int64(0)) { $0 + $1.classes.requests })
+    // Harness lines are data too (7.2): an anchored xAI account has no polled job, only harness spend (PM-6.2-2).
     guard (summary.freshness[.usage] ?? nil) != nil || (summary.freshness[.cost] ?? nil) != nil
-      || (summary.freshness[.balance] ?? nil) != nil else {
+      || (summary.freshness[.balance] ?? nil) != nil || summary.hasHarness else {
       // Before the first poll: the anchor alone is not a runway yet (`No data yet`, 08), so the band is unknown.
       return
     }

@@ -28,6 +28,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       if let prices = startup.environment?.prices {
         model.observe(prices.book)
       }
+      if let ingest = startup.environment?.ingest {
+        model.observe(ingest)
+      }
       // 08 § Notifications: `Open` shows the account's page; `Snooze 24 h` sets `tb.alerts.snoozedUntil.<p>`.
       if let notifier = startup.environment?.systemNotifier, let settings = startup.environment?.settings {
         notifier.onOpen = { [model] account in model.showAccount(account) }

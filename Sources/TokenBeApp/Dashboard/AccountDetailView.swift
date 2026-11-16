@@ -9,6 +9,7 @@ struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
   @State private var sheet: LedgerEntryForm.Kind?
+  @Environment(\.openSettings) private var openSettings
 
   private var record: AccountRecord? { model.records.first { $0.id == summary.id } }
   private var settings: TokenBeCore.Settings? { model.environment?.settings }
@@ -22,10 +23,20 @@ struct AccountDetailView: View {
         }
         nudge
         NumbersStrip(summary: summary, hideCents: settings?.uiHideCents ?? true)
-        if !summary.byApp.isEmpty {
+        if summary.byApp.isEmpty {
+          // 08: the empty By-app table points at Settings → Sources → Harness reports.
+          Button(Strings.reportAppsFromHarness) {
+            model.settingsTab = .sources
+            openSettings()
+            NSApp.activate()
+          }
+          .buttonStyle(.link)
+          .accessibilityIdentifier("dashboard.account.byApp.empty")
+        } else {
           ByAppTable(model: model, summary: summary, hideCents: settings?.uiHideCents ?? true)
         }
-        SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status)
+        SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status,
+                     harness: summary.hasHarness ? (model.ingestStatus.files, summary.harnessLinesToday) : nil)
         if summary.mode == .anchored {
           LedgerList(events: model.ledgerEvents.filter { $0.accountId == summary.id }, currency: summary.currency,
                      hideCents: settings?.uiHideCents ?? true) { event in

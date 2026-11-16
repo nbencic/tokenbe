@@ -38,6 +38,13 @@ public struct SummaryInputs: Sendable, Equatable {
   public var keyUsageDays: [KeyUsageDay]
   /// Per account, UTC day and provider key: the provider's `cost_bucket` rows with `group_kind = 'api_key_id'`.
   public var keyCostDays: [KeyCostDay]
+  /// 7.2: per account, UTC day, app tag and resolved key, the harness lines' estimate, classes and count (06
+  /// precedence: split and substitute weights).
+  public var harnessDays: [HarnessDay] = []
+  /// 7.2: each account's last balance of each UTC day, per currency (inference and drift, 06).
+  public var balanceDays: [BalanceDay] = []
+  /// 7.2: harness lines stored for a provider with no account (O-12).
+  public var harnessWithoutAccount = 0
 
   /// How far back the aggregates reach: the longest Dashboard range (90 d) plus today.
   public static let window: TimeInterval = 91 * 86_400
@@ -130,6 +137,9 @@ public struct SummaryInputs: Sendable, Equatable {
         KeyCostDay(accountId: $0["account_id"], day: $0["day"], providerKeyId: $0["group_key"],
                    amountCents: $0["amount"])
       }
+    harnessDays = try HarnessDay.fetch(db, since: since)
+    balanceDays = try BalanceDay.fetch(db, since: since)
+    harnessWithoutAccount = try Int.fetchOne(db, sql: "SELECT count(*) FROM harness_event WHERE account_id IS NULL") ?? 0
   }
 }
 

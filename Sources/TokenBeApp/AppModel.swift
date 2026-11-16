@@ -39,6 +39,10 @@ final class AppModel {
   private(set) var apps: [AppRecord] = []
   private(set) var bindings: [AppBindingRecord] = []
   private(set) var providerKeys: [ProviderKeyRecord] = []
+  /// Settings → Sources → Harness reports (08, 14 § Stage 7.2): the ingest service's status.
+  private(set) var ingestStatus = IngestStatus()
+  /// Harness lines stored for a provider with no account (O-12).
+  private(set) var harnessWithoutAccount = 0
   /// Keychain refs with no item (04 startup step 3); cleared for an account once its key is replaced.
   var missingKeys: Set<String> = [] {
     didSet { rebuild() }
@@ -79,6 +83,7 @@ final class AppModel {
   @ObservationIgnored private var summaryWatcher: Task<Void, Never>?
   @ObservationIgnored private var coordinatorWatcher: Task<Void, Never>?
   @ObservationIgnored private var pricesWatcher: Task<Void, Never>?
+  @ObservationIgnored private var ingestWatcher: Task<Void, Never>?
   /// The price book's rates, for the unpriced estimate (05 `unpriced_cents`).
   @ObservationIgnored private var pricer = Pricer()
   /// Writes `band_state` and logs `ui.band_change` when an evaluated band changes (14 § Stage 5.3 step 2).
@@ -148,6 +153,15 @@ final class AppModel {
         self.pricer = status.pricer
         self.rebuild(trigger: .settings)
       }
+    }
+  }
+
+  /// Follows the harness drop folder (06): mode, files, last line, today's counters.
+  func observe(_ ingest: IngestService) {
+    ingestWatcher?.cancel()
+    let updates = ingest.statusUpdates()
+    ingestWatcher = Task { [weak self] in
+      for await status in updates { self?.ingestStatus = status }
     }
   }
 
@@ -241,6 +255,7 @@ final class AppModel {
     if apps != lastInputs.apps { apps = lastInputs.apps }
     if bindings != lastInputs.bindings { bindings = lastInputs.bindings }
     if providerKeys != lastInputs.providerKeys { providerKeys = lastInputs.providerKeys }
+    if harnessWithoutAccount != lastInputs.harnessWithoutAccount { harnessWithoutAccount = lastInputs.harnessWithoutAccount }
     let settings = environment?.settings
     let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
     let now = Date()

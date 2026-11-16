@@ -21,7 +21,7 @@ check "no key-shaped string in the bundled file" bash -c "d=\$(mktemp -d); cp $r
 
 # Step 2: startup step 4, after accounts, before the login item and the scheduler.
 check "startup step 4 (prices) follows accounts (04)" bash -c "grep -A1 'StartupStep(\"accounts\")' $app/Startup.swift | grep -qF 'StartupStep(\"prices\")'"
-check "StartupSequenceTests lists the prices step (D7)" grep -qF '"accounts", "prices", "scheduler"' Tests/TokenBeCoreTests/StartupSequenceTests.swift
+check "StartupSequenceTests lists the prices step (D7)" grep -qF '"accounts", "prices", "ingest", "scheduler"' Tests/TokenBeCoreTests/StartupSequenceTests.swift
 check "the bundled seed is bundled-<appversion>, logged price.feed_ok source=bundled" bash -c "grep -qF '\"bundled-\\(appVersion)\"' $core/Pricing/PriceBook.swift && grep -qF '\"source\": \"bundled\"' $core/Pricing/PriceBook.swift"
 
 # Step 3: the fetcher (02: If-None-Match, 10 s, 20 MB, sha256; O-6), prune to 4.

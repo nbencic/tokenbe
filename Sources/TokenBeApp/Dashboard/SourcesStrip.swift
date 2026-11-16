@@ -5,12 +5,15 @@ import TokenBeCore
 /// `Usage · ok · 2 min ago · next 3 min`, `Cost · ok · 02:10`, `Balance · n/a`. A failed source is in `HealthLow`
 /// with its last error's human message (Q-036). Laid out as Paper's strip: a grey panel of columns, each a caption
 /// title over its line. The last column is the price snapshot's chip, `Prices · Nov 8 · ok` or `· stale` in
-/// `HealthWatch` (14 § Stage 5.1 step 6). `Harness · …` joins in 7.2. The columns wrap to the window's width, so
+/// `HealthWatch` (14 § Stage 5.1 step 6). An account with harness lines adds `Harness · 3 files · 12 lines today`
+/// (7.2: the files the ingest service reads, this account's lines today). The columns wrap to the window's width, so
 /// the strip never makes the account page wider than the Dashboard's 920 pt minimum (7.1).
 struct SourcesStrip: View {
   let sources: [SourceStatus]
   /// Nil before startup step 4 (no chip).
   var prices: PriceBook.Status?
+  /// Files being read and this account's lines today; nil when the account has no harness lines (no chip).
+  var harness: (files: Int, linesToday: Int)?
 
   var body: some View {
     TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -33,6 +36,20 @@ struct SourcesStrip: View {
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(Strings.sourceLine([Strings.sourcePrices, line]))
           .accessibilityIdentifier("dashboard.account.source.prices")
+        }
+        if let harness {
+          let line = Strings.harnessLine(files: harness.files, linesToday: harness.linesToday)
+          VStack(alignment: .leading, spacing: 2) {
+            Text(Strings.sourceHarness)
+              .font(.caption2.weight(.semibold))
+              .textCase(.uppercase)
+              .foregroundStyle(.tertiary)
+            Text(line)
+              .font(.caption.monospacedDigit())
+          }
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(Strings.sourceLine([Strings.sourceHarness, line]))
+          .accessibilityIdentifier("dashboard.account.source.harness")
         }
       }
       .padding(.horizontal, 16)

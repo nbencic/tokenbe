@@ -46,6 +46,10 @@ final class Startup {
   /// The composition root, available once the logging step has run.
   private(set) var environment: AppEnvironment?
   private var retentionWatcher: Task<Void, Never>?
+  /// Follows 09 `tb.ingest.*` into the ingest service (14 § Stage 7.2).
+  private var ingestWatcher: Task<Void, Never>?
+  /// `tokenbe.sqlite` was there before this launch (so a missing ingest folder was removed, 06).
+  private var databaseExisted = false
   /// Feed the coordinator: 09 § Sources changes, Low Power transitions, wake notifications (04 § Scheduler).
   private var schedulerWatchers: [Task<Void, Never>] = []
   private var loginItem: LoginItemController?
@@ -67,6 +71,7 @@ final class Startup {
       StartupStep("database") { [self] in try await openDatabase() },
       StartupStep("accounts") { [self] in await checkAccounts() },
       StartupStep("prices") { [self] in await loadPrices() },
+      StartupStep("ingest") { [self] in await startIngest() },
       StartupStep("login item") { [self] in startLoginItem() },
       StartupStep("scheduler") { [self] in await startScheduler() },
       StartupStep("daily activity") { [self] in startDailyActivity() },
@@ -92,6 +97,8 @@ final class Startup {
   /// 04 step 2: open `tokenbe.sqlite` with 03's PRAGMAs, `quick_check`, migrate (`DatabaseOpener`). A corrupt
   /// database is repaired on the way and the user is told where the damaged copy went.
   private func openDatabase() async throws {
+    databaseExisted = FileManager.default.fileExists(
+      atPath: paths.support.appendingPathComponent(AppDatabase.fileName).path)
     do {
       let opened = try await DatabaseOpener.open(directory: paths.support)
       environment?.repository = GRDBRepository(database: opened.database)
@@ -280,6 +287,8 @@ final class Startup {
   func terminate(reason: String) async {
     Log.info(.appTerminate, cat: .app, msg: "terminate", ctx: ["reason": .string(reason)])
     retentionWatcher?.cancel()
+    ingestWatcher?.cancel()
+    await environment?.ingest?.stop(reason: "quit")
     for watcher in schedulerWatchers { watcher.cancel() }
     environment?.daily?.invalidate()
     environment?.prices?.stop()
@@ -297,6 +306,30 @@ final class Startup {
 }
 
 extension Startup {
+  /// 04 step 5: the harness drop folder (06). It lives in the support folder the database uses, so UI tests under a
+  /// `TOKENBE_TEST_ROOT` never touch the owner's `~/Library/Application Support/TokenBe/ingest` (D10; 09 shows
+  /// `tb.ingest.folderPath`, which names the same place in normal runs). The folder's absence is logged
+  /// (`ingest.folder_recreated`) only when the database existed before this launch. Follows 09 `tb.ingest.*`.
+  func startIngest() async {
+    guard var environment, let repository = environment.repository else { return }
+    let settings = environment.settings
+    let book = environment.prices?.book
+    let service = IngestService(
+      folder: paths.support.appendingPathComponent("ingest", isDirectory: true), store: repository,
+      watcher: FSEventsWatcher(), fallback: PollingWatcher(clock: ContinuousClock()),
+      settings: IngestSettings(settings), pricer: { await book?.pricer ?? Pricer() }
+    )
+    environment.ingest = service
+    self.environment = environment
+    await service.start(expectFolder: databaseExisted)
+    let changes = settings.changes
+    ingestWatcher = Task {
+      for await key in changes where IngestSettings.keys.contains(key) {
+        await service.apply(IngestSettings(settings))
+      }
+    }
+  }
+
   /// 04 step 8: the persisted bands, so the menu-bar glyph shows the last known state (notch) from launch until the
   /// first polls complete (14 § Stage 5.5 step 2). A read failure leaves the glyph to the first evaluation.
   func loadGlyphBands() async {

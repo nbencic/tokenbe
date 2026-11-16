@@ -11,7 +11,7 @@
 | Networking | `URLSession.shared`-derived session with `waitsForConnectivity = false`, timeouts 15 s request / 30 s resource, gzip default, HTTP/2 | Third-party HTTP clients |
 | Secrets | Keychain (`kSecClassGenericPassword`, service `dev.bathyon.tokenbe`, account = `account.keychain_ref`, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`) | Secrets in UserDefaults, DB, files, logs |
 | Scheduling | One `SchedulerLoop` task for minute-cadence jobs; one `NSBackgroundActivityScheduler` identifier `dev.bathyon.tokenbe.daily` for daily jobs | Per-account timers; launchd agents; helper processes |
-| File watching | FSEvents (`FSEventStreamCreate`, latency 1.0 s, flags `kFSEventStreamCreateFlagFileEvents | UseCFTypes`) on the ingest folder | Polling the folder; vnode sources on the directory |
+| File watching | FSEvents (`FSEventStreamCreate`, latency 1.0 s, flags `kFSEventStreamCreateFlagFileEvents | UseCFTypes | NoDefer`, 06) on the ingest folder, delivered on the main queue to an `AsyncStream` (no app logic on the queue, Q-049) | Polling the folder as the watch (the 30 s poll is only 06's fallback when FSEvents cannot start); vnode sources on the directory |
 | Logging | `os.Logger` (subsystem `dev.bathyon.tokenbe`) + NDJSON file sink (`07`) | print(); swift-log |
 | Updates | Daily GitHub releases check (`02 § Update check`) | Sparkle in V1 |
 | Distribution | Developer ID, notarized `.dmg`, Homebrew cask | Mac App Store in V1 |
@@ -58,7 +58,7 @@ loop:
 Jobs and default intervals (user-tunable in `09`): `balance` 60 s (openrouter, deepseek, xai); `usage` 60 s (anthropic), 300 s (openai); `keys` 3600 s (openai, anthropic, openrouter). After a sleep/wake (`NSWorkspace.didWakeNotification`) or a wall-clock jump > 30 s versus the monotonic clock, log `sched.clock_jump` with both deltas and recompute `nextDue` from `now` (never catch up missed ticks).
 
 ### Daily activity (`NSBackgroundActivityScheduler`, identifier `dev.bathyon.tokenbe.daily`)
-`interval = 86400`, `tolerance = 3600`, `qualityOfService = .utility`, `repeats = true`. Runs, in order, each logged with duration: cost polls (openai, anthropic) → roll-ups (`03`) → price refresh → update check → DB backup → weekly `integrity_check` (every 7th run) → `incremental_vacuum`. If any step throws, the remaining steps still run; the failure is logged and the step is retried at the next activity.
+`interval = 86400`, `tolerance = 3600`, `qualityOfService = .utility`, `repeats = true`. Runs, in order, each logged with duration: cost polls (openai, anthropic) → harness drift (yesterday, `06` precedence 2; Q-049) → roll-ups (`03`) → price refresh → update check → DB backup → weekly `integrity_check` (every 7th run) → `incremental_vacuum`. If any step throws, the remaining steps still run; the failure is logged and the step is retried at the next activity.
 Manual "Refresh now" in Settings triggers the same function out of band.
 
 ### Low Power Mode

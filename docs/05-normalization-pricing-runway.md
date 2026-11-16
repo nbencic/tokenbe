@@ -27,6 +27,7 @@ struct TokenClasses: Sendable, Equatable {
 | anthropic per-response (harness) | `input_tokens` (already uncached) | `cache_creation.ephemeral_5m_input_tokens ?? cache_creation_input_tokens ?? 0` | `cache_creation.ephemeral_1h_input_tokens ?? 0` | `cache_read_input_tokens ?? 0` | `output_tokens` | 0 |
 | openrouter per-key | all 0 — OpenRouter per-key data is dollars only; `model='*'` | | | | | |
 | deepseek per-response (harness) | `prompt_cache_miss_tokens ?? (prompt_tokens − prompt_cache_hit_tokens)` | 0 | 0 | `prompt_cache_hit_tokens ?? 0` | `completion_tokens − (completion_tokens_details.reasoning_tokens ?? 0)` | `completion_tokens_details.reasoning_tokens ?? 0` |
+| openrouter per-response (harness) | as openai per-response (chat.completions); `cost_cents`, when present, is the line's cost (06; Q-049) | | | | | |
 | xai per-response (harness) | `prompt_tokens − (prompt_tokens_details.cached_tokens ?? 0)` | 0 | 0 | `prompt_tokens_details.cached_tokens ?? 0` | `completion_tokens − (completion_tokens_details.reasoning_tokens ?? 0)` | `completion_tokens_details.reasoning_tokens ?? 0` |
 
 Unknown keys in a usage object are collected and logged once per day per provider as `normalize.unknown_keys`. They never fail normalization. A missing REQUIRED key (`prompt_tokens`/`input_tokens`/`uncached_input_tokens`) fails normalization: the harness line is stored with `classes_json = NULL` and logged `normalize.failed`.
@@ -60,7 +61,7 @@ Service tier: `priority` and `batch` buckets are priced with the standard rate a
 ## Spend definitions (cents, per account)
 
 - `spend_truth(day)` = Σ `cost_bucket.amount_cents` for that day (`group_kind='total'` row, which the adapter writes as the sum of its grouped rows).
-- `spend_est(window)` = Σ `usage_bucket.est_cost_cents` for `source='provider'` rows in the window (plus `source='harness'` rows ONLY for accounts with `capabilities.usage = false`).
+- `spend_est(window)` = Σ `usage_bucket.est_cost_cents` for `source='provider'` rows in the window (plus `source='harness'` rows ONLY for accounts with `capabilities.usage = false` whose currency is USD: harness estimates are priced in dollars and never converted; Q-049). For such an account, a closed day that D-deepseek-single-app infers (06) counts its balance delta, in the account's currency.
 - `spend_since_anchor` = Σ `spend_truth(day)` for closed days after the anchor day + `spend_est` for the anchor day's remainder and today (open day). If an account has no cost capability, `spend_est` is used for all days.
 - `unpriced_cents(window)` = Σ over unpriced buckets of `(inputUncached + cacheRead + cacheWrite + output + reasoning) × median_in_rate_of_priced_models_in_window`. Reported separately; never added to spend.
 

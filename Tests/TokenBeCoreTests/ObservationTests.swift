@@ -214,6 +214,59 @@ actor StreamRecorder<Value: Sendable> {
     await recorder.cancel()
   }
 
+  /// 7.2 (PM-2.2-3): the harness and balance aggregates, each changed alone.
+  enum IngestTable: String, CaseIterable, Sendable { case harness, balance }
+
+  @Test("a harness line or a balance snapshot alone yields new inputs with it (7.2, PM-2.2-3)",
+        arguments: IngestTable.allCases)
+  func ingestTables(_ table: IngestTable) async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the account") { await recorder.last?.accounts.count == 1 }
+    let day = DBTime.string(Date()).prefix(10)
+    switch table {
+    case .harness:
+      _ = try await repository.applyIngestBatch(IngestBatch(
+        file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
+                               linesOk: 0, linesBad: 0, linesDup: 0),
+        lines: [IngestLine(line: try LineParser.parse(Data(IngestHarness.line("o1",
+          ts: "\(day)T01:00:00Z").replacingOccurrences(of: "deepseek", with: "openai").utf8)).get(),
+                           lineNo: 1, estCents: 5)],
+        ingestedAt: "\(day)T02:00:00.000Z"))
+      await eventually("the harness day") {
+        let days = await recorder.last?.harnessDays
+        return days?.map(\.appTag) == ["weather-collector"] && days?.first?.estCents == 5
+      }
+    case .balance:
+      try await repository.insertBalanceSnapshots([
+        BalanceSnapshotRecord(accountId: openai.id, ts: "\(day)T01:00:00.000Z", currency: "USD", amountCents: 900,
+                              grantedCents: nil, toppedUpCents: nil, isAvailable: nil)
+      ])
+      await eventually("the balance day") { await recorder.last?.balanceDays.map(\.amountCents) == [900] }
+    }
+    #expect(await recorder.last?.accounts == [openai], "the account rows did not change")
+    await recorder.cancel()
+  }
+
+  @Test("a harness line for a provider with no account is counted (O-12)")
+  func harnessWithoutAccount() async throws {
+    let harness = try StoreHarness()
+    let repository = GRDBRepository(database: try await harness.open().database)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the initial value") { await recorder.last?.harnessWithoutAccount == 0 }
+    _ = try await repository.applyIngestBatch(IngestBatch(
+      file: IngestFileRecord(path: "/h.jsonl", inode: 1, offset: 10, lastSize: 10, lastMtime: "", state: "active",
+                             linesOk: 0, linesBad: 0, linesDup: 0),
+      lines: [IngestLine(line: try LineParser.parse(Data(IngestHarness.line("x1").utf8)).get(), lineNo: 1,
+                         estCents: nil)],
+      ingestedAt: "2026-11-10T02:00:00.000Z"))
+    await eventually("one line without an account") { await recorder.last?.harnessWithoutAccount == 1 }
+    await recorder.cancel()
+  }
+
   @Test("a read failure logs ui.error and ends the stream; cancelling logs nothing")
   func failureAndCancel() async throws {
     let harness = try StoreHarness()
