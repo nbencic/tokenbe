@@ -470,6 +470,33 @@ extension Strings {
       + "request was reported under another provider."
   }
 
+  // 8.1 By-model table (08 § Account detail 5, `G7-0`): the column titles are 08's; the rest is authored (Q-051).
+  static let byModel = "By model"
+  static let columnModel = "Model"
+  static let columnInput = "Input"
+  static let columnCacheWrite = "Cache write"
+  static let columnCacheRead = "Cache read"
+  static let columnOutput = "Output"
+  static let columnReasoning = "Reasoning"
+  static let columnEstCost = "Est. cost"
+  static let columnProviderCost = "Provider cost"
+  static let columnDrift = "Drift"
+  /// The Est. cost cell of a model the price book cannot price (A6), in `HealthWatch`.
+  static let unpricedModel = "unpriced"
+  static let unpricedModelHelp = "This model is not in the price book, so its usage is left out of spend and "
+    + "runway. Add a price in Settings \u{2192} Sources \u{2192} Price book."
+  /// Provider cost or Drift without a provider cost row for the model (05).
+  static let noProviderCost = "\u{2014}"
+  static let noProviderCostHelp = "The provider reports no cost for this model in this range."
+  /// The Drift cell's help: the two figures over exactly the days drift compares (05 § Drift, Q-051).
+  static func driftHelp(days: Int, estimate: String, provider: String) -> String {
+    "Over \(days) closed \(days == 1 ? "day" : "days") with a provider cost: estimate \(estimate), provider \(provider)."
+  }
+  /// The Drift cell's VoiceOver label; flagged cells say so in words, not only in colour (08 § Accessibility).
+  static func driftLabel(_ percent: String, flagged: Bool, thresholdPct: Int) -> String {
+    flagged ? "Drift \(percent), above the \(thresholdPct) % threshold" : "Drift \(percent)"
+  }
+
   /// The name a By-app row shows: the bound app's display name (O-13), else the provider's key name (01 A2: human
   /// key names), else 08's `(unnamed key …a9f2)` (Q-048).
   static func appLabel(_ row: AppRow) -> String {

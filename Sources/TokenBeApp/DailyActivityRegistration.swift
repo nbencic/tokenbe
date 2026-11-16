@@ -5,9 +5,9 @@ import TokenBeCore
 /// 04 § Daily activity in the app (14 § Stage 4.3 step 1, startup step 7). It registers
 /// `NSBackgroundActivityScheduler` (`dev.bathyon.tokenbe.daily`, interval 86400 s, tolerance 3600 s, `.utility`,
 /// repeating) over Core's `DailyActivity`, with the steps of 04 that exist so far, in 04's order:
-/// `cost polls` → `price refresh` (5.1) → `db backup` → `weekly integrity_check` (every 7th run) →
-/// `incremental_vacuum`. Roll-ups (9.1, between cost polls and the price refresh) and the update check (9.4, after
-/// the price refresh) register at their 04 positions in their stages.
+/// `cost polls` → `harness drift` (7.2) → `model drift` (8.1) → `price refresh` (5.1) → `db backup` →
+/// `weekly integrity_check` (every 7th run) → `incremental_vacuum`. Roll-ups (9.1, between the model drift and the
+/// price refresh) and the update check (9.4, after the price refresh) register at their 04 positions in their stages.
 /// `Run daily tasks now` (Settings → Sources) runs the same function out of band. After each run it writes
 /// `tb.daily.lastRunAt` and `tb.daily.runCount` (09); the backup and the integrity check write `tb.db.last*`.
 @MainActor @Observable
@@ -36,6 +36,8 @@ final class DailyActivityRegistration {
     let costPolls = CostPolls(store: repository, poller: poller, isPaused: {
       await MainActor.run { ScheduleSettings(settings).isPaused(at: Date()) }
     })
+    // `ledger.drift` once per account, model and day, also when `Run daily tasks now` repeats the step (8.1).
+    let drifted = DailyOnce()
     activity = DailyActivity(steps: [
       DailyStep("cost polls") { _ in try await costPolls.run() },
       // 06 precedence 2: yesterday's harness spend against the balance delta (`ledger.harness_drift`, 14 § 7.2).
@@ -44,6 +46,14 @@ final class DailyActivityRegistration {
         var inputs = repository.observeSummaryInputs().makeAsyncIterator()
         if let current = await inputs.next() {
           Attribution.reportDrift(current, now: Date(), thresholdPct: threshold)
+        }
+      },
+      // 05 § Drift: yesterday's usage estimate per model against the provider's line items (`ledger.drift`, 8.1).
+      DailyStep("model drift") { [drifted] _ in
+        let threshold = await MainActor.run { settings.alertsDriftThresholdPct }
+        var inputs = repository.observeSummaryInputs().makeAsyncIterator()
+        if let current = await inputs.next() {
+          Drift.report(current, now: Date(), thresholdPct: threshold, once: drifted)
         }
       },
       // A feed failure is logged by the fetcher and keeps the snapshot; only a store failure fails the step.

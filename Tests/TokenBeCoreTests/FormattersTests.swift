@@ -190,6 +190,18 @@ import Testing
     #expect(Formatters.signedMoney(Money(cents: 0), hideCents: true, locale: posix) == "$0")
   }
 
+  @Test("signed percent from basis points: one decimal, +, U+2212 minus, none for zero (the Drift cell, 8.1)")
+  func signedPercent() {
+    let posix = Locale(identifier: "en_US_POSIX")
+    #expect(Formatters.signedPercent(basisPoints: 1_250, locale: posix) == "+12.5 %")
+    #expect(Formatters.signedPercent(basisPoints: -1_000, locale: posix) == "\u{2212}10.0 %")
+    #expect(Formatters.signedPercent(basisPoints: 5, locale: posix) == "+0.1 %", "half up")
+    #expect(Formatters.signedPercent(basisPoints: 4, locale: posix) == "0.0 %", "rounds to zero: no sign")
+    #expect(Formatters.signedPercent(basisPoints: 0, locale: posix) == "0.0 %")
+    #expect(Formatters.signedPercent(basisPoints: 1_000_000, locale: Locale(identifier: "de_DE")) == "+10000,0 %")
+    #expect(Formatters.signedPercent(basisPoints: .min, locale: posix).hasPrefix("\u{2212}"))
+  }
+
   @Test("bands order by severity; summary picks the latest success")
   func modelBasics() {
     #expect(Band.allCases.max() == .critical)

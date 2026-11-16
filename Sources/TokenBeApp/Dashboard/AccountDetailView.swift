@@ -4,7 +4,7 @@ import TokenBeCore
 /// 08 § Account detail (Paper `8T-0`): the header (`AM-0`, `AR-0`) with `Set anchor…` (anchored), `Add top-up…` and
 /// `Refresh`; the badges row (`B1-0`); the anchor nudges (09 `tb.alerts.anchorAgeDays`, 04 V1); the numbers strip;
 /// the By-app table (`20N-0`, 7.1), filtered to one app from the Overview (7.3); the harness drift chip beside the
-/// band pill (7.3); the sources strip (`HP-0`); the ledger list (anchored). The by-model table arrives in 8.1.
+/// band pill (7.3); the By-model table (`G7-0`, 8.1); the sources strip (`HP-0`); the ledger list (anchored).
 struct AccountDetailView: View {
   let model: AppModel
   let summary: AccountSummary
@@ -37,6 +37,11 @@ struct AccountDetailView: View {
         } else {
           ByAppTable(model: model, summary: summary, hideCents: settings?.uiHideCents ?? true,
                      filter: filter?.accountID == summary.id ? filter : nil) { filter = nil }
+        }
+        // 8.1: shown once the range has usage; 08 gives the table no empty state (Q-051).
+        if !summary.byModel.isEmpty {
+          ByModelTable(rows: summary.byModel, currency: summary.currency, hideCents: settings?.uiHideCents ?? true,
+                       thresholdPct: settings?.alertsDriftThresholdPct ?? 10)
         }
         SourcesStrip(sources: summary.sources, prices: model.environment?.prices?.status,
                      harness: summary.hasHarness ? (model.ingestStatus.files, summary.harnessLinesToday) : nil)

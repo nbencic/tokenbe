@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "headers": {"Content-Type": "application/json"},
+  "body": {
+    "object": "page",
+    "data": [
+      {
+        "object": "bucket", "start_time": 1794218400, "end_time": 1794222000,
+        "results": [
+          {"input_tokens": 500, "input_cached_tokens": 0, "output_tokens": 80, "input_audio_tokens": 0, "output_audio_tokens": 0, "num_model_requests": 2, "project_id": null, "user_id": null, "api_key_id": "key_fixture_c3d4", "model": "gpt-4o-mini", "batch": null, "service_tier": "default"},
+          {"input_tokens": 1000, "input_cached_tokens": 0, "output_tokens": 10, "input_audio_tokens": 0, "output_audio_tokens": 0, "num_model_requests": 3, "project_id": null, "user_id": null, "api_key_id": "key_fixture_a1b2", "model": "made-up-model-1", "batch": null, "service_tier": "default"}
+        ]
+      }
+    ],
+    "has_more": false,
+    "next_page": null
+  }
+}

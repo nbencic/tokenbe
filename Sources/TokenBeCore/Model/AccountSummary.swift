@@ -61,6 +61,8 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   /// The closed days in the range whose harness spend drifted from the balance delta, newest first (06 precedence 2;
   /// the account page's drift chip, 7.3).
   public var harnessDrift: [HarnessDrift] = []
+  /// The By-model table over the Dashboard range (08 `G7-0`; `Drift.rows`, 8.1).
+  public var byModel: [ModelRow] = []
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
   public var unpriced: UnpricedFigure?
   /// 09 `tb.alerts.dollarFloorCents` at evaluation (logged with a band change, 03 `inputs_json`).
