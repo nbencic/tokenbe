@@ -1,5 +1,5 @@
 # Postmortem — Stage 8.1 By-model table & drift
-Date: 2026-11-16 · Branch: s8.1-by-model-drift · PR: #35 · Planned size: M · Commits: COMMITS
+Date: 2026-11-16 · Branch: s8.1-by-model-drift · PR: #35 · Planned size: M · Commits: 4
 
 ## Outcome
 The account page now has 08's **By model** table: Model | Requests | Input | Cache write | Cache read | Output | Reasoning | Est. cost | Provider cost | Drift, over the Dashboard range.
@@ -36,7 +36,14 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block. The l
    - **Lesson:** a stage that adds a section above an existing one should check that section's UI suites first. Q-047 selected every suite here, so the full verify caught it, but only after a 20 min run.
 
 ## Verify and CI failures
-VERIFY_RECORD
+- **Core and lint:** 529 Core tests in 79 suites passed on the first run. Lint found two violations (an `o1` identifier; `ObservationTests` over 250 lines), fixed by renaming the identifier and moving the new test into an extension.
+- **ByModelUITests alone:** passed on runs 1–3 (48 s, 42 s, 43 s). Runs 2 and 3 carried the temporary screenshot (What went wrong 1).
+- **Guard sweep** (`TB_UI_TESTS=0 verify 8.1`, PM-7.3-2): `STAGE 8.1 OK` on the first run (1 306 checks). No earlier stage script needed a change.
+- **Full verify 1:** FAIL 0.4 "UI tests". 21 of 23 UI tests passed in 18 min; `StaleOfflineUITests` and `DailyRunNowUITests` failed (What went wrong 2). Disk: 101 GiB free, screen unlocked, runner not killed.
+- **Rerun of the four strip suites** (StaleOffline, DailyRunNow, DirectBalance, HarnessIngest) after `AdaptiveColumns`: all passed.
+- **Full verify 2:** all 23 UI tests and 529 Core tests passed with 0 failures (UI 19 min). It then failed only 8.1's own new check, "the Sources strip is not lazy": its `! grep -qF 'LazyVGrid'` matched the new type's doc comment. **Fix:** the check greps for `LazyVGrid(`.
+- **Final verify** (`TB_UI_TESTS=0`, after that script-only fix): `STAGE 8.1 OK` (1 308 checks ok; 33 UI checks print `skip`). No app or test code changed after full verify 2, so its UI results stand. A 30 min UI rerun would have tested the same build.
+- **CI:** green on every pushed head (63151b8, c8e7bb7, and the head that carries this postmortem).
 
 ## Deviations from the docs
 - **04 § Daily activity:** a `model drift` step after `harness drift` (yesterday, `ledger.drift`).
