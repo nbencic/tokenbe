@@ -23,7 +23,7 @@ Date: 2026-11-16 · Stages: 7.1 (#30, #31), 7.2 (#32), 7.3 (#33)
    - 7.1 merged on a red CI because a pipe hid the exit code (PM-7.1-6).
    - **Fix that held:** push a draft PR as soon as new code compiles, and read `statusCheckRollup` before merging. 7.2 and 7.3 merged only on green.
 2. **The Mac's locked screen cost UI runs in 7.2 and 7.3.** **Fix:** hold `caffeinate -dims` for the whole session and check `IOConsoleLocked` first (PM-7.3-1).
-3. **Earlier stage scripts guard the future** ("not yet" checks; one-line greps of a list). Each stage of phase 7 had to update one: 7.1's `topApps`, 7.2's step lists, 7.3's "rows are not buttons yet". A grep-based guard sweep (PM-5.3-4, PM-7.2-4) still missed 4.2's exact-call check in 7.3. From now on the sweep is a cumulative `TB_UI_TESTS=0` verify run first (PM-7.3-2).
+3. **Earlier stage scripts guard the future** ("not yet" checks; one-line greps of a list). Each stage of phase 7 had to update one: 7.1's `topApps`, 7.2's step lists, 7.3's "rows are not buttons yet". A grep-based guard sweep (PM-5.3-4, PM-7.2-4) still missed 4.2's and 5.2's exact-text checks in 7.3. From now on the sweep is a cumulative `TB_UI_TESTS=0` verify run first (PM-7.3-2).
 4. **Q-047's change-based UI selection worked**, and gave clear signal per stage. Each phase-7 stage touched `AppModel` or `Startup`, so each ran every suite anyway (about 17 min).
 
 ## Plan and doc changes
