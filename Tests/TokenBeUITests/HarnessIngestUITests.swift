@@ -74,8 +74,11 @@ final class HarnessIngestUITests: XCTestCase {
       XCTAssertTrue(row.waitForExistence(timeout: 15), "By app lists \(tag)")
       XCTAssertEqual(text(row), tag)
     }
-    XCTAssertTrue(control(app, "dashboard.account.source.harness").label.hasPrefix("Harness · 1 file · "),
-                  "the Sources strip's harness column: \(control(app, "dashboard.account.source.harness").label)")
+    // The strip's last row sits below a 600 pt page and its grid is lazy: scroll down so the row is built.
+    control(app, "dashboard.account").scroll(byDeltaX: 0, deltaY: -1000)
+    let harness = control(app, "dashboard.account.source.harness")
+    XCTAssertTrue(harness.waitForExistence(timeout: 10), "the Sources strip has a harness column")
+    XCTAssertTrue(harness.label.hasPrefix("Harness · 1 file · "), "the Sources strip's harness column: \(harness.label)")
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
   }
 
