@@ -198,6 +198,16 @@ public enum Formatters {
     return amount.cents > 0 ? "+" + body : amount.cents < 0 ? "\u{2212}" + body : body
   }
 
+  /// A drift in basis points as a signed percent with one decimal: `+12.5 %`, `\u{2212}4.0 %`, `0.0 %` (U+2212
+  /// minus; the By-model table's Drift cell, 8.1). The decimal separator follows `locale`.
+  public static func signedPercent(basisPoints: Int64, locale: Locale) -> String {
+    let magnitude = absolute(basisPoints)
+    let tenths = roundedQuotient(magnitude, 10)
+    let body = String(tenths / 10) + decimalSeparator(locale) + String(tenths % 10) + " %"
+    let sign = tenths == 0 ? "" : basisPoints > 0 ? "+" : "\u{2212}"
+    return sign + body
+  }
+
   // MARK: - Price book rates (Q-038)
 
   /// A typed rate in USD per 1M tokens (`1.25`, `0,075` in `locale`) → picodollars per token (`PriceEntry.Rate`),

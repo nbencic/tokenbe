@@ -7,7 +7,9 @@ import TokenBeCore
 /// title over its line. The last column is the price snapshot's chip, `Prices · Nov 8 · ok` or `· stale` in
 /// `HealthWatch` (14 § Stage 5.1 step 6). An account with harness lines adds `Harness · 3 files · 12 lines today`
 /// (7.2: the files the ingest service reads, this account's lines today). The columns wrap to the window's width, so
-/// the strip never makes the account page wider than the Dashboard's 920 pt minimum (7.1).
+/// the strip never makes the account page wider than the Dashboard's 920 pt minimum (7.1). The columns are not lazy
+/// (PM-7.2-6, 8.1): every chip exists for VoiceOver and the UI tests even below the fold, which the By-model table
+/// (8.1) pushed the strip to.
 struct SourcesStrip: View {
   let sources: [SourceStatus]
   /// Nil before startup step 4 (no chip).
@@ -17,8 +19,7 @@ struct SourcesStrip: View {
 
   var body: some View {
     TimelineView(.periodic(from: .now, by: 30)) { context in
-      LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 28, alignment: .topLeading)],
-                alignment: .leading, spacing: 12) {
+      AdaptiveColumns(minimum: 200, spacing: 28, rowSpacing: 12) {
         ForEach(sources) { source in
           column(source, now: context.date)
         }
@@ -117,5 +118,45 @@ struct SourcesStrip: View {
     }
     if let due = source.nextDue { parts.append(Strings.next(Formatters.untilNextRun(due, now: now))) }
     return Strings.sourceLine(parts)
+  }
+}
+
+/// `LazyVGrid`'s `.adaptive(minimum:)` columns without the laziness: as many equal columns as fit at `minimum` wide,
+/// filled row by row, each row as tall as its tallest cell, every cell top-leading (PM-7.2-6).
+struct AdaptiveColumns: Layout {
+  let minimum: CGFloat
+  let spacing: CGFloat
+  let rowSpacing: CGFloat
+
+  private func columns(_ width: CGFloat) -> (count: Int, width: CGFloat) {
+    let count = max(1, Int((width + spacing) / (minimum + spacing)))
+    return (count, max(0, (width - spacing * CGFloat(count - 1)) / CGFloat(count)))
+  }
+
+  private func rowHeights(_ subviews: Subviews, count: Int, width: CGFloat) -> [CGFloat] {
+    stride(from: 0, to: subviews.count, by: count).map { start in
+      subviews[start..<min(start + count, subviews.count)]
+        .map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)).height }.max() ?? 0
+    }
+  }
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let width = proposal.width ?? (minimum + spacing) * CGFloat(max(1, subviews.count)) - spacing
+    let grid = columns(width)
+    let heights = rowHeights(subviews, count: grid.count, width: grid.width)
+    return CGSize(width: width, height: heights.reduce(0, +) + rowSpacing * CGFloat(max(0, heights.count - 1)))
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    let grid = columns(bounds.width)
+    let heights = rowHeights(subviews, count: grid.count, width: grid.width)
+    var top = bounds.minY
+    for (index, subview) in subviews.enumerated() {
+      let row = index / grid.count
+      let column = index % grid.count
+      if column == 0 && row > 0 { top += heights[row - 1] + rowSpacing }
+      subview.place(at: CGPoint(x: bounds.minX + CGFloat(column) * (grid.width + spacing), y: top), anchor: .topLeading,
+                    proposal: ProposedViewSize(width: grid.width, height: nil))
+    }
   }
 }

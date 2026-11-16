@@ -71,7 +71,7 @@ Redaction in fixtures: every key replaced with `sk-FIXTURE-<provider>-<last4>`; 
 | E2E-5 | Stale/offline | stub transport to fail → after 3× interval cards dim, glyph dashed, banner "Offline"; recover → normal within one interval. |
 | E2E-6 | Settings round-trip | change every control in each tab → UserDefaults value matches; relaunch → UI reflects; Reset keeps onboardingDone. |
 | E2E-7 | Export/Import | Export JSON → wipe DB → Import → row counts identical, remaining identical; export contains no `sk-`. |
-| E2E-8 | Unpriced model | fixture usage for model `made-up-model-1` → by-model row flagged, excluded from runway, one `price.unpriced` warn per day, `est_cost_cents NULL`. |
+| E2E-8 | Unpriced model | fixture usage for model `made-up-model-1` → by-model row flagged, excluded from runway, one `price.unpriced` warn per day, `est_cost_cents NULL`. `ByModelUITests` (8.1; fixture case `openai/usage_completions=unpriced`). |
 | E2E-9 | Band traceability | for every `ui.band_change` record in a fixture run there is a `poll.ok` or `ledger.*` record for the same `acct` within the preceding 2 s (script `scripts/check-traceability.sh`). |
 
 ## Load, perf, security

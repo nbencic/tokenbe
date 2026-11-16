@@ -49,7 +49,7 @@ Date: 2026-11-16 · Stages: 7.1 (#30, #31), 7.2 (#32), 7.3 (#33)
   - PM-7.1-6, PM-7.1-7, PM-7.2-4, PM-7.2-5, PM-7.3-1, PM-7.3-2 · agent · every stage · process.
   - PM-7.2-1 · agent · 9.1 · the split must read rolled-up weights once raw harness events are purged.
   - PM-7.2-3 · agent · 10.2 · OpenRouter harness buckets priced from the book, not `cost_cents`.
-  - PM-7.2-6 · agent · 8.4 · a non-lazy Sources strip for VoiceOver.
+  - PM-7.2-6 · agent · 8.4 · a non-lazy Sources strip for VoiceOver. **Closed in 8.1** (`AdaptiveColumns`; stage-8.1.md).
   - PM-7.3-3 · agent · 8.4 · instrument the ⌥-click test (PM-4.1-4 recurred).
   - PM-7.3-4 · agent · 11.3 · measure the popover per state against Paper.
   - PM-7.3-5 · agent · 9.5 · no live key into a test-root launch unnoticed.

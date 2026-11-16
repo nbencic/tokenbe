@@ -68,7 +68,7 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block.
 - PM-7.3-3 · agent · 8.4 · PM-4.1-4 recurred (full verify 1). In 8.4, which reworks the UI tests' layout and accessibility, log `app.statusItems.firstMatch.frame` and `app.debugDescription` around the ⌥-click. If the frame is `inf`, wait for a finite frame before the click.
 - PM-7.3-4 · agent · 11.3 · The Paper reconciliation measures the popover per state (empty, one card, many cards, with the banner), not only its elements. Keep `OnboardingUITests.assertPopoverHugsContent`.
 - PM-7.3-5 · agent · 9.5 · A test-root launch must not accept a live key unnoticed. Either onboarding under `TOKENBE_TEST_ROOT` says "keys are stored in plain text" (DEBUG only), or `FileKeyStore` is used only with fixture mode. Choose under R3 and log a Q.
-- PM-7.2-6 · agent · 8.4 · moved from 7.3: no 7.3 element sits in the lazy `SourcesStrip`. VoiceOver needs every chip, so 8.4 swaps the grid for a non-lazy wrapping layout.
+- PM-7.2-6 · agent · 8.4 · moved from 7.3: no 7.3 element sits in the lazy `SourcesStrip`. VoiceOver needs every chip, so 8.4 swaps the grid for a non-lazy wrapping layout. **Closed in 8.1** (`AdaptiveColumns`, stage-8.1.md).
 - Earlier actions closed here:
   - PM-7.1-2 (rows become buttons; the two `Unassigned` rows match): closed (30e0bba, `AttributionTests.unassigned`, `DrilldownUITests`).
   - PM-7.2-2 (the drift chip reads the harness drift; `Unassigned` matches): closed (`AttributionTests.harnessDrifts`, `builderDrift`).

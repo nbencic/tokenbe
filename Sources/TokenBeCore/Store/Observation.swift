@@ -45,6 +45,10 @@ public struct SummaryInputs: Sendable, Equatable {
   public var balanceDays: [BalanceDay] = []
   /// 7.2: harness lines stored for a provider with no account (O-12).
   public var harnessWithoutAccount = 0
+  /// 8.1: per account, UTC day, model and source, the usage of the By-model table (05 § Drift).
+  public var modelUsageDays: [ModelUsageDay] = []
+  /// 8.1: per account, UTC day and line item, the provider's `cost_bucket` rows with `group_kind = 'line_item'`.
+  public var lineItemCostDays: [LineItemCostDay] = []
 
   /// How far back the aggregates reach: the longest Dashboard range (90 d) plus today.
   public static let window: TimeInterval = 91 * 86_400
@@ -123,7 +127,8 @@ public struct SummaryInputs: Sendable, Equatable {
     return inputs
   }
 
-  /// 7.1: apps, bindings, provider keys and the per-key daily aggregates of the window (the By-app table).
+  /// 7.1: apps, bindings, provider keys and the per-key daily aggregates of the window (the By-app table); 7.2 the
+  /// harness and balance days; 8.1 the per-model usage and line-item cost days (the By-model table).
   mutating func fetchAttribution(_ db: Database, since: String) throws {
     apps = try AppRecord.order(Column("display_name"), Column("name")).fetchAll(db)
     bindings = try AppBindingRecord.order(Column("account_id"), Column("kind"), Column("value")).fetchAll(db)
@@ -140,6 +145,8 @@ public struct SummaryInputs: Sendable, Equatable {
     harnessDays = try HarnessDay.fetch(db, since: since)
     balanceDays = try BalanceDay.fetch(db, since: since)
     harnessWithoutAccount = try Int.fetchOne(db, sql: "SELECT count(*) FROM harness_event WHERE account_id IS NULL") ?? 0
+    modelUsageDays = try ModelUsageDay.fetch(db, since: since)
+    lineItemCostDays = try LineItemCostDay.fetch(db, since: since)
   }
 }
 

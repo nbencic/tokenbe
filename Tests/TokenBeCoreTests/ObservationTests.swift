@@ -291,6 +291,51 @@ actor StreamRecorder<Value: Sendable> {
   }
 }
 
+/// 8.1 (PM-2.2-3): the By-model table's aggregates.
+extension ObservationTests {
+  @Test("8.1: per-model usage keeps priced and unpriced apart; line-item cost rows arrive by day (PM-2.2-3)")
+  func modelTables() async throws {
+    let harness = try StoreHarness()
+    let database = try await harness.open().database
+    let repository = GRDBRepository(database: database)
+    let openai = RepositoryAccountTests.openai
+    try await repository.insertAccount(openai)
+    let recorder = StreamRecorder(repository.observeSummaryInputs())
+    await eventually("the account") { await recorder.last?.accounts.count == 1 }
+    let day = String(DBTime.string(Date()).prefix(10))
+    try await database.write("test") { db in
+      try db.execute(sql: """
+        INSERT INTO usage_bucket (account_id, bucket_start, bucket_width, model, provider_key_id, source,
+          input_uncached, output, requests, est_cost_cents, unpriced, fetched_at)
+        VALUES (?, ?, '1h', 'gpt-4o', 'key_a', 'provider', 10, 4, 2, 7, 0, ?),
+               (?, ?, '1h', 'gpt-4o', 'key_b', 'provider', 5, 1, 1, 3, 0, ?),
+               (?, ?, '1h', 'made-up-model-1', 'key_a', 'provider', 100, 0, 1, NULL, 1, ?)
+        """, arguments: [openai.id, "\(day)T00:00:00.000Z", "\(day)T01:00:00.000Z",
+                         openai.id, "\(day)T00:00:00.000Z", "\(day)T01:00:00.000Z",
+                         openai.id, "\(day)T00:00:00.000Z", "\(day)T01:00:00.000Z"])
+    }
+    await eventually("the model days") {
+      await recorder.last?.modelUsageDays == [
+        ModelUsageDay(accountId: openai.id, day: day, model: "gpt-4o", source: "provider", estCents: 10,
+                      classes: TokenClasses(inputUncached: 15, output: 5, requests: 3)),
+        ModelUsageDay(accountId: openai.id, day: day, model: "made-up-model-1", source: "provider", estCents: 0,
+                      unpricedBuckets: 1, classes: TokenClasses(inputUncached: 100, requests: 1))
+      ]
+    }
+    try await repository.replaceCostDays(accountID: openai.id, rows: [
+      CostBucketRecord(accountId: openai.id, day: day, groupKind: "line_item", groupKey: "gpt-4o, input",
+                       amountCents: 9, currency: "USD", provisional: false, fetchedAt: "\(day)T01:00:00.000Z"),
+      CostBucketRecord(accountId: openai.id, day: day, groupKind: "total", groupKey: "",
+                       amountCents: 9, currency: "USD", provisional: false, fetchedAt: "\(day)T01:00:00.000Z")
+    ])
+    await eventually("the line-item day") {
+      await recorder.last?.lineItemCostDays == [LineItemCostDay(accountId: openai.id, day: day,
+                                                                lineItem: "gpt-4o, input", amountCents: 9)]
+    }
+    await recorder.cancel()
+  }
+}
+
 /// `AccountSummaryBuilder` (14 § Stage 2.2 step 1): identity fields only, in input order; bad rows are reported.
 @Suite struct AccountSummaryBuilderTests {
   @Test("maps id, provider, label, mode, currency and paused (4.1, PM-3.5-3); everything else stays empty")

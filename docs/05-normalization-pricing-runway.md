@@ -112,7 +112,7 @@ Band transitions are written to `band_state` with `inputs_json` and logged `ui.b
 ## Drift (by-model table, account page)
 
 For each model, over CLOSED days in the selected range where a provider cost row exists for that model (OpenAI: `line_item` mapped to model by exact model name within the line item string; Anthropic: `description` grouping provides `model`):
-`drift = (spend_est − spend_truth) / spend_truth`. Flag when `|drift| > drift_threshold` (10 %). When no provider cost row exists for the model, show "—" and do not compute.
+`drift = (spend_est − spend_truth) / spend_truth`. Flag when `|drift| > drift_threshold` (10 %). When no provider cost row exists for the model, show "—" and do not compute. An unpriced model has no `spend_est` and no drift; a `spend_truth` of 0 is not divided by. The line-item rule and the columns' days are Q-051's.
 
 ## Cache savings (tile)
 
