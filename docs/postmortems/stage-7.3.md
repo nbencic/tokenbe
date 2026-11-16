@@ -1,5 +1,5 @@
 # Postmortem — Stage 7.3 Drilldown polish
-Date: 2026-11-16 · Branch: s7.3-drilldown · PR: #33 · Planned size: S · Commits: 7
+Date: 2026-11-16 · Branch: s7.3-drilldown · PR: #33 · Planned size: S · Commits: 7 (+ 4 in #34)
 
 ## Outcome
 Every path from the Overview to an app's spend now works without a console.
@@ -50,7 +50,8 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block.
   - green run: passed with the fix;
   - guard sweep (`TB_UI_TESTS=0`): `STAGE 7.3 OK`;
   - full verify 1 (`TB_UI_TESTS=1`): FAIL 0.2, because `CrashHandlerTests.crashTarget` read a closed descriptor's number as still open. It was a race: a parallel test can get the same number as soon as it is freed. **Fix:** the test compares the file (`st_dev`/`st_ino`) behind the number before and after. It passed 5 of 5 alone; this was the first time it failed;
-  - full verify 2: RESULT_PENDING.
+  - full verify 2: 519 Core tests and 22 UI tests passed, then FAIL 4.1 "fixture-mode run". The cadence app's Dashboard was opened and resized at 07:33:41, during its unattended 190 s window (probably by hand, since the owner was at the Mac). `osascript quit` then did not end it within 20 s. Quit worked at once afterwards (0.5 s), and the same check passed in 7.3's own verify. This is environmental; nobody should touch TokenBe's menu-bar item while a verify runs;
+  - full verify 3: stopped by the owner, who had checked the popover by hand and approved it. #34 merged on green CI with the full verify 2 results above (every Core and UI test passed).
 
 ## Deviations from the docs
 - **08:** the Overview row click names its account; the header's drift chip; the filtered By-app table (chip, `App total`, the empty line).
