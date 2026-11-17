@@ -20,11 +20,8 @@ check "popover footer Open dashboard is ⌘D" grep -qF '.keyboardShortcut("d")' 
 check "⌥-click reads NSEvent.modifierFlags (O-15)" grep -qF "NSEvent.modifierFlags.contains(.option)" Sources/TokenBeApp/Popover/PopoverView.swift
 check "no right-click context menu (D-context-menu)" bash -c "! grep -rqF 'contextMenu' Sources/TokenBeApp"
 check "no AppKit windows created (04)" bash -c "! grep -rqE 'NSWindow\\(|NSPanel\\(|NSWindowController' Sources/TokenBeApp"
-# A control appears only with its action (D6): Export… arrives in 8.3. (`Refresh` arrived with the account page in 4.2;
-# 4.2.sh checks it.)
-for later in "Export"; do
-  check "Dashboard has no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/Dashboard Sources/TokenBeApp/Components/RangePicker.swift"
-done
+# A control appears only with its action (D6): `Refresh` arrived with the account page in 4.2 (4.2.sh checks it) and
+# `Export…` with its CSV in 8.3 (8.3.sh checks it), so no later control is left to guard here.
 
 for suite in DashboardRangeTests WindowFrameTests DebouncerTests SettingsSuiteResetTests; do
   check "suite $suite passed" suite_passed "$suite"

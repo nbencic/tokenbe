@@ -17,7 +17,7 @@ check "Core picks the account a row opens" bash -c "grep -qF 'public static func
 check "Core filters the By-app rows and totals them" bash -c "grep -qF 'public static func filtered' $core/Ledger/Attribution.swift && grep -qF 'Attribution.filtered(summary.byApp' $dash/ByAppTable.swift && ! grep -qE 'summary\\.byApp\\.(reduce|filter)' $dash/ByAppTable.swift"
 check "the filter chip has its ✕ (Clear app filter)" bash -c "grep -qF 'dashboard.account.byApp.filter.clear' $dash/ByAppTable.swift && grep -qF 'static let clearAppFilter = \"Clear app filter\"' $app/Strings.swift"
 check "leaving the account clears the filter; it is never persisted" bash -c "grep -qF 'onChange(of: model.dashboardSelection)' $dash/DashboardView.swift && grep -qF '@State private var appFilter: AppFilter?' $dash/DashboardView.swift"
-check "a filtered table's footer reads App total (Q-050)" grep -qF 'filter == nil ? Strings.total : Strings.appTotal' $dash/ByAppTable.swift
+check "a filtered table's footer reads App total (Q-050)" bash -c "grep -qF 'filtered ? Strings.appTotal : Strings.total' $dash/ByAppTable.swift && grep -qF 'filtered: filter != nil' $dash/ByAppTable.swift"
 
 # Drift chip (06 precedence 2): Core computes the days with the Alerts threshold; the page shows the newest.
 check "the summary carries the drift days (Core, 04 I3)" bash -c "grep -qF 'public var harnessDrift: [HarnessDrift]' $core/Model/AccountSummary.swift && grep -qF 'Attribution.harnessDrifts(summary' $core/Ledger/AccountSummaryBuilder.swift"

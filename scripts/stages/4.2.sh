@@ -29,16 +29,13 @@ check "poll_state stores the human message (Q-036)" grep -qF 'message: error.hum
 check "poll.failed keeps the raw cause in ctx.detail (07)" bash -c "grep -qF '\"detail\": .string(error.summary)' $core/Scheduling/Poller.swift && grep -qF 'attempts, err, detail' docs/07-logging.md"
 
 # Step 2: the account page: header, badges with help, sources strip; Refresh. `Set anchor…` and `Add top-up…`
-# arrived in 5.3 (5.3.sh checks them); Export… is still later (8.3, D6).
+# arrived in 5.3 (5.3.sh checks them); Export… in 8.3 (8.3.sh checks it, D6).
 check "sidebar account rows open the account page" grep -qF '.tag(Item.account(account.id))' $app/Dashboard/SidebarView.swift
 check "the Dashboard shows the selected account's page" grep -qF 'AccountDetailView(model: model, summary: account' $app/Dashboard/DashboardView.swift
 check "header Refresh runs that account's jobs" grep -qF 'model.refreshNow(summary.id)' $app/Dashboard/AccountDetailView.swift
 check "toolbar Refresh (08)" grep -qF 'dashboard.toolbar.refresh' $app/Dashboard/DashboardView.swift
 check "each badge has a help popover" grep -qF '.popover(isPresented: $showsHelp' $app/Dashboard/BadgesRow.swift
 check "a failed source shows its message in HealthLow" bash -c "grep -qF 'source.state == .failed ? Color(.healthLow)' $app/Dashboard/SourcesStrip.swift"
-for later in "Export"; do
-  check "Dashboard has no '$later' yet (8.3)" bash -c "! grep -rqF '$later' $app/Dashboard"
-done
 
 # Step 3: popover stale overlay, Offline banner, dashed glyph.
 # 5.5 moved the rule to Core's `GlyphState.state` (dashed first; 5.5.sh checks the notch).
