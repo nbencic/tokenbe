@@ -92,23 +92,26 @@ struct SpendByDayChart: View {
         }
       }
     }
-    .chartOverlay { proxy in
-      GeometryReader { geometry in
-        Rectangle().fill(.clear).contentShape(Rectangle())
-          .onContinuousHover { phase in
-            switch phase {
-            case .active(let location):
-              guard let frame = proxy.plotFrame else { return }
-              hoveredDay = proxy.value(atX: location.x - geometry[frame].origin.x, as: String.self)
-            case .ended:
-              hoveredDay = nil
-            }
-          }
-      }
-    }
+    .chartOverlay { proxy in hoverArea(proxy) }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(Strings.spendByDayChart)
     .accessibilityIdentifier("dashboard.spendByDay.chart")
+  }
+
+  /// Tracks the pointer over the plot: the day under it opens the tooltip; leaving closes it.
+  private func hoverArea(_ proxy: ChartProxy) -> some View {
+    GeometryReader { geometry in
+      Rectangle().fill(.clear).contentShape(Rectangle())
+        .onContinuousHover { phase in
+          switch phase {
+          case .active(let location):
+            guard let frame = proxy.plotFrame else { return }
+            hoveredDay = proxy.value(atX: location.x - geometry[frame].origin.x, as: String.self)
+          case .ended:
+            hoveredDay = nil
+          }
+        }
+    }
   }
 
   /// The hovered day's accounts and total (08: "hover tooltip lists accounts").
