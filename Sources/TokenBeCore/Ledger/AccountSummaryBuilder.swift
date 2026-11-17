@@ -5,7 +5,7 @@ import Foundation
 /// freshness, the circuit and `needsKey`; 4.1 adds `isPaused` from `account.paused` (PM-3.5-3); 4.2 adds the
 /// capabilities, the interval override and the Sources strip (`Freshness` then sets `isStale` at a given time); 5.2
 /// today's and the range's spend and the unpriced estimate (`SpendContext`); 7.1 the By-app rows (`Attribution`);
-/// 8.1 the By-model rows (`Drift`).
+/// 8.1 the By-model rows (`Drift`); 8.2 the chart's daily spend and the cache savings (`SpendChart`, `CacheSavings`).
 /// Later stages fill the rest from the
 /// inputs they add.
 public enum AccountSummaryBuilder {
@@ -102,9 +102,13 @@ public enum AccountSummaryBuilder {
     }
     let now = context.now
     let today = DailyOnce.utcDay(now)
+    let rangeDays = Spend.days(context.range, now: now)
+    summary.rangeDays = rangeDays
+    summary.cacheSavings = CacheSavings.figure(summary, days: rangeDays, inputs: inputs, pricer: context.pricer)
     let daily = Spend.daily(summary, today: today, inputs: inputs)
     summary.todaySpend = Spend.sum([daily[today]].compactMap { $0 })
-    summary.rangeSpend = Spend.sum(Spend.days(context.range, now: now).compactMap { daily[$0] })
+    summary.dailySpend = daily.filter { rangeDays.contains($0.key) }
+    summary.rangeSpend = Spend.sum(rangeDays.compactMap { daily[$0] })
     summary.spend30dCents = Spend.sum(Spend.days(.thirtyDays, now: now).compactMap { daily[$0] }).cents
     summary.unpriced = Spend.unpriced(summary, days: Spend.days(context.range, now: now), inputs: inputs,
                                       pricer: context.pricer)

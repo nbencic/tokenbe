@@ -3,7 +3,7 @@ import TokenBeCore
 
 /// 08 § Overview. No placeholder headline (14 § 1.2): with no accounts it shows the real empty state and the
 /// `Spend by day` card's empty text. With accounts: the headline and its sublines (5.2, 5.3) and the runway board
-/// (5.3); `Apps this period` (7.1); the chart and the cache tile arrive with their data (8.2).
+/// (5.3); the `Spend by day` chart (8.2); `Apps this period` (7.1); the cache savings tile (8.2), in 08's order.
 struct OverviewView: View {
   let model: AppModel
   /// An `Apps this period` row was clicked (7.3: the Dashboard opens its account page filtered by the app).
@@ -26,15 +26,17 @@ struct OverviewView: View {
           .padding(.vertical, 24)
           .accessibilityElement(children: .contain)
           .accessibilityIdentifier("dashboard.overview.empty")
+          SpendByDayChart(accounts: [], hideCents: true)
         } else {
           let hideCents = model.environment?.settings.uiHideCents ?? true
           OverviewHeadline(accounts: model.accounts, hideCents: hideCents, totalSpend: totalSpend)
           RunwayBoard(model: model, hideCents: hideCents) { summary in
             anchorAccount = model.records.first { $0.id == summary.id }.map(AnchorTarget.init)
           }
+          SpendByDayChart(accounts: model.accounts, hideCents: hideCents)
           AppsThisPeriod(accounts: model.accounts, hideCents: hideCents) { openApp($0) }
+          CacheTile(accounts: model.accounts, hideCents: hideCents)
         }
-        spendByDay
       }
       .padding(20)
     }
@@ -53,22 +55,6 @@ struct OverviewView: View {
     let amount = Formatters.spend(total.spend, currency: .usd, hideCents: settings?.uiHideCents ?? true,
                                   locale: .current)
     return Strings.totalSpend(range: RangePicker.label(range), amount: amount, nonUSD: total.nonUSD)
-  }
-
-  private var spendByDay: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Text(Strings.spendByDay)
-        .font(.headline)
-        .accessibilityIdentifier("dashboard.spendByDay.title")
-      Text(Strings.noSpendInRange)
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, minHeight: 160)
-        .accessibilityIdentifier("dashboard.spendByDay.empty")
-    }
-    .padding(16)
-    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
-    .accessibilityElement(children: .contain)
-    .accessibilityIdentifier("dashboard.spendByDay")
   }
 }
 

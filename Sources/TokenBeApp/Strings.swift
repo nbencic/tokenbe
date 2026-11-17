@@ -503,3 +503,37 @@ extension Strings {
     row.appName ?? row.keyName ?? unnamedKeyHint(row.keyHint.map(hint) ?? noApp)
   }
 }
+
+/// 14 § Stage 8.2: the Overview's `Spend by day` chart and cache savings tile (an extension keeps `Strings` under
+/// the type-length limit).
+extension Strings {
+  /// The chart's VoiceOver label (08 § Overview 3, 14 § Stage 8.2).
+  static let spendByDayChart = "Spend by day, stacked by account"
+  /// The tooltip's last row.
+  static let chartTotal = "Total"
+  /// The chart's caption when accounts in another currency have spend (05 § Currency: nothing is converted; Q-052).
+  static func chartNonUSD(_ count: Int) -> String {
+    "USD accounts only \u{00B7} \(count) non-USD account\(count == 1 ? "" : "s") not shown"
+  }
+  /// A bar segment's VoiceOver label: `OpenAI, Nov 14`.
+  static func chartSegment(account: String, day: String) -> String { "\(account), \(day)" }
+
+  // Overview cache savings tile (08 § Overview 5, 05 § Cache savings; 14 § Stage 8.2)
+  static let cacheSavings = "Cache savings"
+  /// `Saved $12 via cache (net of writes)`.
+  static func cacheSaved(_ amount: String) -> String { "Saved \(amount) via cache (net of writes)" }
+  static let cacheNotComputed = "Not computed for any account in this range"
+  static let cacheGap = "\u{2014}"
+  static let cacheSavedHelp = "Cached tokens priced as plain input, minus what the cache reads and writes cost, at "
+    + "price-book rates, in dollars."
+  /// Why an account's savings read `—` (05).
+  static func cacheGapHelp(_ gap: CacheSavingsGap?) -> String {
+    switch gap {
+    case .openAIAggregate: "Not computed \u{2014} OpenAI aggregate cache counts are unreliable"
+    case .noCacheCounts: "Not computed \u{2014} this provider reports no cache token counts"
+    case .noHarnessReports: "Computed from harness reports; none in this range"
+    case .noUsage: "No usage in this range"
+    case nil: noDataYet
+    }
+  }
+}

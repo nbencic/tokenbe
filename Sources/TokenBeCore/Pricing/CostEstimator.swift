@@ -40,10 +40,16 @@ public enum CostEstimator {
 
   /// The bucket's cost under `entry`; nil `entry` (or one V5 rejects) is unpriced.
   public static func estimate(_ classes: TokenClasses, entry: PriceEntry?, serviceTier: String = "") -> Estimate {
-    guard let entry, entry.isPriced, let input = entry.input, let output = entry.output else {
-      return Estimate(cents: nil)
-    }
     var fallbacks: [String] = []
+    guard let total = total(classes, entry: entry, fallbacks: &fallbacks) else { return Estimate(cents: nil) }
+    return Estimate(cents: roundHalfUp(total), fallbackFields: fallbacks,
+                    tierPricedAsStandard: nonStandardTiers.contains(serviceTier))
+  }
+
+  /// The cost before rounding, in picodollars × 20; nil when unpriced. Cache savings (05, 8.2) subtracts two of
+  /// these, so the tile uses exactly the rates and fallbacks the estimate does.
+  static func total(_ classes: TokenClasses, entry: PriceEntry?, fallbacks: inout [String]) -> Int128? {
+    guard let entry, entry.isPriced, let input = entry.input, let output = entry.output else { return nil }
     /// Tokens × rate × 20; a missing rate uses `input × numerator / 20` and is recorded when the class has tokens.
     func term(_ tokens: Int64, _ rate: PriceEntry.Rate?, fallbackNumerator: Int128, field: String) -> Int128 {
       if let rate { return product(tokens, rate, 20) }
@@ -51,7 +57,7 @@ public enum CostEstimator {
       return product(tokens, input, fallbackNumerator)
     }
     let write1h = entry.cacheWrite1h ?? entry.cacheWrite
-    let total = [
+    return [
       product(classes.inputUncached, input, 20),
       term(classes.cacheWrite5m, entry.cacheWrite, fallbackNumerator: 25, field: PriceEntry.Key.cacheWrite),
       term(classes.cacheWrite1h, write1h, fallbackNumerator: 40, field: PriceEntry.Key.cacheWrite1h),
@@ -59,8 +65,6 @@ public enum CostEstimator {
       product(classes.output, output, 20),
       product(classes.reasoning, output, 20)
     ].reduce(Int128(0), sum)
-    return Estimate(cents: roundHalfUp(total), fallbackFields: fallbacks,
-                    tierPricedAsStandard: nonStandardTiers.contains(serviceTier))
   }
 
   /// The bucket row with `est_cost_cents` and `unpriced` set (03: NULL and 1 when unpriced).
