@@ -63,6 +63,12 @@ public struct AccountSummary: Sendable, Equatable, Identifiable {
   public var harnessDrift: [HarnessDrift] = []
   /// The By-model table over the Dashboard range (08 `G7-0`; `Drift.rows`, 8.1).
   public var byModel: [ModelRow] = []
+  /// The Dashboard range's UTC days, oldest first (the chart's x axis, 8.2).
+  public var rangeDays: [String] = []
+  /// Spend per UTC day of the range (05's daily rule; Σ == `rangeSpend`), for the `Spend by day` chart (8.2).
+  public var dailySpend: [String: SpendFigure] = [:]
+  /// The cache savings tile's figure over the range (05 § Cache savings, 8.2).
+  public var cacheSavings: CacheSavingsFigure?
   /// The numbers strip's `Unpriced in range` (05 `unpriced_cents`); nil before the first poll.
   public var unpriced: UnpricedFigure?
   /// 09 `tb.alerts.dollarFloorCents` at evaluation (logged with a band change, 03 `inputs_json`).

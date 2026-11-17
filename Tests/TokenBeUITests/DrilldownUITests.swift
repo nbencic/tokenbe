@@ -5,11 +5,15 @@ import XCTest
 // ui-covers: Sources/TokenBeApp/Dashboard/DashboardView.swift Sources/TokenBeApp/Dashboard/AccountDetailView.swift
 // ui-covers: Sources/TokenBeApp/Dashboard/ByAppTable.swift Sources/TokenBeApp/Dashboard/DriftChip.swift
 // ui-covers: Sources/TokenBeCore/Ledger/Attribution.swift Sources/TokenBeCore/Ledger/Attribution+Harness.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/SpendByDayChart.swift Sources/TokenBeApp/Dashboard/CacheTile.swift
+// ui-covers: Sources/TokenBeCore/Ledger/SpendChart.swift Sources/TokenBeCore/Ledger/CacheSavings.swift
 /// 14 § Stage 7.3 Tests, `DrilldownUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT`, with a DeepSeek
 /// account: harness lines for two apps (yesterday and today, UTC) are dropped into `ingest/`, and yesterday's balance
 /// fell by $5, far more than the lines' ≈ $1. The Overview's `Apps this period` row `news-digest` opens the DeepSeek
 /// page filtered by the app (chip `App: news-digest`, only its row, `App total` equal to the Overview's amount); the
-/// header shows the drift chip; ✕ clears the filter; leaving the account clears it too. Settings are not changed.
+/// header shows the drift chip; ✕ clears the filter; leaving the account clears it too. The Overview also shows the
+/// `Spend by day` chart, whose hover tooltip lists today's account and total, and the cache savings tile with
+/// DeepSeek's harness-computed figure (14 § Stage 8.2). Settings are not changed.
 final class DrilldownUITests: XCTestCase {
   private var root: URL!
 
@@ -40,12 +44,15 @@ final class DrilldownUITests: XCTestCase {
     try seed()
 
     let app = makeApp(root: root, fixtures: true)
+    // The chart's hover finds today's stack in a 7-day range (the range is otherwise whatever an earlier suite left).
+    app.launchArguments += ["-tb.ui.dashboardRange", "7d"]
     app.launch()
     let open = app.buttons["popover.footer.openDashboard"]
     XCTAssertTrue(openPopover(app, until: open), "the popover opens")
     open.click()
     let row = control(app, "dashboard.overview.apps.row.news-digest.harness")
     XCTAssertTrue(row.waitForExistence(timeout: 20), "Apps this period lists news-digest")
+    try checkChartAndCacheTile(app)
     let overviewLabel = row.label
     row.click()
 
@@ -79,6 +86,29 @@ final class DrilldownUITests: XCTestCase {
   }
 
   // MARK: - Steps
+
+  /// 8.2: the chart has bars (not `No spend in this range`) and a legend; hovering today's stack shows the tooltip
+  /// with its `Total`; the cache tile's headline is 08's sentence (DeepSeek: computed from harness lines).
+  @MainActor
+  private func checkChartAndCacheTile(_ app: XCUIApplication) throws {
+    let chart = control(app, "dashboard.spendByDay.chart")
+    XCTAssertTrue(chart.waitForExistence(timeout: 10), "the Overview draws the Spend by day chart")
+    XCTAssertFalse(control(app, "dashboard.spendByDay.empty").exists, "not the empty state")
+    XCTAssertFalse(control(app, "dashboard.spendByDay.nonUSD").exists, "a USD account only")
+    // Today is the last of 7 day bands (about 0.81–0.95 of the width); the y axis labels take the trailing edge.
+    chart.coordinate(withNormalizedOffset: CGVector(dx: 0.88, dy: 0.6)).hover()
+    // The tooltip's text is drawn, not exposed; its rule carries the same total (`Total, Nov 17, ≈ $0.64`).
+    let rule = chart.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Total, '")).firstMatch
+    XCTAssertTrue(rule.waitForExistence(timeout: 5), "hovering today's stack shows the tooltip")
+    XCTAssertTrue(rule.label.contains("$"), "the tooltip's total: \(rule.label)")
+    let headline = control(app, "dashboard.cacheSavings.headline")
+    XCTAssertTrue(headline.waitForExistence(timeout: 5), "the Overview shows the cache savings tile")
+    XCTAssertTrue(text(headline).hasPrefix("Saved $") && text(headline).hasSuffix(" via cache (net of writes)"),
+                  "08's sentence: \(text(headline))")
+    let deepseek = control(app, "dashboard.cacheSavings.value.deepseek")
+    XCTAssertTrue(deepseek.exists && text(deepseek).contains("$"),
+                  "DeepSeek's savings are computed from its harness lines: \(text(deepseek))")
+  }
 
   /// Yesterday's and the day before's balance (UTC; $120.00 → $115.00, a $5 drop) and four harness lines: two apps,
   /// yesterday and today. The lines cost ≈ $1 a day at the fixture price book, so yesterday drifts by ≈ −$4.

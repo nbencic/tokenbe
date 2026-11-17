@@ -119,7 +119,7 @@ For each model, over CLOSED days in the selected range where a provider cost row
 ```
 saved = Σ cacheRead × (in − cache_read_rate)  − Σ cacheWrite5m × (cache_write_5m_rate − in) − Σ cacheWrite1h × (cache_write_1h_rate − in)
 ```
-i.e. NET of write premiums. Computed only from `source='provider'` buckets for Anthropic, and from harness buckets for providers where per-response cache fields exist. For OpenAI the tile shows "not computed — OpenAI aggregate cache counts are unreliable" (quirk in `02`).
+i.e. NET of write premiums. Computed only from `source='provider'` buckets for Anthropic, and from harness buckets for providers where per-response cache fields exist. For OpenAI the tile shows "not computed — OpenAI aggregate cache counts are unreliable" (quirk in `02`). The same rates and fallbacks as § Cost formula, summed over the range and rounded once; unpriced models left out; an account with no rows of its source reads "—" (Q-052).
 
 ## Currency
 

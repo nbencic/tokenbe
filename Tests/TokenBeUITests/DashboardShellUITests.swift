@@ -2,6 +2,7 @@ import XCTest
 
 // ui-covers: Sources/TokenBeApp/Dashboard/DashboardView.swift Sources/TokenBeApp/Dashboard/SidebarView.swift
 // ui-covers: Sources/TokenBeApp/Dashboard/OverviewView.swift Sources/TokenBeApp/Components/RangePicker.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/SpendByDayChart.swift
 // ui-covers: Sources/TokenBeApp/Components/WindowFrameKeeper.swift Sources/TokenBeApp/Components/MenuBarGlyph.swift
 // ui-covers: Sources/TokenBeApp/AppDelegate.swift Sources/TokenBeCore/Model/DashboardRange.swift
 // ui-covers: Sources/TokenBeCore/Presentation/WindowFrame.swift
