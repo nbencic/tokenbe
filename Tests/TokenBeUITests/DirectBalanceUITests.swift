@@ -37,11 +37,14 @@ final class DirectBalanceUITests: XCTestCase {
     var pinned = ""
     XCTAssertTrue(waitFor {
       pinned = text(control(app, "popover.card.deepseek.pinned"))
-      return pinned.hasPrefix("CN\u{00A5}")
+      return pinned.hasSuffix(" yuan")
     }, "row 2 shows the CN¥ balance: \(pinned)")
-    // Whole units or cents, either separator (the shared suite's hideCents and the owner's locale), never `≈`.
-    XCTAssertTrue(["CN\u{00A5}57", "CN\u{00A5}56.79", "CN\u{00A5}56,79"].contains(pinned), "the CNY entry: \(pinned)")
-    XCTAssertFalse(pinned.contains("\u{2248}") || pinned.contains("\u{00B1}"), "a direct balance is not an estimate")
+    // `CN¥57` on screen, read as `Remaining, 57 yuan` (8.4). Whole units or cents, either separator (the shared
+    // suite's hideCents and the owner's locale), never an estimate.
+    XCTAssertTrue(["Remaining, 57 yuan", "Remaining, 56.79 yuan", "Remaining, 56,79 yuan"].contains(pinned),
+                  "the CNY entry: \(pinned)")
+    XCTAssertFalse(pinned.contains("approximately") || pinned.contains("plus or minus"),
+                   "a direct balance is not an estimate")
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
   }
@@ -57,7 +60,7 @@ final class DirectBalanceUITests: XCTestCase {
     XCTAssertTrue(waitFor {
       let element = control(app, "popover.banner.alert")
       banner = element.exists ? element.label : ""
-      return banner == "DeepSeek: account unavailable"
+      return banner == "DeepSeek: account unavailable, band critical"
     }, "08's banner for a forced critical: \(banner)")
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(quitThroughPopover(app), "the app quits")

@@ -103,9 +103,9 @@ Every control is bound to a key in 09. Tab layout per Paper; `Form` with `.formS
 - Sent on band transition INTO `low`, `critical`, `unknown`(anchor missing for > 24 h), and on `stale` for > 6 h. Not on transitions to better bands. Max one per account per band per 24 h. Suppressed during quiet hours (queued, sent at end). Body copy: `OpenAI: ~1 d of runway left (≈ $9 ± 2).` Action buttons: `Open`, `Snooze 24 h`.
 
 ## Accessibility
-- Every band dot/pill has an `accessibilityLabel` with the band word; color is never the only carrier (glyph notch, text labels).
-- Dynamic Type supported up to `xxLarge` in popover (cards reflow to 2 lines).
-- All tables keyboard navigable; VoiceOver reads `Remaining, approximately 42 dollars, plus or minus 3`.
+- Every band dot/pill has an `accessibilityLabel` with the band word; color is never the only carrier (glyph notch, text labels). The band-coloured Overview headline and the band-tinted popover banner end their labels with `band <word>`.
+- Dynamic Type supported up to `xxLarge` in popover (cards reflow to 2 lines). macOS text styles do not grow with the text size, so the cards scale their own point sizes (Q-054).
+- All tables keyboard navigable; VoiceOver reads `Remaining, approximately 42 dollars, plus or minus 3`. Every figure is read as its title and its words, never the screen's symbols: `≈` → `approximately`, `±` → `plus or minus`, `$` → `dollars`, `CN¥` → `yuan`, `~12 d` → `about 12 days`, `—` → `none`; the chart's days read `Nov 17, total approximately 0.64 dollars` (Q-054). Grid tables: a row's first cell takes focus, ↑/↓ move between rows, Esc leaves; the ledger is a selectable list.
 - Reduce Motion: no spinner rotation; use opacity pulse.
 
 ## Definition of done

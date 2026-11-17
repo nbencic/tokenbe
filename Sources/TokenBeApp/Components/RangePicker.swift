@@ -24,4 +24,14 @@ struct RangePicker: View {
     case .ninetyDays: Strings.range90d
     }
   }
+
+  /// The range as VoiceOver reads it: `7 days` for `7 d` (08 § Accessibility).
+  static func spokenLabel(_ range: DashboardRange) -> String {
+    switch range {
+    case .today: Strings.rangeToday
+    case .sevenDays: Strings.spokenDays(7)
+    case .thirtyDays: Strings.spokenDays(30)
+    case .ninetyDays: Strings.spokenDays(90)
+    }
+  }
 }

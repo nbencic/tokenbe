@@ -29,7 +29,8 @@ struct OverviewView: View {
           SpendByDayChart(accounts: [], hideCents: true)
         } else {
           let hideCents = model.environment?.settings.uiHideCents ?? true
-          OverviewHeadline(accounts: model.accounts, hideCents: hideCents, totalSpend: totalSpend)
+          OverviewHeadline(accounts: model.accounts, hideCents: hideCents, totalSpend: totalSpend.text,
+                           spokenTotalSpend: totalSpend.spoken)
           RunwayBoard(model: model, hideCents: hideCents) { summary in
             anchorAccount = model.records.first { $0.id == summary.id }.map(AnchorTarget.init)
           }
@@ -47,14 +48,16 @@ struct OverviewView: View {
     }
   }
 
-  /// `Total spend 7 d ≈ $12.40 + 1 non-USD`, over the Dashboard range.
-  private var totalSpend: String {
+  /// `Total spend 7 d ≈ $12.40 + 1 non-USD`, over the Dashboard range, and its VoiceOver words.
+  private var totalSpend: (text: String, spoken: String) {
     let settings = model.environment?.settings
     let range = DashboardRange(setting: settings?.uiDashboardRange ?? DashboardRange.default.rawValue)
     let total = Spend.totalUSD(model.accounts)
-    let amount = Formatters.spend(total.spend, currency: .usd, hideCents: settings?.uiHideCents ?? true,
-                                  locale: .current)
-    return Strings.totalSpend(range: RangePicker.label(range), amount: amount, nonUSD: total.nonUSD)
+    let hideCents = settings?.uiHideCents ?? true
+    let amount = Formatters.spend(total.spend, currency: .usd, hideCents: hideCents, locale: .current)
+    let spoken = Spoken.spend(total.spend, currency: .usd, hideCents: hideCents, locale: .current)
+    return (Strings.totalSpend(range: RangePicker.label(range), amount: amount, nonUSD: total.nonUSD),
+            Strings.spokenTotalSpend(range: RangePicker.spokenLabel(range), amount: spoken, nonUSD: total.nonUSD))
   }
 }
 

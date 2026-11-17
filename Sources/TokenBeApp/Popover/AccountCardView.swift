@@ -19,17 +19,18 @@ struct AccountCardView: View {
   let open: () -> Void
   @Environment(\.appEnvironment) private var environment
   @State private var appsExpanded = false
+  @Environment(\.dynamicTypeSize) private var textSize
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       HStack(spacing: 6) {
         ProviderGlyph(provider: summary.provider, size: 16)
         Text(summary.label)
-          .font(.headline)
+          .scaledFont(13, weight: .bold)
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).label")
         if let chip = modeChip {
           Text(chip)
-            .font(.caption)
+            .scaledFont(10)
             .foregroundStyle(.secondary)
         }
         Spacer()
@@ -39,17 +40,20 @@ struct AccountCardView: View {
       if summary.needsKey {
         Button(Strings.keyMissingFix, action: fixKey)
           .buttonStyle(.link)
-          .font(.system(size: 13, weight: .semibold))
+          .scaledFont(13, weight: .semibold)
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).fixKey")
       } else {
         let rows = self.rows
+        // VoiceOver reads each figure's title and its words, never the symbols (08 § Accessibility).
         Text(rows.row2 ?? Strings.noDataYet)
-          .font(.system(size: 20, weight: .semibold).monospacedDigit())
+          .scaledFont(20, weight: .semibold, monospacedDigits: true)
+          .accessibilityLabel(rows.spoken2 ?? Strings.noDataYet)
           .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).pinned")
         if !rows.row3.isEmpty {
           Text(rows.row3.joined(separator: " \u{00B7} "))
-            .font(.caption.monospacedDigit())
+            .scaledFont(10, monospacedDigits: true)
             .foregroundStyle(.secondary)
+            .accessibilityLabel(rows.spoken3.joined(separator: ", "))
             .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).row3")
         }
       }
@@ -57,7 +61,7 @@ struct AccountCardView: View {
         appsRow(apps)
       }
       Text(Formatters.freshness(summary.lastSuccessAt, now: Date(), calendar: .current, stale: dimmed))
-        .font(.caption.monospacedDigit())
+        .scaledFont(10, monospacedDigits: true)
         .foregroundStyle(dimmed ? Color(.healthLow) : Color.secondary)
         .accessibilityIdentifier("popover.card.\(summary.provider.rawValue).freshness")
     }
@@ -83,10 +87,11 @@ struct AccountCardView: View {
     } label: {
       HStack(spacing: 4) {
         Image(systemName: appsExpanded ? "chevron.down" : "chevron.right")
-          .font(.caption2.weight(.semibold))
+          .scaledFont(10, weight: .semibold)
         Text(appsExpanded ? apps : Strings.apps)
-          .font(.caption.monospacedDigit())
-          .lineLimit(1)
+          .scaledFont(10, monospacedDigits: true)
+          // Larger text reflows to a second line (08 § Accessibility).
+          .lineLimit(textSize > .large ? 2 : 1)
       }
       .foregroundStyle(.secondary)
       .contentShape(Rectangle())
@@ -118,36 +123,78 @@ struct AccountCardView: View {
     }
   }
 
-  /// Rows 2 and 3. Before the first successful poll row 2 reads "No data yet" and row 3 is empty (08).
-  private var rows: (row2: String?, row3: [String]) {
-    guard summary.lastSuccessAt != nil || summary.hasHarness else { return (nil, []) }
+  /// Rows 2 and 3, as shown and as VoiceOver reads them (`spoken2`, `spoken3`: the same metrics in the same places,
+  /// each with its title, 08 § Accessibility). Before the first successful poll row 2 reads "No data yet" and row 3
+  /// is empty (08).
+  private var rows: CardText {
+    guard summary.lastSuccessAt != nil || summary.hasHarness else { return CardText() }
     let hideCents = environment?.settings.uiHideCents ?? true
-    func money(_ cents: Int64) -> String {
-      Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
-    }
-    let today = summary.todaySpend.map {
-      Formatters.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current)
-    }
+    let figures = CardFigures(summary: summary, hideCents: hideCents)
     if summary.mode == .spendOnly {
-      let thirty = summary.spend30dCents.map { Strings.spend30d(money($0)) }
-      return (today, [today.map(Strings.todaySpend), thirty].compactMap { $0 })
+      let thirty = summary.spend30dCents.map { Strings.spend30d(figures.money($0)) }
+      let spokenThirty = summary.spend30dCents.map { Strings.spoken(Strings.spoken30d, figures.spokenMoney($0)) }
+      return CardText(row2: figures.today, row3: [figures.today.map(Strings.todaySpend), thirty].compactMap { $0 },
+                      spoken2: figures.spokenToday, spoken3: [figures.spokenToday, spokenThirty].compactMap { $0 })
     }
-    var values: [CardRows.Metric: String] = [:]
-    values[.remaining] = remainingText(hideCents: hideCents)
     // Day-1 has no runway value: the next metric takes row 2 and `Collecting…` closes row 3 (08).
     let collecting = summary.burn7dCents == nil && !summary.reloadPending && !summary.needsAnchor
-    values[.runway] = collecting ? nil : runwayText(money: money)
-    values[.todaySpend] = today.map(Strings.todaySpend)
+    let values: [CardRows.Metric: String] = [
+      .remaining: figures.remaining, .runway: collecting ? nil : figures.runway,
+      .todaySpend: figures.today.map(Strings.todaySpend)
+    ].compactMapValues { $0 }
+    let spoken: [CardRows.Metric: String] = [
+      .remaining: figures.spokenRemaining, .runway: collecting ? nil : figures.spokenRunway,
+      .todaySpend: figures.spokenToday
+    ].compactMapValues { $0 }
     let pinned = CardRows.Metric(rawValue: environment?.settings.popoverPinnedMetric ?? "runway") ?? .runway
     var rows = CardRows.rows(pinned: pinned, values: values)
+    let words = CardRows.rows(pinned: pinned, values: spoken)
     // The pinned metric itself reads without its `today` prefix in row 2.
-    if pinned == .todaySpend, let today, rows.row2 == values[.todaySpend] { rows.row2 = today }
-    if collecting { rows.row3.append(Strings.collecting) }
-    return rows
+    if pinned == .todaySpend, let today = figures.today, rows.row2 == values[.todaySpend] { rows.row2 = today }
+    var spoken3 = words.row3
+    if collecting {
+      rows.row3.append(Strings.collecting)
+      spoken3.append(Strings.collecting)
+    }
+    return CardText(row2: rows.row2, row3: rows.row3, spoken2: words.row2, spoken3: spoken3)
+  }
+}
+
+/// Rows 2 and 3 as shown, and as VoiceOver reads them.
+private struct CardText {
+  var row2: String?
+  var row3: [String] = []
+  var spoken2: String?
+  var spoken3: [String] = []
+}
+
+/// A card's figures, as shown (`≈ $42 ± 3`, `~12 d · ~9 d today`, `reloads at $X`, Day-1 `Collecting…`; 05, 08) and
+/// as VoiceOver reads them with their titles (`Remaining, approximately 42 dollars, plus or minus 3`).
+private struct CardFigures {
+  let summary: AccountSummary
+  let hideCents: Bool
+
+  func money(_ cents: Int64) -> String {
+    Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+  }
+
+  func spokenMoney(_ cents: Int64) -> String {
+    Spoken.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+  }
+
+  var today: String? {
+    summary.todaySpend.map { Formatters.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current) }
+  }
+
+  var spokenToday: String? {
+    summary.todaySpend.map {
+      Strings.spoken(Strings.spendToday, Spoken.spend($0, currency: summary.currency, hideCents: hideCents,
+                                                       locale: .current))
+    }
   }
 
   /// `≈ $42 ± 3` for an anchored account, `$42` for a direct one (08).
-  private func remainingText(hideCents: Bool) -> String? {
+  var remaining: String? {
     guard let cents = summary.remainingCents else { return nil }
     let amount = Money(cents: cents, currency: summary.currency)
     if summary.mode == .anchored, let band = summary.estimateBandCents {
@@ -156,10 +203,29 @@ struct AccountCardView: View {
     return Formatters.remaining(amount, hideCents: hideCents, locale: .current)
   }
 
+  var spokenRemaining: String? {
+    guard let cents = summary.remainingCents else { return nil }
+    let amount = Money(cents: cents, currency: summary.currency)
+    if summary.mode == .anchored, let band = summary.estimateBandCents {
+      return Strings.spoken(Strings.remaining,
+                            Spoken.estimate(amount, bandCents: band, hideCents: hideCents, locale: .current))
+    }
+    return Strings.spoken(Strings.remaining, Spoken.remaining(amount, hideCents: hideCents, locale: .current))
+  }
+
   /// `~12 d · ~9 d today`; `reloads at $X` (05); Day-1 `Collecting…` while `burn_7d` is nil (08).
-  private func runwayText(money: (Int64) -> String) -> String? {
+  var runway: String? {
     if summary.reloadPending, let reload = summary.autoReload { return Strings.reloadsAt(money(reload.belowCents)) }
     if summary.burn7dCents == nil { return summary.needsAnchor ? nil : Strings.collecting }
     return Formatters.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday)
+  }
+
+  var spokenRunway: String? {
+    if summary.reloadPending, let reload = summary.autoReload {
+      return Strings.spoken(Strings.runway, Strings.reloadsAt(spokenMoney(reload.belowCents)))
+    }
+    if summary.burn7dCents == nil { return summary.needsAnchor ? nil : Strings.collecting }
+    return Spoken.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday)
+      .map { Strings.spoken(Strings.runway, $0) }
   }
 }

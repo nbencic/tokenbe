@@ -22,8 +22,16 @@ struct AlertBanner: View {
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .accessibilityLabel(text)
+    // The band tint is said in words too (08 § Accessibility).
+    .accessibilityLabel(Strings.spokenBanner(spokenText, band: account.band.word))
     .accessibilityIdentifier("popover.banner.alert")
+  }
+
+  /// The line in words: `about 2 days` for `~2 d`.
+  private var spokenText: String {
+    guard case .runway = kind else { return text }
+    let runway = Spoken.runway(account.runwayMin) ?? Spoken.runway(0) ?? ""
+    return AlertBannerPick.fit(label: account.label, rest: Strings.bannerRunway(runway), limit: .max)
   }
 
   private var text: String {

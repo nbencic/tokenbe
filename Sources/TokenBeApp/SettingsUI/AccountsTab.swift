@@ -80,7 +80,7 @@ private struct AccountDetail: View {
             .foregroundStyle(summary?.needsKey == true ? Color(.healthLow) : Color.secondary)
             .accessibilityIdentifier("settings.accounts.keyStatus")
           Spacer()
-          if testing { ProgressView().controlSize(.small) }
+          if testing { BusyIndicator(small: true) }
           Button(Strings.replaceKey) { replacing = true }
             .accessibilityIdentifier("settings.accounts.replaceKey")
           Button(Strings.test) { test() }

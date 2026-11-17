@@ -46,8 +46,7 @@ struct SourcesTab: View {
             .disabled(daily.isRunning)
             .accessibilityIdentifier("settings.sources.runDaily")
             if daily.isRunning {
-              ProgressView()
-                .controlSize(.small)
+              BusyIndicator(small: true)
             }
           }
         }

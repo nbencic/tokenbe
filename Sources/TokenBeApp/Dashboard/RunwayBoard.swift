@@ -8,6 +8,8 @@ struct RunwayBoard: View {
   let model: AppModel
   let hideCents: Bool
   let setAnchor: (AccountSummary) -> Void
+  /// The row with keyboard focus (08 § Accessibility, `TableKeyboard`).
+  @FocusState private var focusedRow: String?
 
   var body: some View {
     let rows = Self.order(model.accounts)
@@ -24,6 +26,7 @@ struct RunwayBoard: View {
     }
     .padding(16)
     .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+    .tableKeyboard(rows.map(\.id), $focusedRow)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("dashboard.runwayBoard")
   }
@@ -55,6 +58,37 @@ struct RunwayBoard: View {
     ]
   }
 
+  /// What VoiceOver reads for the Remaining, Runway, Burn and Today cells, each with its column title
+  /// (`Remaining, approximately 42 dollars, plus or minus 3`, 08 § Accessibility).
+  static func spokenCells(_ summary: AccountSummary, hideCents: Bool) -> [String] {
+    let money = { (cents: Int64) in
+      Spoken.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+    }
+    var remaining = Spoken.none
+    if let cents = summary.remainingCents {
+      let amount = Money(cents: cents, currency: summary.currency)
+      if summary.mode == .anchored, let band = summary.estimateBandCents {
+        remaining = Spoken.estimate(amount, bandCents: band, hideCents: hideCents, locale: .current)
+      } else {
+        remaining = Spoken.remaining(amount, hideCents: hideCents, locale: .current)
+      }
+    }
+    var runway = Spoken.runwayPair(sevenDay: summary.runway7d, today: summary.runwayToday) ?? Spoken.none
+    if summary.reloadPending, let reload = summary.autoReload {
+      runway = Strings.reloadsAt(money(reload.belowCents))
+    } else if summary.burn7dCents == nil, summary.lastSuccessAt != nil, summary.mode != .spendOnly {
+      runway = Strings.collecting
+    }
+    return [
+      Strings.spoken(Strings.boardRemaining, remaining),
+      Strings.spoken(Strings.boardRunway, runway),
+      Strings.spoken(Strings.burn7d, summary.burn7dCents.map { Strings.spokenPerDay(money($0)) } ?? Spoken.none),
+      Strings.spoken(Strings.spendToday, summary.todaySpend.map {
+        Spoken.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current)
+      } ?? Spoken.none)
+    ]
+  }
+
   /// The board as the Overview's `Export…` writes it (8.3).
   static func csvTable(_ accounts: [AccountSummary], hideCents: Bool, now: Date = Date()) -> CSVTable {
     CSVTable(header: columns, rows: order(accounts).map { cells($0, hideCents: hideCents, now: now) })
@@ -62,32 +96,39 @@ struct RunwayBoard: View {
 
   private func row(_ summary: AccountSummary) -> some View {
     let cells = Self.cells(summary, hideCents: hideCents, now: Date())
+    let spoken = Self.spokenCells(summary, hideCents: hideCents)
     return GridRow {
       HStack(spacing: 6) {
         ProviderGlyph(provider: summary.provider, size: 14)
         Text(cells[0])
+          // The name keeps one line at the Dashboard's default width (PM-8.2-1: `DeepSeek` wrapped).
+          .fixedSize()
       }
-      Text(cells[1]).monospacedDigit()
+      .tableRowFocus(summary.id, $focusedRow)
+      // A GridRow passes its modifiers to every cell, so the row's id sits on its first cell and each cell is its
+      // own element, read with its column title (08 § Accessibility).
+      .accessibilityElement(children: .combine)
+      .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue)")
+      Text(cells[1]).monospacedDigit().accessibilityLabel(spoken[0])
+        .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue).remaining")
       Group {
         if summary.band == .unknown, summary.needsAnchor {
           Button(cells[2]) { setAnchor(summary) }
             .buttonStyle(.link)
             .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue).setAnchor")
         } else {
-          Text(cells[2]).monospacedDigit()
+          Text(cells[2]).monospacedDigit().accessibilityLabel(spoken[1])
         }
       }
       .frame(width: 176, alignment: .leading)
-      Text(cells[3]).monospacedDigit()
-      Text(cells[4]).monospacedDigit()
+      Text(cells[3]).monospacedDigit().accessibilityLabel(spoken[2])
+      Text(cells[4]).monospacedDigit().accessibilityLabel(spoken[3])
       Text(cells[5])
         .monospacedDigit()
         .foregroundStyle(summary.isStale ? Color(.healthLow) : Color.secondary)
         .frame(width: 124, alignment: .leading)
       BandDot(band: summary.band)
     }
-    .accessibilityElement(children: .combine)
-    .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue)")
   }
 
   private static func remaining(_ summary: AccountSummary, hideCents: Bool) -> String {

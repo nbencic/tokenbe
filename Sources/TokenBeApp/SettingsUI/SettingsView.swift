@@ -34,7 +34,7 @@ struct SettingsView: View {
           }
         }
       } else {
-        ProgressView()
+        BusyIndicator()
       }
     }
     // Paper's Accounts tab is master-detail at 720 pt; the form tabs keep 520 pt.

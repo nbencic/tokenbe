@@ -14,6 +14,8 @@ struct ByAppTable: View {
   var filter: AppFilter?
   var clearFilter: () -> Void = {}
   @State private var naming: NamingTarget?
+  /// The row with keyboard focus (08 § Accessibility, `TableKeyboard`).
+  @FocusState private var focusedRow: String?
 
   private var shown: (rows: [AppRow], total: AppRowsTotal?) {
     filter.map { Attribution.filtered(summary.byApp, appKey: $0.appKey) } ?? (summary.byApp, summary.byAppTotal)
@@ -51,6 +53,8 @@ struct ByAppTable: View {
             Text(cells[3]).monospacedDigit().gridColumnAlignment(.trailing)
             TokenBar(tokens: row.tokens)
             Text(cells[5]).monospacedDigit().gridColumnAlignment(.trailing)
+              .accessibilityLabel(Spoken.spend(row.spend, currency: summary.currency, hideCents: hideCents,
+                                               locale: .current))
             Text(cells[6]).monospacedDigit().gridColumnAlignment(.trailing)
           }
         }
@@ -64,6 +68,9 @@ struct ByAppTable: View {
           Text(total[3]).monospacedDigit()
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
           Text(total[5]).fontWeight(.semibold).monospacedDigit()
+            .accessibilityLabel(shown.total.map {
+              Spoken.spend($0.spend, currency: summary.currency, hideCents: hideCents, locale: .current)
+            } ?? total[5])
             .accessibilityIdentifier("dashboard.account.byApp.total")
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
         }
@@ -71,6 +78,7 @@ struct ByAppTable: View {
     }
     .padding(16)
     .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+    .tableKeyboard(shown.rows.map(\.id), $focusedRow)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("dashboard.account.byApp")
     .appNamePrompt($naming, model: model)
@@ -79,6 +87,7 @@ struct ByAppTable: View {
   @ViewBuilder private func appCell(_ row: AppRow, label: String) -> some View {
     HStack(spacing: 6) {
       Text(label)
+        .tableRowFocus(row.id, $focusedRow)
         .accessibilityIdentifier("dashboard.account.byApp.name.\(row.elementID)")
       // An unbound key (never the keyless `Unassigned` row, never a harness app) can be named here (08).
       if row.kind == .key, row.appID == nil, !row.providerKeyID.isEmpty {

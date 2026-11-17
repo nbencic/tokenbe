@@ -14,6 +14,7 @@ struct PopoverView: View {
   @FocusState private var focusedCard: String?
   /// The cards' natural height; the card list is this tall up to `maxCardsHeight`, then scrolls.
   @State private var cardsHeight: CGFloat = 0
+  @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -28,6 +29,8 @@ struct PopoverView: View {
       footer
     }
     .frame(width: 360)
+    // Text sizes up to `xxLarge` (08 § Accessibility); the cards reflow, the popover grows.
+    .modifier(PopoverTextSize())
     // The popover is exactly as tall as its content (Paper `1XL-0`). A `maxHeight` frame here let the menu-bar
     // window grow to 560 pt and centre a one-card popover between two empty bands; 08's cap is `maxCardsHeight`.
     .fixedSize(horizontal: false, vertical: true)
@@ -104,9 +107,14 @@ struct PopoverView: View {
         Button {
           model.refreshNow()
         } label: {
-          Image(systemName: "arrow.clockwise")
-            // Spins while any job is in flight (08); symbol effects follow Reduce Motion.
-            .symbolEffect(.rotate, options: .repeat(.continuous), isActive: model.inFlightCount > 0)
+          // Spins while any job is in flight (08); under Reduce Motion it pulses instead (08 § Accessibility).
+          if ReduceMotion(system: systemReduceMotion).isOn {
+            Image(systemName: "arrow.clockwise")
+              .symbolEffect(.pulse, options: .repeat(.continuous), isActive: model.inFlightCount > 0)
+          } else {
+            Image(systemName: "arrow.clockwise")
+              .symbolEffect(.rotate, options: .repeat(.continuous), isActive: model.inFlightCount > 0)
+          }
         }
         .buttonStyle(.borderless)
         .help(Strings.refresh)
