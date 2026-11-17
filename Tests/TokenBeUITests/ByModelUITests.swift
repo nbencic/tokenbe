@@ -44,7 +44,8 @@ final class ByModelUITests: XCTestCase {
     try seed()
 
     let app = makeApp(root: root, fixtures: true)
-    app.launchArguments += ["-tb.ui.dashboardRange", "7d"]
+    // PM-8.1-4: the label asserts `above the 10 % threshold`, so the threshold is pinned, not read from the domain.
+    app.launchArguments += ["-tb.ui.dashboardRange", "7d", "-tb.alerts.driftThresholdPct", "10"]
     app.launch()
     let card = control(app, "popover.card.openai")
     XCTAssertTrue(openPopover(app, until: card), "the popover shows the card")
