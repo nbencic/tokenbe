@@ -1,5 +1,5 @@
 # Postmortem — Stage 8.4 Accessibility & input
-Date: 2026-11-17 · Branch: s8.4-accessibility · PR: #38 · Planned size: M · Commits: COMMITS
+Date: 2026-11-17 · Branch: s8.4-accessibility · PR: #38 · Planned size: M · Commits: 4
 
 ## Outcome
 08 § Accessibility is met (Q-054):
@@ -80,8 +80,8 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block. This 
 - **Guard sweep** (`TB_UI_TESTS=0 verify 8.4`): all 1 380 checks passed on the first run, except D13 (this postmortem, not yet written).
 - **Full verify 1** (Q-047 selected 18 suites): FAIL 0.4. 21 of 22 UI tests passed in 18 min; DrilldownUITests failed on `1 dollar` (What went wrong 5). Disk had 89 GiB free, the screen was unlocked, and no runner was killed.
 - **DrilldownUITests alone:** run 1 failed on the row click (What went wrong 5), and run 2 passed after the background fix.
-- **Full verify 2:** VERIFY_RESULT
-- **CI:** CI_RESULT
+- **Full verify 2** (the same 18 suites): `STAGE 8.4 OK` with 1 414 checks passed and 4 printing `skip`. The UI suites ran 22 tests with 0 failures in 18.5 min. The ⌥-click test logged a finite frame, `(1058.0, 4.5, 36.0, 24.0)`, and passed (PM-7.3-3). Disk had 89 GiB free, and the screen was unlocked.
+- **CI:** green on 6986ffe (the first pushed code) and on 4cf39c8; the head that carries this line is checked by SHA before the merge. No CI failure on the way.
 
 ## Deviations from the docs
 - **08 § Accessibility:** the words VoiceOver reads, the band word on the headline and banner, the cards' own scaling, and the grid tables' keys (Q-054).
