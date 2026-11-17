@@ -1,5 +1,5 @@
 # Postmortem — Stage 8.2 Spend-by-day chart & cache savings
-Date: 2026-11-17 · Branch: s8.2-chart-cache-savings · PR: #36 · Planned size: M · Commits: 5
+Date: 2026-11-17 · Branch: s8.2-chart-cache-savings · PR: #36 · Planned size: M · Commits: 6
 
 ## Outcome
 The Overview now has 08's items 3 and 5, in 08's order: headline, runway board, **Spend by day**, Apps this period, **Cache savings**.
@@ -37,12 +37,17 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block.
    - **Cost:** five Drilldown runs (about 1 min each).
 3. **The first temporary screenshot captured the whole screen**, including the owner's other windows, not only TokenBe's. It was exported to the session scratchpad only, never committed, and deleted at once. The next one used `app.windows.firstMatch.screenshot()`. **Lesson:** a diagnostic screenshot in a UI test is always a window screenshot (PM-8.2-3).
 
+4. **A head with a known lint failure was pushed.** One shell line ran lint, then commit, push and `gh pr create` joined with `;`. Lint exited 2 and the rest ran anyway, so CI failed on 71ffad9.
+   - **Fix:** the next commit fixed the violation.
+   - **Lesson:** gate a push on lint with `&&`, or check the exit code before pushing (PM-8.2-5).
+   - **Cost:** one red CI run, no time lost.
+
 ## Verify and CI failures
 - **Core and lint:** 542 Core tests in 81 suites; 2 failures on the first run (What went wrong 1), then all passed. Lint found three violations: `Strings` over the type-body limit (new strings in an extension); `tokenbe_no_double_money` on the segment's `amount: Double` (the chart plots whole cents now); `chart(_:)` over 50 lines (hover area extracted).
 - **DrilldownUITests alone:** failed runs 1–4 (What went wrong 2), passed on run 5.
 - **Guard sweep** (`TB_UI_TESTS=0 verify 8.2`): every check passed except D13 (this postmortem, not yet written). No earlier stage script needed a change.
 - **Full verify** (Q-047 selected 7 suites: LaunchSmoke, PopoverEmptyState, AnchorRunway, ByModel, DashboardShell, Drilldown, PriceBook): `STAGE 8.2 OK` on the first run: 1 344 checks passed. The selected UI suites ran 8 tests with 0 failures in 4 min 34 s. The 16 suites Q-047 did not select print `skip`. Disk had 107 GiB free and the screen was unlocked.
-- **CI:** green on the pushed heads; the merge waits for the head carrying this postmortem.
+- **CI:** failed on 71ffad9, the first pushed head, with the SwiftLint error `chart(_:)` over 50 lines. Local lint had failed on that commit too, but the commit, push and draft PR ran in a `;`-chained command, so they went ahead anyway (What went wrong 4). cc5ff27 fixed it. CI was green on ec2b247 (run 44068340063) and on the head that carries this correction.
 
 ## Deviations from the docs
 - **05 § Cache savings:** the estimate's rates and fallbacks, one rounding, unpriced models left out, `—` without rows of the account's source.
@@ -58,6 +63,7 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block.
 - PM-8.2-2 · agent · 8.4 · The chart's per-day totals reach VoiceOver only while the pointer hovers (the rule's label). 8.4 (`08 § Accessibility`) should give the chart a keyboard- and VoiceOver-reachable summary per day, such as an `accessibilityChartDescriptor` or a per-day element, and test it in `AccessibilityUITests`.
 - PM-8.2-3 · agent · every stage · A diagnostic screenshot in a UI test is `app.windows.firstMatch.screenshot()`, never `app.screenshot()`, which captures the owner's whole screen. Delete exported attachments after use. (Process; applied from this stage on.)
 - PM-8.2-4 · agent · 9.1 · Anthropic's cache savings count `source = 'provider'` rows only (05). When 9.1 rolls hourly rows into `source = 'rollup'`, decide whether roll-up rows keep their cache classes and count toward the savings, so savings for older days in a 90 d range don't vanish. Add a `CacheSavingsTests` case.
+- PM-8.2-5 · agent · every stage · Never chain `push` or `gh pr create` after `lint` / `test` with `;`; use `&&`, so a failing local check stops the push. (Process; applied from this stage on.)
 - Earlier actions closed here: PM-8.1-4 (the drift threshold pinned in `ByModelUITests`).
 - Earlier actions that targeted 8.2: PM-8.1-4 only.
 - Still open from earlier stages: PM-8.1-1 (H2 PR), PM-8.1-2 (10.1), PM-8.1-3 (9.5), PM-7.3-3 (8.4).
