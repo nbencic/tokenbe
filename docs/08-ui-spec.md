@@ -60,7 +60,7 @@ Order top→bottom:
 - **Paused**: header replaces freshness with `Paused · resumes 14:30` and a `Resume` link.
 
 ## Dashboard window (`NavigationSplitView`, min 920×600, remembers frame `tb.ui.dashboardFrame`)
-Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Apps` (all apps flattened: each app's editable display name, its name as `Harness tag`, its bound keys; empty `No apps yet`; Q-048). Toolbar: range picker `Today | 7 d | 30 d | 90 d` (default `7 d`, remembered), `Refresh`, `Export…` (CSV of current view).
+Sidebar: `Overview`, then one row per account (glyph, label, band dot), then `Apps` (all apps flattened: each app's editable display name, its name as `Harness tag`, its bound keys; empty `No apps yet`; Q-048). Toolbar: range picker `Today | 7 d | 30 d | 90 d` (default `7 d`, remembered), `Refresh`, `Export…` (CSV of current view: the Overview's runway board, an account's By-app table under its app filter, or the Apps list, each cell as shown; Q-053).
 
 ### Overview (Paper `OA-0`)
 1. **Headline** (`Q1-0`,`Q2-0`): the account with the SHORTEST `runway_min`: `Shortest runway: Anthropic · ~1 d` in band color; subline `Total remaining ≈ $312 ± 9 across 3 USD accounts + 1 non-USD`.

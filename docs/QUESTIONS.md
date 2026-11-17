@@ -697,3 +697,16 @@ Options and choices (each the least code; none adds a dependency, screen or sett
 - **Order on the Overview:** 08's: headline, runway board, chart, Apps this period, cache tile. The chart sits above `Apps this period`, as 08 numbers them.
 Blocking: no
 
+## Q-053 Stage 8.3: CSV export rules the docs leave open            (2026-11-17)
+Context: 14 § Stage 8.3, O-4; `Export/ViewCSVExporter.swift` (Core), `Dashboard/{ViewExport,DashboardView,RunwayBoard,ByAppTable,AppsPage}.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **Which table each page exports:** the Overview's runway board, the board 08 calls a table. The chart, `Apps this period` and the cache tile are summaries of other tables. An account page shows By app, By model and the ledger. A) all three in one file; B) one file per table, chosen in the panel; C) By app. Chosen: C. It is the table A2 is about, and the one the Overview's drilldown (7.3) filters. RFC 4180 has no sections, so A would not be one CSV, and B adds a control. The Apps page exports its list: App (display name), Harness tag, Key (the bound keys).
+- **Current state:** the account export respects the app filter: only the app's rows, footer `App total`. The By-app footer row is written, with empty cells where the screen has none. The Overview board keeps the screen's sort (runway ascending, `unknown` last).
+- **Cell text:** each cell is the string the page prints, from the same function the view draws from (`RunwayBoard.cells`, `ByAppTable.cells` / `totalCells`, `AppsPage.keys`). The file cannot disagree with the screen: `≈`, `±`, currency symbols, the locale's separators and `Hide cents` all carry over. The machine-readable export is 9.2's `Export CSV (all tables)`. The By-app badge column has no title on screen; its CSV header is `Attribution`. The Tokens cell is the mini-bar's compact total (`1.2M`). The band dot is its word (`healthy`).
+- **File:** UTF-8 without a BOM; every record, the header included, ends with CRLF; a field is quoted only when it holds a comma, a double quote, CR or LF, with quotes doubled. An empty table is its header. The write is atomic.
+- **File name:** `TokenBe-<page>-<label>-<range>-<UTC date>.csv`, e.g. `TokenBe-DeepSeek-By-app-news-digest-7-d-2026-11-17.csv`. A label is user-typed, so `/`, `:`, `\`, control characters and spaces become `-`, runs of `-` collapse, and a leading or trailing `-` or `.` is trimmed.
+- **Logging:** `db.export {kind: csv_view, path, rows}` at `info`, where `rows` counts table rows without the header and `path` is the chosen file's path, as `ingest.*` logs its paths. A failed write logs `ui.error` (`view export failed`) and shows an alert; it logs no `db.export`.
+- **Panel:** an `NSSavePanel` sheet on the Dashboard window, `.csv` only, folders can be created. The app is not sandboxed, so no entitlement is needed.
+- **UI test:** DrilldownUITests opens `Export…` on the filtered account page, checks the suggested name, and presses Cancel. A UI test never presses Save, which would write into the owner's folders. Core's `CSVExporterTests` covers the bytes and the log.
+Blocking: no
+

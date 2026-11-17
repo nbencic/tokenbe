@@ -10,11 +10,10 @@ struct RunwayBoard: View {
   let setAnchor: (AccountSummary) -> Void
 
   var body: some View {
-    let rows = AccountOrder.sorted(model.accounts, by: .runway, manualOrder: [])
+    let rows = Self.order(model.accounts)
     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
       GridRow {
-        ForEach([Strings.boardAccount, Strings.boardRemaining, Strings.boardRunway, Strings.boardBurn,
-                 Strings.boardToday, Strings.boardFreshness, Strings.boardBand], id: \.self) { title in
+        ForEach(Self.columns, id: \.self) { title in
           Text(title).font(.caption).foregroundStyle(.secondary)
         }
       }
@@ -29,32 +28,59 @@ struct RunwayBoard: View {
     .accessibilityIdentifier("dashboard.runwayBoard")
   }
 
-  private func money(_ cents: Int64, _ currency: Currency) -> String {
-    Formatters.money(Money(cents: cents, currency: currency), hideCents: hideCents, locale: .current)
+  /// 08's columns; the band dot's column exports the band's word.
+  static let columns = [Strings.boardAccount, Strings.boardRemaining, Strings.boardRunway, Strings.boardBurn,
+                        Strings.boardToday, Strings.boardFreshness, Strings.boardBand]
+
+  /// Runway ascending, `unknown` last (08).
+  static func order(_ accounts: [AccountSummary]) -> [AccountSummary] {
+    AccountOrder.sorted(accounts, by: .runway, manualOrder: [])
+  }
+
+  /// One row's cells, as the board prints them; the CSV export (8.3) writes the same strings (Q-053).
+  static func cells(_ summary: AccountSummary, hideCents: Bool, now: Date) -> [String] {
+    let money = { (cents: Int64) in
+      Formatters.money(Money(cents: cents, currency: summary.currency), hideCents: hideCents, locale: .current)
+    }
+    let runway = summary.band == .unknown && summary.needsAnchor ? Strings.setAnchor
+      : runway(summary, money: money)
+    return [
+      summary.label, remaining(summary, hideCents: hideCents), runway,
+      summary.burn7dCents.map(money) ?? "\u{2014}",
+      summary.todaySpend.map {
+        Formatters.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current)
+      } ?? "\u{2014}",
+      Formatters.freshness(summary.lastSuccessAt, now: now, calendar: .current, stale: summary.isStale),
+      summary.band.word
+    ]
+  }
+
+  /// The board as the Overview's `Export…` writes it (8.3).
+  static func csvTable(_ accounts: [AccountSummary], hideCents: Bool, now: Date = Date()) -> CSVTable {
+    CSVTable(header: columns, rows: order(accounts).map { cells($0, hideCents: hideCents, now: now) })
   }
 
   private func row(_ summary: AccountSummary) -> some View {
-    GridRow {
+    let cells = Self.cells(summary, hideCents: hideCents, now: Date())
+    return GridRow {
       HStack(spacing: 6) {
         ProviderGlyph(provider: summary.provider, size: 14)
-        Text(summary.label)
+        Text(cells[0])
       }
-      Text(remaining(summary)).monospacedDigit()
+      Text(cells[1]).monospacedDigit()
       Group {
         if summary.band == .unknown, summary.needsAnchor {
-          Button(Strings.setAnchor) { setAnchor(summary) }
+          Button(cells[2]) { setAnchor(summary) }
             .buttonStyle(.link)
             .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue).setAnchor")
         } else {
-          Text(runway(summary)).monospacedDigit()
+          Text(cells[2]).monospacedDigit()
         }
       }
       .frame(width: 176, alignment: .leading)
-      Text(summary.burn7dCents.map { money($0, summary.currency) } ?? "\u{2014}").monospacedDigit()
-      Text(summary.todaySpend.map {
-        Formatters.spend($0, currency: summary.currency, hideCents: hideCents, locale: .current)
-      } ?? "\u{2014}").monospacedDigit()
-      Text(Formatters.freshness(summary.lastSuccessAt, now: Date(), calendar: .current, stale: summary.isStale))
+      Text(cells[3]).monospacedDigit()
+      Text(cells[4]).monospacedDigit()
+      Text(cells[5])
         .monospacedDigit()
         .foregroundStyle(summary.isStale ? Color(.healthLow) : Color.secondary)
         .frame(width: 124, alignment: .leading)
@@ -64,7 +90,7 @@ struct RunwayBoard: View {
     .accessibilityIdentifier("dashboard.runwayBoard.\(summary.provider.rawValue)")
   }
 
-  private func remaining(_ summary: AccountSummary) -> String {
+  private static func remaining(_ summary: AccountSummary, hideCents: Bool) -> String {
     guard let cents = summary.remainingCents else { return "\u{2014}" }
     let amount = Money(cents: cents, currency: summary.currency)
     if summary.mode == .anchored, let band = summary.estimateBandCents {
@@ -73,9 +99,9 @@ struct RunwayBoard: View {
     return Formatters.remaining(amount, hideCents: hideCents, locale: .current)
   }
 
-  private func runway(_ summary: AccountSummary) -> String {
+  private static func runway(_ summary: AccountSummary, money: (Int64) -> String) -> String {
     if summary.reloadPending, let reload = summary.autoReload {
-      return Strings.reloadsAt(money(reload.belowCents, summary.currency))
+      return Strings.reloadsAt(money(reload.belowCents))
     }
     if summary.burn7dCents == nil, summary.lastSuccessAt != nil, summary.mode != .spendOnly {
       return Strings.collecting

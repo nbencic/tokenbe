@@ -36,31 +36,34 @@ struct ByAppTable: View {
       }
       Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
         GridRow {
-          ForEach([Strings.columnApp, Strings.columnKey, "", Strings.columnRequests, Strings.columnTokens,
-                   Strings.columnSpend, Strings.columnShare], id: \.self) { title in
-            Text(title).font(.caption).foregroundStyle(.secondary)
+          ForEach(Array(Self.columns.enumerated()), id: \.offset) { index, title in
+            // The badge column has no title on screen (08); the CSV names it.
+            Text(index == 2 ? "" : title).font(.caption).foregroundStyle(.secondary)
           }
         }
         Divider().gridCellUnsizedAxes(.horizontal)
         ForEach(shown.rows) { row in
+          let cells = Self.cells(row, currency: summary.currency, hideCents: hideCents)
           GridRow {
-            appCell(row)
-            Text(row.keyHint.map(Strings.hint) ?? Strings.noApp).monospaced().foregroundStyle(.secondary)
+            appCell(row, label: cells[0])
+            Text(cells[1]).monospaced().foregroundStyle(.secondary)
             AttributionBadge(kind: row.kind)
-            Text(row.tokens.requests.formatted()).monospacedDigit().gridColumnAlignment(.trailing)
+            Text(cells[3]).monospacedDigit().gridColumnAlignment(.trailing)
             TokenBar(tokens: row.tokens)
-            Text(spend(row.spend)).monospacedDigit().gridColumnAlignment(.trailing)
-            Text(Strings.percent(row.sharePercent)).monospacedDigit().gridColumnAlignment(.trailing)
+            Text(cells[5]).monospacedDigit().gridColumnAlignment(.trailing)
+            Text(cells[6]).monospacedDigit().gridColumnAlignment(.trailing)
           }
         }
         Divider().gridCellUnsizedAxes(.horizontal)
+        let total = Self.totalCells(shown.total, filtered: filter != nil, currency: summary.currency,
+                                    hideCents: hideCents)
         GridRow {
-          Text(filter == nil ? Strings.total : Strings.appTotal).fontWeight(.semibold)
+          Text(total[0]).fontWeight(.semibold)
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text((shown.total?.tokens.requests ?? 0).formatted()).monospacedDigit()
+          Text(total[3]).monospacedDigit()
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-          Text(shown.total.map { spend($0.spend) } ?? Strings.noApp).fontWeight(.semibold).monospacedDigit()
+          Text(total[5]).fontWeight(.semibold).monospacedDigit()
             .accessibilityIdentifier("dashboard.account.byApp.total")
           Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
         }
@@ -73,9 +76,9 @@ struct ByAppTable: View {
     .appNamePrompt($naming, model: model)
   }
 
-  @ViewBuilder private func appCell(_ row: AppRow) -> some View {
+  @ViewBuilder private func appCell(_ row: AppRow, label: String) -> some View {
     HStack(spacing: 6) {
-      Text(Strings.appLabel(row))
+      Text(label)
         .accessibilityIdentifier("dashboard.account.byApp.name.\(row.elementID)")
       // An unbound key (never the keyless `Unassigned` row, never a harness app) can be named here (08).
       if row.kind == .key, row.appID == nil, !row.providerKeyID.isEmpty {
@@ -89,8 +92,34 @@ struct ByAppTable: View {
     }
   }
 
-  private func spend(_ figure: SpendFigure) -> String {
-    Formatters.spend(figure, currency: summary.currency, hideCents: hideCents, locale: .current)
+  /// 08's columns; the third (the attribution badge) is untitled on screen and `Attribution` in the CSV (Q-053).
+  static let columns = [Strings.columnApp, Strings.columnKey, Strings.columnAttribution, Strings.columnRequests,
+                        Strings.columnTokens, Strings.columnSpend, Strings.columnShare]
+
+  /// One row's cells, as the table prints them; the CSV export (8.3) writes the same strings. The Tokens cell is the
+  /// mini-bar's total.
+  static func cells(_ row: AppRow, currency: Currency, hideCents: Bool) -> [String] {
+    [Strings.appLabel(row), row.keyHint.map(Strings.hint) ?? Strings.noApp, Strings.badge(row.kind),
+     row.tokens.requests.formatted(), TokenBar.label(row.tokens),
+     Formatters.spend(row.spend, currency: currency, hideCents: hideCents, locale: .current),
+     Strings.percent(row.sharePercent)]
+  }
+
+  /// The footer: `Total` (or `App total` under a filter), requests and spend; the other cells are empty.
+  static func totalCells(_ total: AppRowsTotal?, filtered: Bool, currency: Currency, hideCents: Bool) -> [String] {
+    [filtered ? Strings.appTotal : Strings.total, "", "", (total?.tokens.requests ?? 0).formatted(), "",
+     total.map { Formatters.spend($0.spend, currency: currency, hideCents: hideCents, locale: .current) }
+       ?? Strings.noApp, ""]
+  }
+
+  /// The table as the account page's `Export…` writes it (8.3): the rows shown (the app filter applies), then the
+  /// footer.
+  static func csvTable(_ summary: AccountSummary, filter: AppFilter?, hideCents: Bool) -> CSVTable {
+    let shown: (rows: [AppRow], total: AppRowsTotal?) = filter.map {
+      Attribution.filtered(summary.byApp, appKey: $0.appKey)
+    } ?? (summary.byApp, summary.byAppTotal)
+    return CSVTable(header: columns, rows: shown.rows.map { cells($0, currency: summary.currency, hideCents: hideCents) }
+      + [totalCells(shown.total, filtered: filter != nil, currency: summary.currency, hideCents: hideCents)])
   }
 }
 
@@ -163,8 +192,13 @@ struct TokenBar: View {
       .background(Color.secondary.opacity(0.15))
       .clipShape(Capsule())
       .accessibilityHidden(true)
-      Text(tokens.tokens.formatted(.number.notation(.compactName))).monospacedDigit()
+      Text(Self.label(tokens)).monospacedDigit()
     }
+  }
+
+  /// The bar's total, compact (`1.2M`).
+  static func label(_ tokens: TokenClasses) -> String {
+    tokens.tokens.formatted(.number.notation(.compactName))
   }
 
   private func width(_ count: Int64, of total: CGFloat) -> CGFloat {
