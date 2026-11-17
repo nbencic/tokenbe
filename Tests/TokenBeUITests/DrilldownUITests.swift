@@ -7,13 +7,15 @@ import XCTest
 // ui-covers: Sources/TokenBeCore/Ledger/Attribution.swift Sources/TokenBeCore/Ledger/Attribution+Harness.swift
 // ui-covers: Sources/TokenBeApp/Dashboard/SpendByDayChart.swift Sources/TokenBeApp/Dashboard/CacheTile.swift
 // ui-covers: Sources/TokenBeCore/Ledger/SpendChart.swift Sources/TokenBeCore/Ledger/CacheSavings.swift
+// ui-covers: Sources/TokenBeApp/Dashboard/ViewExport.swift Sources/TokenBeCore/Export/ViewCSVExporter.swift
 /// 14 § Stage 7.3 Tests, `DrilldownUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT`, with a DeepSeek
 /// account: harness lines for two apps (yesterday and today, UTC) are dropped into `ingest/`, and yesterday's balance
 /// fell by $5, far more than the lines' ≈ $1. The Overview's `Apps this period` row `news-digest` opens the DeepSeek
 /// page filtered by the app (chip `App: news-digest`, only its row, `App total` equal to the Overview's amount); the
 /// header shows the drift chip; ✕ clears the filter; leaving the account clears it too. The Overview also shows the
 /// `Spend by day` chart, whose hover tooltip lists today's account and total, and the cache savings tile with
-/// DeepSeek's harness-computed figure (14 § Stage 8.2). Settings are not changed.
+/// DeepSeek's harness-computed figure (14 § Stage 8.2). On the filtered page, `Export…` suggests the filtered table's
+/// file and is cancelled (8.3). Settings are not changed.
 final class DrilldownUITests: XCTestCase {
   private var root: URL!
 
@@ -69,6 +71,7 @@ final class DrilldownUITests: XCTestCase {
     XCTAssertTrue(text(drift).hasPrefix("Harness drift \u{00B7} "), "drift chip: \(text(drift))")
     XCTAssertTrue(text(drift).contains("\u{2212}"), "the lines report less than the balance fell: \(text(drift))")
 
+    try checkExportPanel(app)
     control(app, "dashboard.account.byApp.filter.clear").click()
     XCTAssertTrue(chip.waitForNonExistence(timeout: 5), "✕ clears the filter")
     XCTAssertTrue(control(app, "dashboard.account.byApp.name.weather-collector").waitForExistence(timeout: 5),
@@ -86,6 +89,21 @@ final class DrilldownUITests: XCTestCase {
   }
 
   // MARK: - Steps
+
+  /// 8.3: the toolbar's `Export…` opens a save panel suggesting the filtered By-app table's file. The panel is
+  /// cancelled, never saved: a test must not write into the owner's folders.
+  @MainActor
+  private func checkExportPanel(_ app: XCUIApplication) throws {
+    control(app, "dashboard.toolbar.export").click()
+    let sheet = app.sheets.firstMatch
+    XCTAssertTrue(sheet.waitForExistence(timeout: 10), "Export… opens a save panel")
+    let name = (sheet.textFields.firstMatch.value as? String) ?? ""
+    // The panel hides the `.csv` extension in its name field.
+    XCTAssertTrue(name.hasPrefix("TokenBe-DeepSeek-By-app-news-digest-7-d-"),
+                  "the file is named after the page, the app filter and the range: \(name)")
+    sheet.buttons["Cancel"].click()
+    XCTAssertTrue(sheet.waitForNonExistence(timeout: 5), "Cancel closes the panel without saving")
+  }
 
   /// 8.2: the chart has bars (not `No spend in this range`) and a legend; hovering today's stack shows the tooltip
   /// with its `Total`; the cache tile's headline is 08's sentence (DeepSeek: computed from harness lines).

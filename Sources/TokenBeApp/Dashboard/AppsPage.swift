@@ -7,7 +7,7 @@ import TokenBeCore
 struct AppsPage: View {
   let model: AppModel
 
-  private var apps: [AppRecord] { model.apps.filter { $0.id != Attribution.unassignedID } }
+  private var apps: [AppRecord] { Self.listed(model) }
 
   var body: some View {
     Group {
@@ -26,7 +26,7 @@ struct AppsPage: View {
       } else {
         Form {
           ForEach(apps, id: \.id) { app in
-            AppRowEditor(app: app, keys: keys(of: app)) { model.renameApp(app.id, to: $0) }
+            AppRowEditor(app: app, keys: Self.keys(of: app, model: model)) { model.renameApp(app.id, to: $0) }
           }
         }
         .formStyle(.grouped)
@@ -36,8 +36,20 @@ struct AppsPage: View {
     .accessibilityIdentifier("dashboard.apps")
   }
 
+  /// The apps listed (the `unassigned` sentinel is not an app the user made).
+  static func listed(_ model: AppModel) -> [AppRecord] {
+    model.apps.filter { $0.id != Attribution.unassignedID }
+  }
+
+  /// The page as its `Export…` writes it (8.3): display name, harness tag, bound keys, as the page shows them.
+  static func csvTable(_ model: AppModel) -> CSVTable {
+    CSVTable(header: [Strings.columnApp, Strings.appTag, Strings.columnKey], rows: listed(model).map {
+      [$0.displayName, $0.name, keys(of: $0, model: model).joined(separator: ", ")]
+    })
+  }
+
   /// `OpenAI …a1b2` for each provider key bound to the app.
-  private func keys(of app: AppRecord) -> [String] {
+  static func keys(of app: AppRecord, model: AppModel) -> [String] {
     model.bindings.filter { $0.appId == app.id && $0.kind == "provider_key" }.map { binding in
       let account = model.records.first { $0.id == binding.accountId }?.label ?? ""
       let key = model.providerKeys.first { $0.accountId == binding.accountId && $0.providerKeyId == binding.value }

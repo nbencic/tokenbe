@@ -4,7 +4,7 @@ import TokenBeCore
 /// 08 § Dashboard window: `NavigationSplitView`, min 920×600, frame kept in `tb.ui.dashboardFrame`.
 /// Stage 1.2: sidebar `Overview`, the range picker and the Overview empty state; 4.2: account pages and the
 /// toolbar's `Refresh`; 7.1: the Apps page; 7.3: an Overview `Apps this period` row opens the account page filtered
-/// by that app. The CSV export (8.3) joins with its action.
+/// by that app; 8.3: the toolbar's `Export…` (`ViewExport`).
 struct DashboardView: View {
   static let windowID = "dashboard"
   static let minimumSize = CGSize(width: 920, height: 600)
@@ -40,6 +40,14 @@ struct DashboardView: View {
         Button(Strings.refresh, systemImage: "arrow.clockwise") { model.refreshNow(selectedAccount?.id) }
           .help(Strings.refresh)
           .accessibilityIdentifier("dashboard.toolbar.refresh")
+      }
+      ToolbarItem(placement: .primaryAction) {
+        // 08 toolbar `Export…` (O-4): the page's table as CSV (8.3).
+        Button(Strings.exportEllipsis, systemImage: "square.and.arrow.up") {
+          ViewExport.run(ViewExport.plan(selection: model.dashboardSelection, model: model, filter: appFilter))
+        }
+        .help(Strings.exportHelp)
+        .accessibilityIdentifier("dashboard.toolbar.export")
       }
     }
     .frame(minWidth: Self.minimumSize.width, minHeight: Self.minimumSize.height)

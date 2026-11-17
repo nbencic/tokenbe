@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Drilldown: click an app under the Overview's **Apps this period** to open its account page filtered to that app (`App: <name>` chip, ✕ to clear). A DeepSeek or xAI page shows `Harness drift · <day> · ±$N` when a closed day's harness lines and balance drop disagree beyond the Alerts drift threshold. Usage with no app is the `Unassigned` row everywhere (Stage 7.3).
 - Account page: the **By model** table lists each model's requests, tokens by class, estimated cost, the provider's cost and the drift between them. Drift beyond the Alerts drift threshold is flagged, and a model missing from the price book reads `unpriced` instead of a price. A daily check logs `ledger.drift` for yesterday's drifting models (Stage 8.1).
 - Overview: the **Spend by day** chart stacks each USD account's daily spend over the range in its own colour; hover a day to see each account and the total. The **Cache savings** tile shows `Saved $X via cache (net of writes)`, with one line per account; OpenAI reads `—` because its aggregate cache counts are unreliable (Stage 8.2).
+- Dashboard toolbar: **Export…** saves the table on the current page as a CSV file. The Overview saves the runway board, an account page its By-app table (only the filtered app's rows when a filter is set), and the Apps page the apps list. Each cell is written as the page shows it (Stage 8.3).
 
 ### Changed
 - The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).

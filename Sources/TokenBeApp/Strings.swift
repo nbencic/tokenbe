@@ -538,4 +538,12 @@ extension Strings {
     case nil: noDataYet
     }
   }
+
+  // Toolbar `Export…` (08 § Dashboard window; O-4; 14 § Stage 8.3)
+  static let exportEllipsis = "Export\u{2026}"
+  static let exportHelp = "Save the table on this page as a CSV file"
+  /// The By-app badge column's CSV header (untitled on screen).
+  static let columnAttribution = "Attribution"
+  static let byAppFile = "By app"
+  static let exportFailed = "The CSV file could not be saved."
 }
