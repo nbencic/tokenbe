@@ -34,8 +34,9 @@ struct SpendByDayChart: View {
           if visible { chart(data) } else { Color.clear }
         }
         .frame(height: 220)
+        // Behind the chart, so the per-day elements take no room in the Overview's layout.
+        .background { dayTotals(data) }
         legend(data)
-        dayTotals(data)
       }
       if data.nonUSD > 0 {
         Text(Strings.chartNonUSD(data.nonUSD))
@@ -161,7 +162,6 @@ struct SpendByDayChart: View {
   /// element per day of the range, read as `Nov 17, total approximately 0.64 dollars`. Nothing is drawn.
   private func dayTotals(_ data: SpendChartData) -> some View {
     Color.clear
-      .frame(height: 1)
       .accessibilityElement(children: .contain)
       .accessibilityChildren {
         ForEach(data.days, id: \.self) { day in
