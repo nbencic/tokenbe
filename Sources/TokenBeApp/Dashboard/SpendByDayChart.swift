@@ -60,27 +60,34 @@ struct SpendByDayChart: View {
           .accessibilityLabel(Strings.chartSegment(account: segment.label, day: Formatters.day(segment.day)))
           .accessibilityValue(money(segment.figure))
       }
-      if let hoveredDay, data.dayTotals[hoveredDay] != nil {
+      if let hoveredDay, let total = data.dayTotals[hoveredDay] {
+        // Swift Charts does not expose an annotation's text, so the rule carries the tooltip's total for VoiceOver.
         RuleMark(x: .value("Day", hoveredDay))
           .foregroundStyle(.secondary.opacity(0.25))
+          .accessibilityLabel(Strings.chartTotalOn(Formatters.day(hoveredDay), amount: money(total)))
           .annotation(position: .top, alignment: .center, spacing: 4,
-                      overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                      overflowResolution: .init(x: .fit(to: .plot), y: .fit(to: .plot))) {
             tooltip(data, day: hoveredDay)
           }
       }
     }
     .chartXScale(domain: data.days)
     .chartXAxis {
-      AxisMarks(values: data.axisDays) { value in
-        AxisValueLabel { Text(value.as(String.self).map(Formatters.day) ?? "") }
+      // A category axis marks every day whatever `values` says, so only `axisDays` (at most 8) get a label.
+      let labelled = Set(data.axisDays)
+      AxisMarks { value in
+        if let day = value.as(String.self), labelled.contains(day) {
+          AxisValueLabel { Text(Formatters.day(day)) }
+        }
       }
     }
     .chartYAxis {
       AxisMarks { value in
         AxisGridLine()
         AxisValueLabel {
+          // Whole dollars without cents; a tick between dollars keeps them, so ticks never repeat (`$0.25`).
           Text(value.as(Int64.self).map {
-            Formatters.money(Money(cents: $0, currency: .usd), hideCents: true, locale: .current)
+            Formatters.money(Money(cents: $0, currency: .usd), hideCents: $0 % 100 == 0, locale: .current)
           } ?? "")
         }
       }
@@ -99,6 +106,7 @@ struct SpendByDayChart: View {
           }
       }
     }
+    .accessibilityElement(children: .contain)
     .accessibilityLabel(Strings.spendByDayChart)
     .accessibilityIdentifier("dashboard.spendByDay.chart")
   }

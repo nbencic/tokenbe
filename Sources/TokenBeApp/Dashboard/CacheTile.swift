@@ -28,18 +28,21 @@ struct CacheTile: View {
         HStack(spacing: 8) {
           Text(account.label)
           Spacer()
-          if let cents = account.cacheSavings?.cents {
-            Text(amount(cents))
-              .monospacedDigit()
-              .help(Strings.cacheSavedHelp)
-          } else {
-            Text(Strings.cacheGap)
-              .foregroundStyle(.secondary)
-              .help(Strings.cacheGapHelp(gap(account.cacheSavings)))
-              .accessibilityLabel(Strings.cacheGapHelp(gap(account.cacheSavings)))
+          Group {
+            if let cents = account.cacheSavings?.cents {
+              Text(amount(cents))
+                .monospacedDigit()
+                .help(Strings.cacheSavedHelp)
+            } else {
+              Text(Strings.cacheGap)
+                .foregroundStyle(.secondary)
+                .help(Strings.cacheGapHelp(gap(account.cacheSavings)))
+                .accessibilityLabel(Strings.cacheGapHelp(gap(account.cacheSavings)))
+            }
           }
+          .accessibilityIdentifier("dashboard.cacheSavings.value.\(account.provider.rawValue)")
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dashboard.cacheSavings.row.\(account.provider.rawValue)")
       }
     }

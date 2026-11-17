@@ -511,6 +511,8 @@ extension Strings {
   static let spendByDayChart = "Spend by day, stacked by account"
   /// The tooltip's last row.
   static let chartTotal = "Total"
+  /// The hovered day's rule for VoiceOver: `Total, Nov 14, ≈ $3.20` (a chart mark's value is not exposed).
+  static func chartTotalOn(_ day: String, amount: String) -> String { "\(chartTotal), \(day), \(amount)" }
   /// The chart's caption when accounts in another currency have spend (05 § Currency: nothing is converted; Q-052).
   static func chartNonUSD(_ count: Int) -> String {
     "USD accounts only \u{00B7} \(count) non-USD account\(count == 1 ? "" : "s") not shown"
