@@ -519,6 +519,9 @@ extension Strings {
   }
   /// A bar segment's VoiceOver label: `OpenAI, Nov 14`.
   static func chartSegment(account: String, day: String) -> String { "\(account), \(day)" }
+  /// The chart's per-day totals for VoiceOver (PM-8.2-2): `Nov 17, total approximately 0.64 dollars`.
+  static func chartDayTotal(_ day: String, amount: String) -> String { "\(day), total \(amount)" }
+  static let spendByDayTotals = "Spend by day, totals"
 
   // Overview cache savings tile (08 § Overview 5, 05 § Cache savings; 14 § Stage 8.2)
   static let cacheSavings = "Cache savings"
@@ -546,4 +549,27 @@ extension Strings {
   static let columnAttribution = "Attribution"
   static let byAppFile = "By app"
   static let exportFailed = "The CSV file could not be saved."
+}
+
+/// Stage 8.4's VoiceOver copy (08 § Accessibility): each figure is read as its title and its words, never the
+/// screen's symbols (`≈`, `±`, `~12 d`, `CN¥`). The words themselves come from Core's `Spoken`.
+extension Strings {
+  /// `Remaining, approximately 42 dollars, plus or minus 3` (08).
+  static func spoken(_ title: String, _ value: String) -> String { "\(title), \(value)" }
+  static let spoken30d = "Spend 30 days"
+  static func spokenPerDay(_ amount: String) -> String { "\(amount) per day" }
+  static func spokenShortestRunway(_ label: String, _ runway: String, band: String) -> String {
+    "Shortest runway: \(label), \(runway), band \(band)"
+  }
+  static func spokenTotalRemaining(_ amount: String, usdAccounts: Int, nonUSD: Int) -> String {
+    "Total remaining, \(amount), across \(usdAccounts) USD account\(usdAccounts == 1 ? "" : "s")"
+      + (nonUSD > 0 ? ", plus \(nonUSD) non-USD" : "")
+  }
+  static func spokenBanner(_ line: String, band: String) -> String { "\(line), band \(band)" }
+  static func spokenDays(_ days: Int) -> String { "\(days) days" }
+  static func spokenTotalSpend(range: String, amount: String, nonUSD: Int) -> String {
+    "Total spend \(range), \(amount)" + (nonUSD > 0 ? ", plus \(nonUSD) non-USD" : "")
+  }
+  /// A spinner's VoiceOver label under Reduce Motion, where it is a pulsing dot.
+  static let busy = "In progress"
 }

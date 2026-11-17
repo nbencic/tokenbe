@@ -71,7 +71,7 @@ struct Step2Key: View {
           .accessibilityIdentifier("onboarding.cancel")
         Spacer()
         if testing {
-          ProgressView().controlSize(.small)
+          BusyIndicator(small: true)
             .accessibilityIdentifier("onboarding.spinner")
         }
         if let back {

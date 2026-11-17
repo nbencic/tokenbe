@@ -12,6 +12,8 @@ struct ByModelTable: View {
   let currency: Currency
   let hideCents: Bool
   let thresholdPct: Int
+  /// The row with keyboard focus (08 § Accessibility, `TableKeyboard`).
+  @FocusState private var focusedRow: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -40,6 +42,7 @@ struct ByModelTable: View {
               .lineLimit(1)
               .truncationMode(.middle)
               .help(row.model)
+              .tableRowFocus(row.model, $focusedRow)
               .accessibilityIdentifier("dashboard.account.byModel.model.\(row.model)")
             count(row.tokens.requests)
             count(row.tokens.inputUncached)
@@ -56,6 +59,7 @@ struct ByModelTable: View {
     }
     .padding(16)
     .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+    .tableKeyboard(rows.map(\.model), $focusedRow)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("dashboard.account.byModel")
   }
@@ -70,6 +74,8 @@ struct ByModelTable: View {
                             locale: .current))
         .monospacedDigit()
         .fixedSize()
+        .accessibilityLabel(Spoken.spend(SpendFigure(cents: cents, isEstimate: true), currency: currency,
+                                         hideCents: hideCents, locale: .current))
         .accessibilityIdentifier("dashboard.account.byModel.est.\(row.model)")
     } else {
       Text(Strings.unpricedModel)

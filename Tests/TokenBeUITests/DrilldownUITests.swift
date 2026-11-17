@@ -118,7 +118,15 @@ final class DrilldownUITests: XCTestCase {
     // The tooltip's text is drawn, not exposed; its rule carries the same total (`Total, Nov 17, ≈ $0.64`).
     let rule = chart.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Total, '")).firstMatch
     XCTAssertTrue(rule.waitForExistence(timeout: 5), "hovering today's stack shows the tooltip")
-    XCTAssertTrue(rule.label.contains("$"), "the tooltip's total: \(rule.label)")
+    XCTAssertTrue(rule.label.contains(" dollars"), "the tooltip's total, in words (8.4): \(rule.label)")
+    // PM-8.2-2: every day's total is an element without the pointer (VoiceOver and keyboard, 08 § Accessibility).
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+    let today = utc.dateComponents([.year, .month, .day], from: Date())
+    let todayID = String(format: "%04d-%02d-%02d", today.year ?? 0, today.month ?? 0, today.day ?? 0)
+    let day = control(app, "dashboard.spendByDay.day.\(todayID)")
+    XCTAssertTrue(day.exists && text(day).contains(", total ") && text(day).hasSuffix(" dollars"),
+                  "today's total without a hover: `\(text(day))`")
     let headline = control(app, "dashboard.cacheSavings.headline")
     XCTAssertTrue(headline.waitForExistence(timeout: 5), "the Overview shows the cache savings tile")
     XCTAssertTrue(text(headline).hasPrefix("Saved $") && text(headline).hasSuffix(" via cache (net of writes)"),

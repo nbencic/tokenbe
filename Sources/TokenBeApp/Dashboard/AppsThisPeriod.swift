@@ -23,6 +23,8 @@ struct AppsThisPeriod: View {
               Spacer()
               Text(Formatters.spend(total.spend, currency: total.currency, hideCents: hideCents, locale: .current))
                 .monospacedDigit()
+                .accessibilityLabel(Spoken.spend(total.spend, currency: total.currency, hideCents: hideCents,
+                                                 locale: .current))
             }
             .contentShape(Rectangle())
           }

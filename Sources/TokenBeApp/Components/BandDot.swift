@@ -23,5 +23,7 @@ struct BandDot: View {
       .fill(band.color)
       .frame(width: 8, height: 8)
       .accessibilityLabel(Strings.bandLabel(band.word))
+      // A labelled shape has no role of its own; the accessibility audit flags it (8.4).
+      .accessibilityAddTraits(.isImage)
   }
 }

@@ -634,7 +634,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ### Stage 8.4 — Accessibility & input
 **Goal:** `08 § Accessibility`. **Depends on:** 8.3. **Adds:** VoiceOver labels on every band element and number (`Remaining, approximately 42 dollars, plus or minus 3`), Dynamic Type to `xxLarge` in popover, Reduce Motion (opacity pulse), full keyboard navigation of tables. **Size:** M.
-**Tests:** `TokenBeUITests/AccessibilityUITests` (labels present), Accessibility Inspector audit script (`xcrun accessibility-inspector` not scriptable → manual checklist in `docs/QUESTIONS.md` marked done).
+**Inventory** — Files: `Model/SpokenFormatters.swift` (Core: `Spoken`, the words VoiceOver reads), `Components/AccessibilityOverrides.swift` (`PopoverTextSize`, `ScaledFont`, `ReduceMotion`, `BusyIndicator`, the DEBUG test overrides `TOKENBE_TEST_TEXT_SIZE` / `TOKENBE_TEST_REDUCE_MOTION`), `Components/TableKeyboard.swift`, the views that show a figure or a band (`Popover/{AccountCardView,AlertBanner,PopoverView}`, `Dashboard/{NumbersStrip,RunwayBoard,OverviewHeadline,OverviewView,ByAppTable,ByModelTable,LedgerList,AppsThisPeriod,SpendByDayChart}`, `Components/{BandDot,RangePicker}`), the four spinners' views, `Strings.swift`, `scripts/stages/8.4.sh`. Settings: none. Events: none.
+**Tests:** `SpokenFormattersTests` (08's sentence, money, CN¥, estimates, runway words), `TokenBeUITests/AccessibilityUITests` (08's sentence on the card, the strip and the board; `xxLarge` grows the card; keyboard focus; XCTest's accessibility audit on the Dashboard), the spoken text in the suites that read figures (AnchorRunway, DirectBalance, Onboarding, Drilldown incl. the chart's per-day totals). The Accessibility Inspector pass is not scriptable (`xcrun accessibility-inspector`); `performAccessibilityAudit` covers its element checks, and the rest is the owner's checklist in Q-054.
 **Stage DoD:** D1–D12.
 
 ---

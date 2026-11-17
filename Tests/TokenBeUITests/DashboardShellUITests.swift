@@ -75,10 +75,24 @@ final class DashboardShellUITests: XCTestCase {
     XCTAssertTrue(openPopover(app, until: quit))
     app.typeKey(.escape, modifierFlags: [])
     XCTAssertTrue(quit.waitForNonExistence(timeout: 5))
-    XCUIElement.perform(withKeyModifiers: .option) {
-      app.statusItems.firstMatch.click()
+    // PM-7.3-3: the flake (PM-4.1-4) clicked while the item's frame was not yet finite (the overflow chevron
+    // re-laying out). Wait for a finite frame, and log the frame and the tree when the Dashboard does not open.
+    let item = app.statusItems.firstMatch
+    var frame = item.frame
+    for _ in 0..<20 where !(frame.origin.x.isFinite && frame.origin.y.isFinite && frame.width > 0) {
+      usleep(250_000)
+      frame = item.frame
     }
-    XCTAssertTrue(dashboard(app).waitForExistence(timeout: 10), "⌥-click opens the Dashboard")
+    XCTContext.runActivity(named: "PM-7.3-3 status item frame before the \u{2325}-click: \(frame)") { _ in }
+    XCUIElement.perform(withKeyModifiers: .option) {
+      item.click()
+    }
+    let opened = dashboard(app).waitForExistence(timeout: 10)
+    if !opened {
+      XCTContext.runActivity(named: "PM-7.3-3 status item frame after: \(item.frame)") { _ in }
+      XCTContext.runActivity(named: "PM-7.3-3 tree: \(app.debugDescription)") { _ in }
+    }
+    XCTAssertTrue(opened, "⌥-click opens the Dashboard (status item frame \(frame))")
     XCTAssertTrue(quitThroughPopover(app))
   }
 }

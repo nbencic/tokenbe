@@ -7,6 +7,7 @@ struct OverviewHeadline: View {
   let accounts: [AccountSummary]
   let hideCents: Bool
   let totalSpend: String
+  let spokenTotalSpend: String
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -14,6 +15,9 @@ struct OverviewHeadline: View {
         Text(Strings.shortestRunway(shortest.label, runway))
           .font(.title2.weight(.semibold).monospacedDigit())
           .foregroundStyle(shortest.band.color)
+          // The band colour is said in words too (08 § Accessibility).
+          .accessibilityLabel(Strings.spokenShortestRunway(shortest.label, Spoken.runway(shortest.runwayMin) ?? runway,
+                                                           band: shortest.band.word))
           .accessibilityIdentifier("dashboard.overview.headline")
       }
       let total = OverviewTotals.remaining(accounts)
@@ -25,11 +29,17 @@ struct OverviewHeadline: View {
         ))
         .font(.callout.monospacedDigit())
         .foregroundStyle(.secondary)
+        .accessibilityLabel(Strings.spokenTotalRemaining(
+          Spoken.estimate(Money(cents: total.cents), bandCents: total.bandCents, hideCents: hideCents,
+                          locale: .current),
+          usdAccounts: total.usdAccounts, nonUSD: total.nonUSD
+        ))
         .accessibilityIdentifier("dashboard.overview.totalRemaining")
       }
       Text(totalSpend)
         .font(.callout.monospacedDigit())
         .foregroundStyle(.secondary)
+        .accessibilityLabel(spokenTotalSpend)
         .accessibilityIdentifier("dashboard.overview.totalSpend")
     }
   }

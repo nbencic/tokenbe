@@ -35,6 +35,7 @@ struct SpendByDayChart: View {
         }
         .frame(height: 220)
         legend(data)
+        dayTotals(data)
       }
       if data.nonUSD > 0 {
         Text(Strings.chartNonUSD(data.nonUSD))
@@ -58,13 +59,13 @@ struct SpendByDayChart: View {
         BarMark(x: .value("Day", segment.day), y: .value("Spend", segment.figure.cents))
           .foregroundStyle(Self.color(segment.colorIndex))
           .accessibilityLabel(Strings.chartSegment(account: segment.label, day: Formatters.day(segment.day)))
-          .accessibilityValue(money(segment.figure))
+          .accessibilityValue(spoken(segment.figure))
       }
       if let hoveredDay, let total = data.dayTotals[hoveredDay] {
         // Swift Charts does not expose an annotation's text, so the rule carries the tooltip's total for VoiceOver.
         RuleMark(x: .value("Day", hoveredDay))
           .foregroundStyle(.secondary.opacity(0.25))
-          .accessibilityLabel(Strings.chartTotalOn(Formatters.day(hoveredDay), amount: money(total)))
+          .accessibilityLabel(Strings.chartTotalOn(Formatters.day(hoveredDay), amount: spoken(total)))
           .annotation(position: .top, alignment: .center, spacing: 4,
                       overflowResolution: .init(x: .fit(to: .plot), y: .fit(to: .plot))) {
             tooltip(data, day: hoveredDay)
@@ -154,6 +155,27 @@ struct SpendByDayChart: View {
         .accessibilityIdentifier("dashboard.spendByDay.legend.\(account.id)")
       }
     }
+  }
+
+  /// Each day's total for VoiceOver and keyboard navigation, without a pointer (PM-8.2-2, 08 § Accessibility): one
+  /// element per day of the range, read as `Nov 17, total approximately 0.64 dollars`. Nothing is drawn.
+  private func dayTotals(_ data: SpendChartData) -> some View {
+    Color.clear
+      .frame(height: 1)
+      .accessibilityElement(children: .contain)
+      .accessibilityChildren {
+        ForEach(data.days, id: \.self) { day in
+          Text(Strings.chartDayTotal(Formatters.day(day),
+                                     amount: spoken(data.dayTotals[day] ?? SpendFigure(cents: 0, isEstimate: false))))
+            .accessibilityIdentifier("dashboard.spendByDay.day.\(day)")
+        }
+      }
+      .accessibilityLabel(Strings.spendByDayTotals)
+      .accessibilityIdentifier("dashboard.spendByDay.days")
+  }
+
+  private func spoken(_ figure: SpendFigure) -> String {
+    Spoken.spend(figure, currency: .usd, hideCents: hideCents, locale: .current)
   }
 
   private func money(_ figure: SpendFigure) -> String {

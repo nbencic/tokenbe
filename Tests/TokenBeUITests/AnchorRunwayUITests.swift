@@ -36,9 +36,11 @@ final class AnchorRunwayUITests: XCTestCase {
     try onboard(app, anchor: "100")
     let pinned = control(app, "popover.card.openai.pinned")
     XCTAssertTrue(openPopover(app, until: pinned), "the popover shows the card")
-    // `≈ $100 ± 0` or `≈ $100,00 ± 0,00`: the locale and the shared suite's `tb.ui.hideCents` decide the cents.
-    XCTAssertTrue(waitFor { self.text(pinned).hasPrefix("\u{2248} $100") && self.text(pinned).contains(" \u{00B1} ") },
-                  "set anchor → `≈ $100 ± …`, got `\(text(pinned))` / `\(text(control(app, "popover.card.openai.row3")))`")
+    // The screen's `≈ $100 ± 0`, read by VoiceOver as `Remaining, approximately 100 dollars, plus or minus 0` (8.4);
+    // the locale and the shared suite's `tb.ui.hideCents` decide the cents.
+    XCTAssertTrue(waitFor {
+      self.text(pinned).hasPrefix("Remaining, approximately 100") && self.text(pinned).contains(" dollars, plus or minus ")
+    }, "set anchor → `≈ $100 ± …`, got `\(text(pinned))` / `\(text(control(app, "popover.card.openai.row3")))`")
     XCTAssertTrue(text(control(app, "popover.card.openai.row3")).hasSuffix("Collecting\u{2026} runway after 2 days of data"),
                   "Day-1: row 3 ends with 08's collecting text")
     XCTAssertFalse(control(app, "popover.banner.alert").exists, "no banner while the band is unknown with an anchor")
@@ -51,7 +53,8 @@ final class AnchorRunwayUITests: XCTestCase {
     let banner = control(again, "popover.banner.alert")
     XCTAssertTrue(openPopover(again, until: banner), "the fixture drives the account critical: the banner shows")
     let line = banner.label
-    XCTAssertTrue(line.hasPrefix("OpenAI: ") && line.hasSuffix(" left"), "banner: \(line)")
+    // `OpenAI: ~1 d left` on screen; VoiceOver reads the runway in words and the band (8.4).
+    XCTAssertTrue(line.hasPrefix("OpenAI: ") && line.hasSuffix(" left, band critical"), "banner: \(line)")
     XCTAssertTrue(control(again, "popover.card.openai.band").label.contains("critical"), "the band dot says critical")
     banner.click()
     XCTAssertTrue(control(again, "dashboard.account.numbers.remaining").waitForExistence(timeout: 10),

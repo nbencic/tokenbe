@@ -48,6 +48,9 @@ struct LedgerList: View {
       } ?? "\u{2014}")
         .monospacedDigit()
         .frame(width: 90, alignment: .trailing)
+        .accessibilityLabel(event.amountCents.map {
+          Spoken.money(Money(cents: $0, currency: currency), hideCents: hideCents, locale: .current)
+        } ?? Spoken.none)
       Text(event.note ?? "")
         .foregroundStyle(.secondary)
         .lineLimit(1)
