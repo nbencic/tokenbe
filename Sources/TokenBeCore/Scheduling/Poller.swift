@@ -69,7 +69,7 @@ public actor Poller {
     let context = PollContext(
       accountID: account.id, key: key, cursor: nil,
       window: DateInterval(start: time.addingTimeInterval(-Self.lookback(job)), end: time),
-      transport: transport, clock: clock, trace: trace
+      transport: transport, clock: clock, trace: trace, currency: account.currency
     )
     var attempts = 0
     var resumedFrom: String?

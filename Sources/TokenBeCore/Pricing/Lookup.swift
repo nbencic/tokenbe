@@ -57,6 +57,7 @@ public enum Lookup {
     case .openai, .anthropic: nil
     case .deepseek: "deepseek"
     case .xai: "xai"
+    case .moonshot: "moonshot"
     case .openrouter: "openrouter"
     }
   }

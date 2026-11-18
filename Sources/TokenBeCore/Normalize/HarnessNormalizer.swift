@@ -32,7 +32,7 @@ public enum HarnessNormalizer {
     let required: String
     let known: Set<String>
     switch provider {
-    case .openai, .openrouter:
+    case .openai, .openrouter, .moonshot:
       if usage["input_tokens"] != nil && usage["prompt_tokens"] == nil {
         required = "input_tokens"
         known = ["input_tokens", "output_tokens", "total_tokens", "input_tokens_details", "output_tokens_details"]

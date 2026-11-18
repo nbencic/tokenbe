@@ -13,9 +13,12 @@ public struct PollContext: Sendable {
   public var clock: any Clock<Duration>
   /// Receives every response body, so the poller can keep the last one when decoding fails (04).
   public var trace: ResponseTrace
+  /// The account's currency (03 `account.currency`); Moonshot's region follows from it (02 § moonshot).
+  public var currency: String
 
   public init(accountID: String, key: String, cursor: String?, window: DateInterval, transport: any HTTPTransport,
-              clock: any Clock<Duration>, trace: ResponseTrace = ResponseTrace()) {
+              clock: any Clock<Duration>, trace: ResponseTrace = ResponseTrace(), currency: String = "USD") {
+    self.currency = currency
     self.accountID = accountID
     self.key = key
     self.cursor = cursor

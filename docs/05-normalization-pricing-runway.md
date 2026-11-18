@@ -29,6 +29,7 @@ struct TokenClasses: Sendable, Equatable {
 | deepseek per-response (harness) | `prompt_cache_miss_tokens ?? (prompt_tokens − prompt_cache_hit_tokens)` | 0 | 0 | `prompt_cache_hit_tokens ?? 0` | `completion_tokens − (completion_tokens_details.reasoning_tokens ?? 0)` | `completion_tokens_details.reasoning_tokens ?? 0` |
 | openrouter per-response (harness) | as openai per-response (chat.completions); `cost_cents`, when present, is the line's cost (06; Q-049) | | | | | |
 | xai per-response (harness) | `prompt_tokens − (prompt_tokens_details.cached_tokens ?? 0)` | 0 | 0 | `prompt_tokens_details.cached_tokens ?? 0` | `completion_tokens − (completion_tokens_details.reasoning_tokens ?? 0)` | `completion_tokens_details.reasoning_tokens ?? 0` |
+| moonshot per-response (harness) | as openai per-response (chat.completions): Moonshot's API is OpenAI-compatible (02 § moonshot, `[expected]` until H6) | | | | | |
 
 Unknown keys in a usage object are collected and logged once per day per provider as `normalize.unknown_keys`. They never fail normalization. A missing REQUIRED key (`prompt_tokens`/`input_tokens`/`uncached_input_tokens`) fails normalization: the harness line is stored with `classes_json = NULL` and logged `normalize.failed`.
 
@@ -37,7 +38,7 @@ Unknown keys in a usage object are collected and logged once per day per provide
 Given `provider` and `model` (string as reported by the provider):
 1. `price_override[model]`
 2. feed key `model` exactly
-3. feed key `"{litellm_provider_prefix}/{model}"` where prefix is `openai` → none (OpenAI keys are bare), `anthropic` → none (bare), `deepseek` → `deepseek`, `xai` → `xai`, `openrouter` → `openrouter`
+3. feed key `"{litellm_provider_prefix}/{model}"` where prefix is `openai` → none (OpenAI keys are bare), `anthropic` → none (bare), `deepseek` → `deepseek`, `xai` → `xai`, `moonshot` → `moonshot`, `openrouter` → `openrouter`
 4. feed key with a trailing date suffix stripped (`-YYYYMMDD` or `-YYYY-MM-DD`) applied to 2 and 3
 5. feed key with `-latest` appended applied to 2 and 3
 6. UNPRICED → `nil`

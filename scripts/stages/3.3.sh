@@ -10,7 +10,7 @@ for f in "${inventory[@]}"; do check "non-empty $f" test -s "$f"; done
 check "record-fixtures.sh is executable" test -x scripts/record-fixtures.sh
 
 check "ProviderID declared once, in Providers/ (moved from SettingSpec)" test "$(grep -rl 'enum ProviderID' Sources | tr -d '\n')" = "$prov/ProviderID.swift"
-check "ProviderID has 03's five cases in 08's order" grep -qF 'case openai, anthropic, openrouter, deepseek, xai' $prov/ProviderID.swift
+check "ProviderID has 03's cases in 08's order (later providers append, Q-062)" grep -qF 'case openai, anthropic, openrouter, deepseek, xai' $prov/ProviderID.swift
 for field in 'usage: Bool' 'cost: Bool' 'balance: Bool' 'perKeyUsage: Bool' 'keyNames: Bool' \
              'balanceModeDefault: BalanceMode' 'usageLag: Duration' 'currencyHint: Currency'; do
   check "Capabilities has $field (14 step 2)" grep -qF "public var $field" $prov/Capabilities.swift

@@ -15,6 +15,7 @@ RULE: Every adapter stores the raw response body of the LAST successful call per
 | openrouter | Management key (Provisioning key) | $ per key only | $ per key only | yes | yes ($) | yes | direct | seconds | n/a |
 | deepseek | Standard key | **no** | **no** | yes | **no** | no | direct | seconds–minutes | n/a |
 | xai | Management key (console.x.ai → Settings → Management Keys; Q-062) | no | yes [expected] (USD per day per model, `/usage`) | not yet (prepaid balance unrecorded, H6) | no | no | anchored | ~1 h assumed (unpublished) | 1d |
+| moonshot | Standard key (platform.kimi.ai, or platform.kimi.com for China; Q-062) | **no** | **no** | yes [expected] | **no** | no | direct | "may lag" (read as 5 min) | n/a |
 
 `balance_mode` values: `direct`, `anchored`, `spend_only`. `anchored` requires an anchor; until one exists the account behaves as `spend_only` and the UI shows "no runway until anchored".
 
@@ -127,6 +128,19 @@ Base: `https://management-api.x.ai`. Header: `Authorization: Bearer <management 
 `GET /v1/billing/teams/{team_id}/prepaid/balance` → `{ "changes": [ { teamId, changeOrigin ("PURCHASE"|"SPEND"|"REFUND"|"MANUAL"|"AUTO_PURCHASE"), topupStatus, amount {val}, invoiceId, invoiceNumber, createTime, paymentProcessor {kind} } ], "total": { "val": string } }`, USD cents. The docs' example after one purchase has `total.val = "-1000"` (purchases negative, spend positive), so `total` looks like a ledger sum whose negation is the remaining credit; unproven. When H6 records it, xAI may turn direct (`balance = true`).
 
 Never called: `prepaid/top-up`, `postpaid/spending-limits`, `billing-info`, `payment-method`, `invoices`, `postpaid/invoice/preview`, and every other management path.
+
+## moonshot
+
+Hosts: `https://api.moonshot.ai` (international, amounts in **USD**) and `https://api.moonshot.cn` (China, amounts in **CNY**). Header: `Authorization: Bearer <key>`. A key works on its own region only; the other region answers 401. Fields are from Moonshot's balance page (platform.kimi.ai / platform.kimi.com → docs → API → balance) and are **[expected]** until H6 records them (Q-062).
+
+### Probe + balance (every `tb.poll.balanceIntervalS`)
+`GET /v1/users/me/balance` → `{ "code": 0, "data": { "available_balance": 49.58894, "voucher_balance": 46.58893, "cash_balance": 3.00001 }, "scode": "0x0", "status": true }`. Amounts are JSON NUMBERS in the region's currency; no currency field.
+- `available_balance` = cash + voucher (when `cash_balance` < 0, it equals `voucher_balance`); `voucher_balance` ≥ 0; `cash_balance` < 0 means the account owes money.
+- Probe: the international host first; a 401 there tries the China host (`poll.region_fallback`, debug). The host that answers sets the account currency (USD or CNY), and the balance poll derives its host from that currency (no new column).
+- `status == false` or `code ≠ 0` → `poll.provider_rule` `moonshot_status_not_ok`; probe message: unexpected response.
+- Refused on both hosts (or 403) → `Moonshot did not accept this API key. Check it at platform.kimi.ai (or platform.kimi.com for China) → API Keys and paste it again.`
+- Snapshot: `amount_cents = available_balance`, `granted_cents = voucher_balance`, `topped_up_cents = cash_balance` (may be negative), each rounded to cents once, half up.
+No usage, cost, or key-list endpoint exists (spend history is console only; the day's bill updates at 07:00 the next day). Per-app attribution comes ONLY from harness reports (`06`). Per-response usage is OpenAI-compatible (`prompt_tokens`, `completion_tokens`, `total_tokens`) [expected].
 
 ## Price feed
 

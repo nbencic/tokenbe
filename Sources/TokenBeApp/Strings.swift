@@ -246,6 +246,7 @@ enum Strings {
     case .openrouter: "Balance and per-key spend update within seconds."
     case .deepseek: "The balance updates within seconds to minutes."
     case .xai: "Spend is read hourly; today\u{2019}s figure may still change for about an hour."
+    case .moonshot: "The balance updates within minutes; Moonshot says consumption may lag."
     }
   }
 

@@ -25,6 +25,12 @@ public enum CoreStrings {
       "This management key is not tied to a team. Create a team management key at console.x.ai → Settings → Management Keys."
   }
 
+  public enum Moonshot {
+    /// 02 § moonshot: neither region accepted the key (401 on both hosts, or 403).
+    public static let keyRejected =
+      "Moonshot did not accept this API key. Check it at platform.kimi.ai (or platform.kimi.com for China) → API Keys and paste it again."
+  }
+
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
   public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
 
