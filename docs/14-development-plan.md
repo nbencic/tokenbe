@@ -670,7 +670,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 ### Stage 9.5 — Reset, cleanups, environment audits
 **Goal:** every remaining `09` behavior and `04` startup step verified end-to-end. **Depends on:** 9.4. **Adds:** Advanced → `Reset all settings…`; time-zone change handling (O-14); sleep/wake handling verified. **Size:** S.
 **Steps:** `Settings.resetAll` wired to UI; `NSSystemTimeZoneDidChange` → recompute day boundaries + `sched.clock_jump tz=true`; `StartupSequenceTests` asserts all 8 steps in order; `scripts/stages/9.5.sh` launches the app clean and asserts the 8 `startup_step` log lines in order.
-**Inventory** — Events: `app.settings_reset`, `sched.clock_jump`.
+**Inventory** — Files: `SettingsUI/{ResetSettingsButton,AdvancedTab}.swift`, `Scheduling/PollCoordinator{,+Inputs}.swift` (`timeZoneDidChange`), `Startup.swift` (`systemWatchers`), `Logging/NDJSONSink.swift` (auto-updating calendar), `Onboarding/Step2Key.swift` (PM-7.3-5), `Strings.swift`, `scripts/check-log-events.sh` (`--from-tests`), `scripts/stages/9.5.sh`. Events: `app.settings_reset`, `sched.clock_jump` (reason `timezone`).
+**Tests:** `SchedulerTests` (time-zone change), `IngestTailerTests` (`ingest.duplicate`), `StartupSequenceTests`, `TokenBeUITests/SettingsRoundTripUITests` = E2E-6.
 **Stage DoD:** D1–D12; `04 § Startup sequence` fully audited. **Start H5 (soak) here.**
 
 ---

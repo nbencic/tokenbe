@@ -58,7 +58,7 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block. The l
 ## Carry-forward actions
 - PM-8.1-1 · agent · the H2 PR (PM-3.6-2) · Re-check `Drift.lineItemModel` against the recorded `line_item` strings. If a recorded line item names its model differently (a display name, a different case or a dated id), change the rule and `DriftTests.lineItemMapping`, and update Q-051.
 - PM-8.1-2 · agent · 10.1 · The Anthropic adapter writes `description` cost rows. Decide how a row carries its model (`group_key` or a mapped field) so `Drift.mappedCosts` reads `description` rows too. Add a `DriftTests` case.
-- PM-8.1-3 · agent · 9.5 · `price.unpriced` and `ledger.drift` dedupe per process (`DailyOnce` in memory), so a relaunch on the same day logs again (like PM-5.4-2). Decide in 9.5 whether that is acceptable for A6's "logged once per day", and log a Q.
+- PM-8.1-3 · agent · 9.5 · **closed (Stage 9.5, Q-059: accepted per process)** · `price.unpriced` and `ledger.drift` dedupe per process (`DailyOnce` in memory), so a relaunch on the same day logs again (like PM-5.4-2). Decide in 9.5 whether that is acceptable for A6's "logged once per day", and log a Q.
 - PM-8.1-4 · agent · 8.2 · `ByModelUITests` asserts `above the 10 % threshold` but does not pin `tb.alerts.driftThresholdPct`, which lives in the shared settings domain. Add `app.launchArguments += ["-tb.alerts.driftThresholdPct", "10"]` as the first commit of 8.2.
 - Earlier actions closed here: PM-7.2-6 (a non-lazy Sources strip; target was 8.4, pulled forward because this stage pushed the strip below the fold): closed (`AdaptiveColumns`; status edited in stage-7.3.md and phase-7.md).
 - Earlier actions that targeted 8.1: none.

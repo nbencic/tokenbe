@@ -52,7 +52,7 @@ E2E-4 runs as a Core test with `RecordingNotifier`: a fixture driven to critical
 
 ## Carry-forward actions
 - PM-5.4-1 · agent · 5.5 · **closed (Stage 5.5)** · Run `NotificationsSettingsUITests` (Q-041). The test flips each switch and flips it back, so the shared UI-test settings suite is unchanged (PM-4.2-5).
-- PM-5.4-2 · agent · 9.5 · The 24 h dedupe is in memory, so a relaunch can repeat a notice within 24 h. Revisit after the H5 soak shows whether it matters.
+- PM-5.4-2 · agent · re-targeted → 11.5 (Stage 9.5, Q-059: judge on the H5 soak's data) · The 24 h dedupe is in memory, so a relaunch can repeat a notice within 24 h. Revisit after the H5 soak shows whether it matters.
 - Earlier actions that targeted this stage:
   - PM-5.3-1: closed, as above.
   - PM-4.3-2 followed: `AlertPolicyTests` pass a `logPipeline` through `StoreHarness`.
