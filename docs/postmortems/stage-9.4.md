@@ -1,5 +1,5 @@
 # Postmortem — Stage 9.4 Update check
-Date: 2026-11-18 · Branch: s9.4-update-check · PR: #42 · Planned size: S · Commits: 5
+Date: 2026-11-18 · Branch: s9.4-update-check · PR: #42 · Planned size: S · Commits: 6
 
 ## Outcome
 02 § Update check runs as the daily activity's `update check` step, after the price refresh (04):
@@ -38,7 +38,7 @@ A newer release that hasn't been skipped shows `Update available` with `Open rel
 - **Core and lint:** 6 tests in `UpdateCheckerTests` passed; the full Core run had 582 tests in 87 suites; coverage 97.12 %; lint clean after What went wrong 2.
 - **UI, targeted:** UpdateCheckUITests passed. DailyRunNowUITests failed once (What went wrong 1), then passed alone.
 - **Guard sweep** (`TB_UI_TESTS=0 verify 9.4`): `STAGE 9.4 OK` on the first run, with 1 486 checks passed and no stale guard.
-- **Full verify:** see the PR body. `AppEnvironment.swift` is a shared file, so Q-047 selected every suite.
+- **Full verify** (`AppEnvironment.swift` is a shared file, so Q-047 selected every suite): `STAGE 9.4 OK` on the first run, with 1 525 checks passed and 1 printing `skip` (3.6's H2 check). All 28 UI tests passed with 0 failures in 23 min 5 s, the ⌥-click test included. 582 Core tests in 87 suites passed. Disk had 86 GiB free, and the screen was unlocked.
 - **CI:** the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
