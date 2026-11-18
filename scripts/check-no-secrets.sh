@@ -17,7 +17,7 @@ key_re+='|(authorization|x-api-key|x-goog-api-key)["'\'']?[[:space:]]*[:=][[:spa
 key_re+='|bearer[[:space:]]+[A-Za-z0-9._~+/=-]{16,}'
 
 allowed_hosts=(
-  "api.openai.com" "api.anthropic.com" "openrouter.ai" "api.deepseek.com" "api.x.ai"
+  "api.openai.com" "api.anthropic.com" "openrouter.ai" "api.deepseek.com" "management-api.x.ai"
   "raw.githubusercontent.com/BerriAI/litellm" "api.github.com/repos/nbencic/tokenbe" "github.com/nbencic/tokenbe"
 )
 

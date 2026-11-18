@@ -154,6 +154,7 @@ enum Strings {
   static let whichProvider = "Which provider?"
   static let captionOpenAI = "Admin key required"
   static let captionAnthropic = "Needs an Organization"
+  /// OpenRouter's and xAI's caption (08, Q-062).
   static let captionOpenRouter = "Management key"
   static let captionBalanceOnly = "Balance only \u{00B7} apps via harness"
   static let added = "Added"
@@ -244,7 +245,7 @@ enum Strings {
     case .anthropic: "Usage typically appears within 5 minutes."
     case .openrouter: "Balance and per-key spend update within seconds."
     case .deepseek: "The balance updates within seconds to minutes."
-    case .xai: "The balance updates within seconds."
+    case .xai: "Spend is read hourly; today\u{2019}s figure may still change for about an hour."
     }
   }
 

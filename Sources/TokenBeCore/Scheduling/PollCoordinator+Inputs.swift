@@ -141,7 +141,7 @@ extension PollCoordinator {
     } else {
       pollers[record.id] = AccountPoller(account: record, runner: runner, logPipeline: logPipeline)
     }
-    for job in Job.minuteCadence {
+    for job in Job.scheduled {
       let key = Key(accountID: record.id, job: job)
       guard job.applies(to: capabilities),
             let interval = job.interval(for: provider, settings: settings, override: override, lowPower: lowPower) else {

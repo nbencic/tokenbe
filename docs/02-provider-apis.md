@@ -14,7 +14,7 @@ RULE: Every adapter stores the raw response body of the LAST successful call per
 | anthropic | Admin key `sk-ant-admin01-…` (needs an Organization; unavailable for individual accounts) | yes | yes | **no** | yes (usage only) | yes | anchored | ~5 min typical | 1d only |
 | openrouter | Management key (Provisioning key) | $ per key only | $ per key only | yes | yes ($) | yes | direct | seconds | n/a |
 | deepseek | Standard key | **no** | **no** | yes | **no** | no | direct | seconds–minutes | n/a |
-| xai | Standard key | no (v1) | no (v1) | yes [expected] | no (v1) | no | direct, fallback anchored if probe finds no balance field | seconds | n/a |
+| xai | Management key (console.x.ai → Settings → Management Keys; Q-062) | no | yes [expected] (USD per day per model, `/usage`) | not yet (prepaid balance unrecorded, H6) | no | no | anchored | ~1 h assumed (unpublished) | 1d |
 
 `balance_mode` values: `direct`, `anchored`, `spend_only`. `anchored` requires an anchor; until one exists the account behaves as `spend_only` and the UI shows "no runway until anchored".
 
@@ -108,11 +108,25 @@ Per-response usage fields the harness will copy verbatim: `prompt_tokens`, `comp
 
 ## xai
 
-Base: `https://api.x.ai/v1`. Header: `Authorization: Bearer <key>`.
+Recorded 2026-11-18 by the soak (an inference key): `GET https://api.x.ai/v1/api-key` returns key metadata only (`acls`, `api_key_blocked`, `api_key_disabled`, `api_key_id`, `create_time`, `modified_by`, `modify_time`, `name`, `redacted_api_key`, `team_blocked`, `team_id`, `user_id`) and no balance. TokenBe no longer calls it (Q-062).
 
-### Probe + balance (every 60 s)
-`GET /api-key` → key metadata. Secondary sources report fields `remaining_balance`, `spent_balance`, `total_granted` (USD) [expected, UNVERIFIED against official docs]. Milestone 0 MUST record a fixture. Rule: if the fixture contains `remaining_balance` as a number → `capabilities.balance = true`, mode `direct`. Otherwise → `capabilities.balance = false`, mode `anchored`, and `13-decisions.md § D-xai-balance` is updated with the recorded shape.
-Rate-limit headers on `GET /models` (`x-ratelimit-*`) are NOT used in V1.
+Base: `https://management-api.x.ai`. Header: `Authorization: Bearer <management key>`. A management key is separate from inference keys (console.x.ai → Settings → Management Keys). It can also buy credit and change limits and billing details; TokenBe calls ONLY the paths below (10.0.2.sh fails on any other management path). Fields are from xAI's Management API reference (docs.x.ai → REST API reference → Management → Accounts and Authorization, Billing) and are **[expected]** until H6 records them.
+
+### Probe
+1. `GET /auth/management-keys/validation` → `{ apiKeyId, teamId (deprecated), scope ("SCOPE_TEAM"|"SCOPE_ORGANIZATION"|"SCOPE_UNSPECIFIED"), scopeId, ownerUserId, createTime, modifyTime, name, acls[], apiKey, redactedApiKey, ipRanges }` (the docs' example spells `reactedApiKey`). The team is `scopeId` when `scope == "SCOPE_TEAM"`, else `teamId`. Neither → message `This management key is not tied to a team. Create a team management key at console.x.ai → Settings → Management Keys.`
+2. `POST /v1/billing/teams/{team_id}/usage` over the last day (the cost request below) → 200 proves billing read access.
+- 401/403 at either step → `xAI did not accept this management key. Create one at console.x.ai → Settings → Management Keys and paste it.`
+- Result: `capabilities.cost = true`, `balance = false`, mode `anchored` (onboarding asks for an anchor), currency USD.
+
+### Cost (every `tb.poll.keysIntervalS`; also in the daily activity)
+`POST /v1/billing/teams/{team_id}/usage`, body `{"analyticsRequest": {"timeRange": {"startTime": "YYYY-MM-DD 00:00:00", "endTime": "YYYY-MM-DD 00:00:00", "timezone": "Etc/GMT"}, "timeUnit": "TIME_UNIT_DAY", "values": [{"name": "usd", "aggregation": "AGGREGATION_SUM"}], "groupBy": ["description"], "filters": []}}`; `endTime` is exclusive; the range is the 7-day cost lookback in whole UTC days through today. Response `{ "timeSeries": [ { "group": [string], "groupLabels": [string], "dataPoints": [ { "timestamp": "2025-10-01T00:00:00Z", "values": [number] } ] } ], "limitReached": bool }`; `values[0]` is US dollars (a JSON number). The team is re-read from step 1 on every poll (no new column).
+- Rows: per UTC day, one `cost_bucket` per model (`group_kind = 'description'`, `group_key = group[0]`) and one `total`, dollars summed in `Decimal` and rounded to cents once, half up. A day whose end + 1 h is not yet past is provisional.
+- `limitReached == true` → keep the rows, log `poll.provider_rule` `xai_usage_limit_reached` (warn, once a day).
+
+### Balance (not called until H6)
+`GET /v1/billing/teams/{team_id}/prepaid/balance` → `{ "changes": [ { teamId, changeOrigin ("PURCHASE"|"SPEND"|"REFUND"|"MANUAL"|"AUTO_PURCHASE"), topupStatus, amount {val}, invoiceId, invoiceNumber, createTime, paymentProcessor {kind} } ], "total": { "val": string } }`, USD cents. The docs' example after one purchase has `total.val = "-1000"` (purchases negative, spend positive), so `total` looks like a ledger sum whose negation is the remaining credit; unproven. When H6 records it, xAI may turn direct (`balance = true`).
+
+Never called: `prepaid/top-up`, `postpaid/spending-limits`, `billing-info`, `payment-method`, `invoices`, `postpaid/invoice/preview`, and every other management path.
 
 ## Price feed
 

@@ -29,7 +29,7 @@ Environment variable per provider (the key is read from it, never from .env or t
   anthropic   ANTHROPIC_ADMIN_KEY         Admin key (needs an Organization)
   openrouter  OPENROUTER_MANAGEMENT_KEY   Management (provisioning) key
   deepseek    DEEPSEEK_API_KEY            Standard key
-  xai         XAI_API_KEY                 Standard key
+  xai         XAI_MANAGEMENT_KEY          Management key (console.x.ai → Settings → Management Keys; Q-062)
 
 Writes Tests/Fixtures/providers/<provider>/*.recorded.json and RECORDED, then runs --verify-redacted on them.
 Review the files, then commit them with Verified.swift updated (13 § D-verified-providers).
@@ -155,7 +155,7 @@ fetch() {
   status="$(printf 'header = "%s: %s%s"\n' "$header" "$scheme" "$KEY_VALUE" |
     curl --silent --show-error --max-time 30 --config - "${EXTRA_HEADERS[@]}" \
       -H "User-Agent: TokenBe/record-fixtures (+https://github.com/nbencic/tokenbe)" \
-      --dump-header "$tmp/headers" --output "$tmp/body" --write-out '%{http_code}' "$url")" || {
+      "${POST_ARGS[@]}" --dump-header "$tmp/headers" --output "$tmp/body" --write-out '%{http_code}' "$url")" || {
     echo "  $endpoint: request failed"; rm -rf "$tmp"; return 1; }
   if [[ "$status" =~ ^2 ]]; then case="$ok_case"; else case="$status"; fi
   out="$FIXTURES/$provider/$endpoint.$case.recorded.json"
@@ -201,7 +201,7 @@ record() {
   local provider="$1" var now
   case "$provider" in
     openai) var=OPENAI_ADMIN_KEY ;; anthropic) var=ANTHROPIC_ADMIN_KEY ;; openrouter) var=OPENROUTER_MANAGEMENT_KEY ;;
-    deepseek) var=DEEPSEEK_API_KEY ;; xai) var=XAI_API_KEY ;;
+    deepseek) var=DEEPSEEK_API_KEY ;; xai) var=XAI_MANAGEMENT_KEY ;;
     *) usage; exit 2 ;;
   esac
   KEY_VALUE="${!var:-}"
@@ -209,6 +209,7 @@ record() {
   mkdir -p "$FIXTURES/$provider"
   now="$(date -u +%s)"
   EXTRA_HEADERS=()
+  POST_ARGS=()
   echo "Recording $provider (02 endpoints) into $FIXTURES/$provider"
   case "$provider" in
     openai)
@@ -248,7 +249,16 @@ record() {
       fetch deepseek balance "https://api.deepseek.com/user/balance" Authorization "Bearer " || return 1
       ;;
     xai)
-      fetch xai api_key "https://api.x.ai/v1/api-key" Authorization "Bearer " || return 1
+      # 02 § xai (Q-062): only the management paths TokenBe may call. The team comes from the validation answer.
+      local base="https://management-api.x.ai" team from through
+      fetch xai validation "$base/auth/management-keys/validation" Authorization "Bearer " || return 1
+      team="$(python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])).get("body") or {}; print(d.get("scopeId") if d.get("scope")=="SCOPE_TEAM" else d.get("teamId") or "")' "$LAST_OUT")"
+      [[ -n "$team" ]] || { echo "  validation: the key names no team"; return 1; }
+      from="$(date -u -r $((now - 604800)) +%F)"; through="$(date -u -r $((now + 86400)) +%F)"
+      POST_ARGS=(-X POST -H "Content-Type: application/json" --data "{\"analyticsRequest\":{\"timeRange\":{\"startTime\":\"$from 00:00:00\",\"endTime\":\"$through 00:00:00\",\"timezone\":\"Etc/GMT\"},\"timeUnit\":\"TIME_UNIT_DAY\",\"values\":[{\"name\":\"usd\",\"aggregation\":\"AGGREGATION_SUM\"}],\"groupBy\":[\"description\"],\"filters\":[]}}")
+      fetch xai usage "$base/v1/billing/teams/$team/usage" Authorization "Bearer " || return 1
+      POST_ARGS=()
+      fetch xai prepaid_balance "$base/v1/billing/teams/$team/prepaid/balance" Authorization "Bearer " || return 1
       ;;
   esac
   printf '%s\nrecorded by scripts/record-fixtures.sh %s\n' "$(date -u +%F)" "$provider" > "$FIXTURES/$provider/RECORDED"

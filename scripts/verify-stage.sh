@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 # The stage order of 14 § 0.5. A phase's last stage is the last id with that phase number.
 STAGES=(0.1 0.2 0.3 0.4 0.5  1.1 1.2 1.3  2.1 2.2  3.1 3.2 3.3 3.4 3.5 3.6  4.1 4.2 4.3
         5.1 5.2 5.3 5.4 5.5  6.1 6.2  7.1 7.2 7.3  8.1 8.2 8.3 8.4  9.1 9.2 9.3 9.4 9.5
-        10.0.1 10.1 10.2 10.3  11.1 11.2 11.3 11.4 11.5)
+        10.0.1 10.0.2 10.1 10.2 10.3  11.1 11.2 11.3 11.4 11.5)
 
 STAGE_HEADINGS=("## Outcome" "## What went as planned" "## What went wrong" "## Verify and CI failures"
                 "## Deviations from the docs" "## Judgment calls" "## Carry-forward actions")

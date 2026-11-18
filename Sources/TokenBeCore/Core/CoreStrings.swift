@@ -17,9 +17,12 @@ public enum CoreStrings {
   }
 
   public enum XAI {
-    /// 02 § xai names no copy for a refused key (401/403); authored like DeepSeek's (Q-046).
+    /// 02 § xai: a refused management key (401/403), e.g. an inference key pasted instead (Q-062).
     public static let keyRejected =
-      "xAI did not accept this API key. Check the key at console.x.ai → API Keys and paste it again."
+      "xAI did not accept this management key. Create one at console.x.ai → Settings → Management Keys and paste it."
+    /// 02 § xai: the key names no team (an organization-scoped management key), so no team's billing can be read.
+    public static let noTeam =
+      "This management key is not tied to a team. Create a team management key at console.x.ai → Settings → Management Keys."
   }
 
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.

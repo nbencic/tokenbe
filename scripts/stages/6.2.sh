@@ -6,18 +6,15 @@ xai=$core/Providers/XAI
 fixtures=Tests/Fixtures/providers/xai
 inventory=(
   $xai/XAIDTOs.swift $xai/XAIProbe.swift $xai/XAIClient.swift $core/Providers/BearerRequest.swift
-  $fixtures/api_key.ok.synthetic.json $fixtures/api_key.no_balance.synthetic.json $fixtures/api_key.401.synthetic.json
+  $fixtures/validation.ok.synthetic.json $fixtures/usage.ok.synthetic.json
   Tests/TokenBeCoreTests/AdapterTests/XAITests.swift Tests/TokenBeUITests/DirectBalanceUITests.swift
   scripts/stages/6.2.sh
 )
 for f in "${inventory[@]}"; do check "non-empty $f" test -s "$f"; done
 
-# Step 2: probe GET /v1/api-key; a numeric remaining_balance → direct, else anchored with poll.provider_rule.
-check "xAI calls 02's endpoint on 02's host" bash -c "grep -qF 'static let host = \"api.x.ai\"' $xai/XAIClient.swift && grep -qF 'static let apiKeyPath = \"/v1/api-key\"' $xai/XAIClient.swift && grep -qF 'BearerRequest.get(host: host, path: apiKeyPath' $xai/XAIClient.swift"
-check "only 02's [expected] balance fields are named" bash -c "for k in remaining_balance spent_balance total_granted; do grep -qF \"\\\"\$k\\\"\" $xai/XAIDTOs.swift || exit 1; done"
-check "remaining_balance is decoded as a number (Decimal), never Double (R7)" bash -c "grep -qF 'decodeIfPresent(Decimal.self, forKey: .remainingBalance)' $xai/XAIDTOs.swift && ! grep -nE 'Double|Float' $xai/*.swift"
-check "the fallback is anchored without a balance job" bash -c "grep -A2 'static let anchoredCapabilities' $xai/XAIClient.swift | grep -qF 'balance: false' && grep -A2 'static let anchoredCapabilities' $xai/XAIClient.swift | grep -qF 'balanceModeDefault: .anchored'"
-check "the fallback logs poll.provider_rule rule=xai_no_balance_field (14 § 6.2 step 2, 07)" bash -c "grep -qF 'static let noBalanceRule = \"xai_no_balance_field\"' $xai/XAIClient.swift && grep -qF '.pollProviderRule' $xai/XAIProbe.swift && grep -qF 'xai_no_balance_field' docs/07-logging.md"
+# Step 2 (GET /v1/api-key, direct or anchored by remaining_balance) is superseded by 10.0.2: the recorded endpoint has
+# no balance, and xAI moved to its Management API (Q-062). 10.0.2.sh checks the new probe and cost job.
+check "xAI's money is Decimal, never Double (R7)" bash -c "! grep -nE 'Double|Float' $xai/*.swift"
 
 # Wiring.
 check "AppEnvironment registers the xAI adapter" grep -qF 'XAIAdapter()' $app/Startup.swift

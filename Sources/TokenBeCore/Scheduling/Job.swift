@@ -7,6 +7,9 @@ public enum Job: String, CaseIterable, Sendable {
 
   /// The jobs of 04's minute-cadence loop. `cost` is a daily-activity step (04 § Daily activity, Stage 4.3).
   public static let minuteCadence: [Job] = [.usage, .balance, .keys]
+  /// The jobs the coordinator schedules: the minute cadences plus `cost`, which only xAI runs on a period (Q-062);
+  /// every other provider's cost has no interval and stays with the daily activity.
+  public static let scheduled: [Job] = minuteCadence + [.cost]
 
   /// Whether an account's capabilities allow this job (`keys` needs `keyNames`).
   public func applies(to capabilities: Capabilities) -> Bool {
@@ -19,11 +22,13 @@ public enum Job: String, CaseIterable, Sendable {
   }
 
   /// The 09 key that sets this job's period for `provider`, or nil when 04 gives the pair no minute cadence
-  /// (`usage` exists for OpenAI and Anthropic only; `cost` runs daily).
+  /// (`usage` exists for OpenAI and Anthropic only; `cost` runs daily, except xAI's, its only spend feed, which runs
+  /// at the keys period, Q-062).
   public func intervalKey(for provider: ProviderID) -> SettingsKey? {
     switch (self, provider) {
     case (.usage, .openai): .pollUsageIntervalOpenAIS
     case (.usage, .anthropic): .pollUsageIntervalAnthropicS
+    case (.cost, .xai): .pollKeysIntervalS
     case (.usage, _), (.cost, _): nil
     case (.balance, _): .pollBalanceIntervalS
     case (.keys, _): .pollKeysIntervalS
