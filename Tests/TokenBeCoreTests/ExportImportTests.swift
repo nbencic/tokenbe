@@ -79,20 +79,28 @@ import Testing
     #expect(targetInputs.costDays == sourceInputs.costDays, "\(targetInputs.costDays) vs \(sourceInputs.costDays)")
     #expect(targetInputs.anchorDayUsage == sourceInputs.anchorDayUsage)
     #expect(targetInputs.ledgerEvents == sourceInputs.ledgerEvents && targetInputs.balances == sourceInputs.balances)
+    // Fresh poll_state: until the first poll the card reads `No data yet` (08), so Remaining waits for it.
+    let pending = try await target.remaining()
+    let original = try await source.remaining()
+    #expect(pending.keys.sorted() == [Self.acct] && pending[Self.acct] == .some(nil),
+            "no Remaining before the imported account's first poll: \(pending), source \(original)")
+    try await target.repository.database.write("first poll") { db in
+      try db.execute(sql: "UPDATE poll_state SET last_success_at = ? WHERE job = 'usage'", arguments: [FixtureDBBuilder.stamp])
+    }
     let (before, after) = (try await source.remaining(), try await target.remaining())
-    #expect(after == before, "Remaining \(after) vs \(before)")
+    #expect(after == before && before[Self.acct] != nil, "Remaining \(after) vs \(before)")
     #expect(try await target.count("SELECT COUNT(*) FROM poll_state") == 4, "the account's four poll_state rows (03)")
     #expect(try await target.count("SELECT COUNT(*) FROM poll_state WHERE last_attempt_at IS NOT NULL") == 0)
     #expect(try await target.count("SELECT COUNT(*) FROM harness_event") == 0, "not in 03's document (Q-056)")
-    let original = try await source.repository.exportDocument(exportedAt: "x")
+    let exported = try await source.repository.exportDocument(exportedAt: "x")
     var copy = try await target.repository.exportDocument(exportedAt: "x")
-    #expect(copy.usageBuckets == original.usageBuckets && copy.ledgerEvents == original.ledgerEvents)
+    #expect(copy.usageBuckets == exported.usageBuckets && copy.ledgerEvents == exported.ledgerEvents)
     // Each database seeds its own `Unassigned` app; the import skips the document's.
-    var seeded = original
+    var seeded = exported
     seeded.apps.removeAll { $0.id == Attribution.unassignedID }
     copy.apps.removeAll { $0.id == Attribution.unassignedID }
     #expect(copy == seeded, "every exported row, field by field (keys as their hint, Q-056)")
-    #expect(rows == original.rows)
+    #expect(rows == exported.rows)
     let imported = await target.harness.records(.dbImport)
     #expect(imported.count == 1 && imported.first?.ctx["rows"] == .int(rows) && imported.first?.ctx["path"] == .string(url.path))
   }
