@@ -695,7 +695,7 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 4. **08 § Dashboard window**, sidebar: add the `+` / `−` foot (Q-060; 01 outranks 08's omission, 12 § R1). Update 13.4.
 5. **`scripts/stages/10.0.1.sh`.** `verify-stage.sh`'s `STAGES` gains `10.0.1` after `9.5`.
 
-**Inventory** — Files: `Dashboard/SidebarView.swift`, `Dashboard/DashboardView.swift` (passes the model to the sidebar), `SettingsUI/AccountsTab.swift` (the remove confirm, shared), `Strings.swift`, `scripts/verify-stage.sh` (`TB_SOAK`, `launch_check`, `STAGES`), `scripts/stages/{0.4,2.1,4.1,9.5}.sh` (launch checks through `launch_check`), `scripts/stages/10.0.1.sh`, `docs/08-ui-spec.md`. Settings: none. Events: none new (removal keeps `Remove account…`'s records).
+**Inventory** — Files: `Dashboard/SidebarView.swift`, `Dashboard/DashboardView.swift` (passes the model to the sidebar), `SettingsUI/AccountsTab.swift` (the remove confirm, shared), `SettingsUI/AccountIntervalOverrides.swift` (moved out of `AccountsTab.swift` to keep it under SwiftLint's 400 lines), `Strings.swift`, `scripts/verify-stage.sh` (`TB_SOAK`, `launch_check`, `STAGES`), `scripts/stages/{0.4,2.1,4.1,9.5}.sh` (launch checks through `launch_check`), `scripts/stages/10.0.1.sh`, `docs/08-ui-spec.md`. Settings: none. Events: none new (removal keeps `Remove account…`'s records).
 **Tests:** `TokenBeUITests/SidebarAccountsUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT`:
 - onboard OpenAI;
 - the sidebar's `+` opens Add account with OpenAI shown `Added`;

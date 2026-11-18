@@ -5,7 +5,8 @@ app=Sources/TokenBeApp
 sidebar=$app/Dashboard/SidebarView.swift
 accounts=$app/SettingsUI/AccountsTab.swift
 inventory=(
-  $sidebar $app/Dashboard/DashboardView.swift $accounts $app/Strings.swift scripts/verify-stage.sh
+  $sidebar $app/Dashboard/DashboardView.swift $accounts $app/SettingsUI/AccountIntervalOverrides.swift $app/Strings.swift
+  scripts/verify-stage.sh
   scripts/stages/0.4.sh scripts/stages/2.1.sh scripts/stages/4.1.sh scripts/stages/9.5.sh scripts/stages/10.0.1.sh
   docs/08-ui-spec.md Tests/TokenBeUITests/SidebarAccountsUITests.swift
 )
