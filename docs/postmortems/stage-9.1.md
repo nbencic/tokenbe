@@ -1,5 +1,5 @@
 # Postmortem — Stage 9.1 Retention roll-ups
-Date: 2026-11-18 · Branch: s9.1-retention-rollups · PR: #39 · Planned size: M · Commits: 5
+Date: 2026-11-18 · Branch: s9.1-retention-rollups · PR: #39 · Planned size: M · Commits: 7
 
 ## Outcome
 03 § Retention tiers runs in the daily activity as the `roll-ups` step, between the model drift and the price refresh (04):
