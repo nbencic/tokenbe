@@ -76,7 +76,7 @@ Date: 2026-11-17 · Stages: 8.1 (#35), 8.2 (#36), 8.3 (#37), 8.4 (#38)
   - PM-8.1-2 · agent · 10.1 · Anthropic `description` rows carry their model.
   - PM-8.1-3 · agent · 9.5 · per-process once-per-day logs.
   - PM-8.2-4 · agent · 9.1 · roll-up rows and Anthropic cache savings. **Closed in 9.1.**
-  - PM-8.3-1 · agent · 9.2, 9.4, 9.5 · retire 1.3.sh's "not yet" guards with their controls.
+  - PM-8.3-1 · agent · 9.2, 9.4, 9.5 · retire 1.3.sh's "not yet" guards with their controls. **Closed for 9.2; open for 9.3 (`Export diagnostics`), 9.4, 9.5.**
   - PM-8.4-1 · Nikola · 11.3 · Q-054's accessibility checklist.
   - PM-8.4-2 · agent · 11.3 · the popover header's contrast against Paper; narrow the audit's empty-identifier contrast tolerance to the window title (widened in 9.1).
   - PM-8.2-3, PM-8.2-5, PM-8.3-2, PM-8.4-3 · agent · every stage · process.
