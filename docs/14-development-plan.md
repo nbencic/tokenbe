@@ -65,7 +65,7 @@ Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it 
 | H2 | Run `scripts/record-fixtures.sh openai` with `OPENAI_ADMIN_KEY` | 3.6 (marks OpenAI verified) | Phases 4–5 proceed on synthetic fixtures |
 | H3 | Run `scripts/record-fixtures.sh deepseek` and/or `xai` with keys | 6.1/6.2 verification | Phase 7 proceeds |
 | H4 | Developer ID certificate + notarytool keychain profile `tokenbe-notary` on the Mac | 11.5 | Everything else |
-| H5 | 14-day soak (SOAK-1) — app runs on Nikola's Mac with real keys | 11.5 | Starts at end of 9.5; 10.x and 11.1–11.4 run in parallel |
+| H5 | 14-day soak (SOAK-1) — app runs on Nikola's Mac with real keys | 11.5 | Starts once 10.0.1 has merged (the owner adds every provider from the sidebar's `+`, Q-060); 10.x and 11.1–11.4 run in parallel with `TB_SOAK=1` |
 
 ### 0.5 Phase map
 
@@ -81,7 +81,7 @@ Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it 
 | 7 Apps | 7.1 apps by provider key · 7.2 harness ingest · 7.3 drilldown polish | Per-app attribution incl. harness drop folder |
 | 8 Dashboard | 8.1 by-model & drift · 8.2 chart & cache tile · 8.3 CSV export · 8.4 accessibility | Dashboard complete per 08 |
 | 9 Lifecycle | 9.1 retention · 9.2 export/import · 9.3 diagnostics · 9.4 update check · 9.5 reset & audits | Long-term durability features; startup sequence audited |
-| 10 Gated adapters | 10.1 Anthropic · 10.2 OpenRouter · 10.3 contributor path | Compiled and tested on synthetic fixtures; hidden in Release until recorded |
+| 10 Gated adapters | 10.0.1 sidebar accounts & soak switch · 10.1 Anthropic · 10.2 OpenRouter · 10.3 contributor path | More accounts can be added and removed after the first; adapters compiled and tested on synthetic fixtures, hidden in Release until recorded |
 | 11 Hardening & release | 11.1 perf · 11.2 security · 11.3 Paper/strings/accessibility · 11.4 docs · 11.5 release (H4, H5) | 1.0.0 notarized dmg + cask |
 
 Mapping to `10 § Milestones`: M0 = 3.6/6.x gates; M1 = Phases 0–2; M2 = 3–4; M3 = 5; M4 = 1, 8; M5 = 7; M6 = 11.1–11.3; M7 = 11.5.
@@ -678,6 +678,44 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ## 11. Phase 10 — Gated adapters (compiled, synthetic-tested, hidden in Release)
 
+### Stage 10.0.1 — Add and remove accounts from the sidebar; soak-safe verify
+**Goal:** after the first account, another provider can be added, and an account removed, from the Dashboard (01 S1). Until now `Add account…` appeared only in the popover's empty state and in onboarding at launch, so after one account there was no way back to the provider picker (Q-060). Second goal: the verifies of 10.x and 11.1–11.4 must run while the H5 soak runs on this Mac without stopping the soak app. This is the owner's H5 choice, 2026-11-18 (Q-060). **Depends on:** 9.5. **Adds:** `+` / `−` at the foot of the Dashboard sidebar. **Size:** S.
+**Steps:**
+1. **Plan and Q-060** (this commit): the owner's two decisions, and this stage.
+2. **Soak switch.**
+   - `scripts/verify-stage.sh` reads `TB_SOAK=1`. It then forces `TB_UI_TESTS=0`, prints one banner line, and passes a `launch_check` helper to the stage scripts (shaped like `ui_check`).
+   - The app-launch checks of 0.4.sh, 2.1.sh, 4.1.sh and 9.5.sh run through that helper. Under the soak they print `skip <check> (soak running: TB_SOAK=1)`. They launch the Debug app with `open -n` and quit it with `osascript -e 'quit app "TokenBe"'`, which would quit the soak app by name. A stopped soak app logs `crash.previous_launch` (fault) at its next launch and fails SOAK-1.
+   - Under the soak the real-domain guards (`real_untouched`, `real_tb_unchanged`, `real_support_unchanged`) print `skip` too: the soak app writes that domain while a verify runs (Q-061).
+   - Without `TB_SOAK` nothing changes. Every UI suite and launch check runs once after the soak, before 11.5 (Q-047).
+3. **The sidebar's foot** (`Dashboard/SidebarView.swift`): a bottom bar in the macOS source-list style, with two small borderless buttons:
+   - **`+`** (SF Symbol `plus`, help and accessibility label `Add account`). It opens the same Add account sheet (`model.showOnboarding()`). Step 1 already shows added providers as `Added`. It is disabled when every provider in `registry.availableForOnboarding` already has an account.
+   - **`−`** (SF Symbol `minus`, help and accessibility label `Remove account`). It is enabled only while an account row is selected (not Overview, not Apps). It shows the same destructive confirm as Settings → Accounts' `Remove account…` (08: deletes the Keychain item and the DB rows). Confirming runs `AccountLifecycle.remove`, and the selection moves to Overview. The confirm's copy and action are shared with the Accounts tab, not duplicated.
+   - **Both** reachable by keyboard (8.4), with identifiers `dashboard.sidebar.add` and `dashboard.sidebar.remove`.
+   - V1 stays one account per provider (03 `UNIQUE (provider)`). A different key for a provider already added is `Replace key…`.
+4. **08 § Dashboard window**, sidebar: add the `+` / `−` foot (Q-060; 01 outranks 08's omission, 12 § R1). Update 13.4.
+5. **`scripts/stages/10.0.1.sh`.** `verify-stage.sh`'s `STAGES` gains `10.0.1` after `9.5`.
+
+**Inventory** — Files: `Dashboard/SidebarView.swift`, `Dashboard/DashboardView.swift` (passes the model to the sidebar), `SettingsUI/AccountsTab.swift` (the remove confirm, shared), `SettingsUI/AccountIntervalOverrides.swift` (moved out of `AccountsTab.swift` to keep it under SwiftLint's 400 lines), `Strings.swift`, `scripts/verify-stage.sh` (`TB_SOAK`, `launch_check`, `STAGES`), `scripts/stages/{0.4,2.1,4.1,9.5}.sh` (launch checks through `launch_check`), `scripts/stages/10.0.1.sh`, `docs/08-ui-spec.md`. Settings: none. Events: none new (removal keeps `Remove account…`'s records).
+**Tests:** `TokenBeUITests/SidebarAccountsUITests`, in fixture mode under a throwaway `TOKENBE_TEST_ROOT`:
+- onboard OpenAI;
+- the sidebar's `+` opens Add account with OpenAI shown `Added`;
+- add xAI (fixture), and its row appears;
+- `−` is disabled on Overview;
+- select xAI, `−` → confirm, the row is gone and Overview is selected.
+
+This stage runs its full verify with UI tests on: the soak starts only after it merges.
+**Verify (`scripts/stages/10.0.1.sh`):**
+- the buttons, their actions, ids and labels;
+- `−` gated on an account selection;
+- the shared confirm;
+- 08's sidebar line;
+- `TB_SOAK=1` turns each launch check into `skip` (a dry run of `launch_check` under both values);
+- `ui_check SidebarAccountsUITests`.
+
+**Stage DoD:** D1–D13. **Human gate:** H5 starts after this merges.
+- **Start:** the owner rebuilds the soak copy (`scripts/run.sh build-app && ditto build/DerivedData/Build/Products/Debug/TokenBe.app ~/Applications/TokenBe.app`), launches it without a test root, adds OpenAI, DeepSeek and xAI from the sidebar's `+` with real keys, and says "soak started <date>".
+- **During the soak:** every verify runs with `TB_SOAK=1` until the owner says the soak has ended.
+
 ### Stage 10.1 — Anthropic adapter
 **Depends on:** 9.5. **Steps:** synthetic fixtures per `02 § anthropic` (probe 5 steps incl. `no_org.403`/`401`, usage 1h×48, cost_report with cents-as-string, api_keys, workspaces); `Providers/Anthropic/*.swift`; normalizer rows (05); per-key `≈ $` (D-anthropic-per-key-est); `Priority Tier` note in badges; `credit_low.400` → `poll.provider_rule rule=anthropic_credit_low`. **Tests:** `AdapterTests/AnthropicTests`, `NormalizerTests` rows. **Not** in `Verified`. **Stage DoD:** D1–D3, D5, D9, D11–D12 (no UI change in Release).
 
@@ -741,7 +779,7 @@ Advanced: `log.level` 1.3 · `log.retentionDays` 1.3 · `retention.hourlyDays` 9
 `app.launch/terminate/log_dropped` 0.2–0.4 · `app.settings_changed/settings_reset` 0.3 (UI 1.3/9.5) · `app.login_item_failed` 1.3 · `app.network_changed` 3.1/4.1 · `app.diagnostics_exported` 9.3 · `sched.*` 4.1 (`daily_*`, `daily_step_failed` 4.3) · `poll.*` 3.4 · `normalize.*` 3.4 (`failed` 7.2) · `price.feed_ok/feed_failed/parse_failed/stale/override_set` 5.1 · `price.fallback_multiplier/unpriced/repriced` 5.2 · `ledger.anchor_set` 3.5 · `ledger.topup/reconcile` 5.3 · `ledger.drift` 8.1 · `ledger.harness_drift` 7.2 · `ledger.auto_zero` — no producer in V1 (O-18) · `ingest.*` 7.2 · `keychain.*` 3.2 (`missing` 3.5) · `db.open/migrate/migrate_failed/quick_check/integrity_check/integrity_failed/corrupt/restore/backup/backup_failed/vacuum/busy` 2.1 · `db.rollup` 9.1 · `db.export/import/import_failed` 8.3/9.2 · `ui.popover_open/close` 1.1 · `ui.hotkey_failed` 1.3 · `ui.band_change` 5.3 · `ui.notification_sent/denied` 5.4 · `ui.error` 3.5 · `update.*` 9.4 · `crash.*` 0.2/0.4.
 
 ### 13.4 `08` screens/elements → stage
-Menu bar glyph shapes 1.1, state wiring 4.2 (dashed) / 5.5 (notch, metric) · Popover header 1.1 (+ refresh 4.1) · Alert banner 5.3 · Account cards: row 1 + "No data yet" 3.5, rows 2–3 5.3, row 4 7.1, stale overlay 4.2 · Empty state 1.1 (+ button 3.5) · Day-1 5.3 · Offline/Paused 4.2/4.1 · Footer: Quit 1.1, Open dashboard 1.2, Settings 1.3, Pause 4.1 · Dashboard window/sidebar/range 1.2, account rows 3.5, Apps section 7.1 · Overview headline/runway board 5.3, chart 8.2, Apps this period 7.1, cache tile 8.2, Export 8.3 · Account detail header/badges/sources strip 4.2, numbers strip 5.2/5.3, By app 7.1/7.2, By model 8.1, Ledger 5.3, sheets 5.3 · Onboarding 3.5 · Settings: General 1.3, Accounts 3.5 (+ auto-reload 5.3, binding 7.1, overrides 4.1), Sources 4.1 (+ daily 4.3, price book 5.1, harness 7.2), Alerts 5.3/5.4, Privacy 1.3 (+ update 9.4), Advanced 1.3 (+ 2.2, 9.1, 9.2, 9.3, 9.5) · Notifications 5.4 · Accessibility 8.4.
+Menu bar glyph shapes 1.1, state wiring 4.2 (dashed) / 5.5 (notch, metric) · Popover header 1.1 (+ refresh 4.1) · Alert banner 5.3 · Account cards: row 1 + "No data yet" 3.5, rows 2–3 5.3, row 4 7.1, stale overlay 4.2 · Empty state 1.1 (+ button 3.5) · Day-1 5.3 · Offline/Paused 4.2/4.1 · Footer: Quit 1.1, Open dashboard 1.2, Settings 1.3, Pause 4.1 · Dashboard window/sidebar/range 1.2, account rows 3.5, Apps section 7.1, `+` / `−` foot 10.0.1 · Overview headline/runway board 5.3, chart 8.2, Apps this period 7.1, cache tile 8.2, Export 8.3 · Account detail header/badges/sources strip 4.2, numbers strip 5.2/5.3, By app 7.1/7.2, By model 8.1, Ledger 5.3, sheets 5.3 · Onboarding 3.5 · Settings: General 1.3, Accounts 3.5 (+ auto-reload 5.3, binding 7.1, overrides 4.1), Sources 4.1 (+ daily 4.3, price book 5.1, harness 7.2), Alerts 5.3/5.4, Privacy 1.3 (+ update 9.4), Advanced 1.3 (+ 2.2, 9.1, 9.2, 9.3, 9.5) · Notifications 5.4 · Accessibility 8.4.
 
 ### 13.5 `01` scope and acceptance → stage
 S1 3.5/3.6/6.x (gated: 10.x) · S2 5.3/6.1 · S3 5.3 · S4 7.1/7.2 · S5 5.3 · S6 1.1/3.5/5.3 · S7 1.2/4.2/5.3/7.1/8.x · S8 1.3/3.5/4.1/5.3/5.4/9.x · S9 3.5 · S10 5.1/5.2 · S11 5.4 · S12 0.2/9.3 · S13 2.1/9.1/9.2.

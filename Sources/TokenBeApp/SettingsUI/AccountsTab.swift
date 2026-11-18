@@ -158,13 +158,8 @@ private struct AccountDetail: View {
       .padding(24)
       .frame(width: OnboardingSheet.size.width, height: 320)
     }
-    .confirmationDialog(Strings.removeAccountQuestion(record.label), isPresented: $confirmingRemove) {
-      Button(Strings.remove, role: .destructive) { remove() }
-        .accessibilityIdentifier("settings.accounts.confirmRemove")
-      Button(Strings.cancel, role: .cancel) {}
-    } message: {
-      Text(Strings.removeAccountDetail)
-    }
+    .removeAccountConfirm(record, isPresented: $confirmingRemove, model: model, environment: environment,
+                          view: "settings.accounts")
   }
 
   /// The minute-cadence jobs this account runs (its capabilities, and a 09 interval for its provider).
@@ -251,8 +246,35 @@ private struct AccountDetail: View {
     }
   }
 
+  private func report(_ error: any Error, _ msg: String) {
+    Log.error(.uiError, cat: .ui, msg: msg, acct: record.provider, err: error, ctx: ["view": "settings.accounts"])
+  }
+}
+
+/// `Remove account…`'s destructive confirm and its action (08: deletes the Keychain item and the account's rows),
+/// shared by Settings → Accounts and the Dashboard sidebar's `−` (14 § Stage 10.0.1, Q-060), so the copy and the
+/// removal exist once. `removed` runs after the account is gone (the sidebar then selects Overview).
+struct RemoveAccountConfirm: ViewModifier {
+  let record: AccountRecord?
+  @Binding var isPresented: Bool
+  let model: AppModel
+  let environment: AppEnvironment?
+  /// `ui.error`'s `view`: where the confirm was opened.
+  let view: String
+  let removed: @MainActor () -> Void
+
+  func body(content: Content) -> some View {
+    content.confirmationDialog(Strings.removeAccountQuestion(record?.label ?? ""), isPresented: $isPresented) {
+      Button(Strings.remove, role: .destructive) { remove() }
+        .accessibilityIdentifier("settings.accounts.confirmRemove")
+      Button(Strings.cancel, role: .cancel) {}
+    } message: {
+      Text(Strings.removeAccountDetail)
+    }
+  }
+
   private func remove() {
-    guard let lifecycle = environment.lifecycle else { return }
+    guard let record, let environment, let lifecycle = environment.lifecycle else { return }
     let coordinator = environment.coordinator
     Task {
       // Its polls stop first, so none reads the key while it is being deleted (Q-034).
@@ -260,85 +282,22 @@ private struct AccountDetail: View {
       do {
         try await lifecycle.remove(record, settings: environment.settings)
         model.missingKeys.remove(record.keychainRef)
+        removed()
       } catch {
-        report(error, "account not removed")
+        Log.error(.uiError, cat: .ui, msg: "account not removed", acct: record.provider, err: error,
+                  ctx: ["view": .string(view)])
       }
     }
-  }
-
-  private func report(_ error: any Error, _ msg: String) {
-    Log.error(.uiError, cat: .ui, msg: msg, acct: record.provider, err: error, ctx: ["view": "settings.accounts"])
   }
 }
 
-/// 09 `account.interval_override_json` (14 § Stage 4.1 Inventory): per job, the Sources setting or this account's
-/// own period, within the same 09 range (Q-034).
-private struct IntervalOverrides: View {
-  let record: AccountRecord
-  let provider: ProviderID
-  let jobs: [Job]
-  let settings: TokenBeCore.Settings
-  let save: (String?) -> Void
-  @State private var expanded = false
-
-  private var current: IntervalOverride {
-    IntervalOverride.parse(record.intervalOverrideJson, provider: provider).override
-  }
-
-  var body: some View {
-    DisclosureGroup(Strings.refreshIntervals, isExpanded: $expanded) {
-      ForEach(jobs, id: \.self) { job in
-        row(job)
-      }
-    }
-    .accessibilityIdentifier("settings.accounts.intervals")
-  }
-
-  @ViewBuilder private func row(_ job: Job) -> some View {
-    let global = globalSeconds(job)
-    Toggle(Self.label(job), isOn: Binding(
-      get: { current.seconds[job] != nil },
-      set: { set(job, $0 ? global : nil) }
-    ))
-    .accessibilityIdentifier("settings.accounts.override.\(job.rawValue)")
-    if let value = current.seconds[job], let bounds = job.overrideBounds(for: provider) {
-      Stepper(value: Binding(get: { value }, set: { set(job, $0) }), in: bounds, step: Self.step(job)) {
-        LabeledContent(Self.label(job), value: Formatters.interval(seconds: value))
-      }
-      .accessibilityIdentifier("settings.accounts.override.\(job.rawValue).value")
-    } else {
-      Text(Strings.sourcesDefault(Formatters.interval(seconds: global)))
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-  }
-
-  private func set(_ job: Job, _ seconds: Int?) {
-    var next = current
-    next.seconds[job] = seconds
-    save(next.json())
-  }
-
-  private func globalSeconds(_ job: Job) -> Int {
-    let interval = job.interval(for: provider, settings: ScheduleSettings(settings), override: IntervalOverride(),
-                                lowPower: false)
-    return Int(interval?.components.seconds ?? 0)
-  }
-
-  static func label(_ job: Job) -> String {
-    switch job {
-    case .usage: Strings.usageEvery
-    case .balance: Strings.balanceEvery
-    case .keys, .cost: Strings.keysEvery
-    }
-  }
-
-  static func step(_ job: Job) -> Int {
-    switch job {
-    case .balance: 30
-    case .usage: 60
-    case .keys, .cost: 600
-    }
+extension View {
+  /// `Remove account…`'s confirm for `record` (`RemoveAccountConfirm`).
+  func removeAccountConfirm(_ record: AccountRecord?, isPresented: Binding<Bool>, model: AppModel,
+                            environment: AppEnvironment?, view: String,
+                            removed: @escaping @MainActor () -> Void = {}) -> some View {
+    modifier(RemoveAccountConfirm(record: record, isPresented: isPresented, model: model, environment: environment,
+                                  view: view, removed: removed))
   }
 }
 

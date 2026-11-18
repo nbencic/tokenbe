@@ -45,6 +45,9 @@ enum Strings {
   // Dashboard window (08 § Dashboard window, 14 § Stage 1.2)
   static let dashboardTitle = "Dashboard"
   static let overview = "Overview"
+  /// The sidebar foot's `+` / `−` (08 § Dashboard window, Q-060): help text and accessibility label.
+  static let sidebarAddAccount = "Add account"
+  static let sidebarRemoveAccount = "Remove account"
   static let spendByDay = "Spend by day"
   static let noSpendInRange = "No spend in this range"
   static let rangePicker = "Range"

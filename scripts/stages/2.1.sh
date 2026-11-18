@@ -77,11 +77,13 @@ steps_in_order() {
 }
 no_db_errors() { ! db_log | grep -E '"lvl":"(error|fault)"'; }
 
-check "launch: tokenbe.sqlite + WAL exist, folder 0700" launch_and_inspect 1
-check "log has db.open (journal_mode wal)" logged_open
-check "log has db.migrate from=0 to=1" logged_migrate
-check "log has db.quick_check ok" logged_quick_check
-check "startup steps logged in 04 order" steps_in_order
-check "relaunch on the same data: no second migration" launch_and_inspect 2
-check "zero error/fault records across both launches (D10)" no_db_errors
+# Every launch check (and every check that reads a launch's log) goes through `launch_check`: skipped while the H5
+# soak runs on this Mac (TB_SOAK=1, Q-060).
+launch_check "launch: tokenbe.sqlite + WAL exist, folder 0700" launch_and_inspect 1
+launch_check "log has db.open (journal_mode wal)" logged_open
+launch_check "log has db.migrate from=0 to=1" logged_migrate
+launch_check "log has db.quick_check ok" logged_quick_check
+launch_check "startup steps logged in 04 order" steps_in_order
+launch_check "relaunch on the same data: no second migration" launch_and_inspect 2
+launch_check "zero error/fault records across both launches (D10)" no_db_errors
 check "owner's real support folder untouched" real_support_unchanged

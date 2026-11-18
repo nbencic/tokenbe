@@ -17,7 +17,7 @@ struct DashboardView: View {
   var body: some View {
     @Bindable var model = model
     NavigationSplitView {
-      SidebarView(accounts: model.accounts, selection: $model.dashboardSelection)
+      SidebarView(model: model, selection: $model.dashboardSelection)
     } detail: {
       if let account = selectedAccount {
         AccountDetailView(model: model, summary: account, filter: $appFilter)

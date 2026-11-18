@@ -61,11 +61,13 @@ launch_fields() { # step 1's app.launch carries 04's fields
   done
 }
 clean_audit() { ! audit_log | grep -E '"lvl":"(error|fault)"'; }
-check "launch clean on a throwaway root: all 8 startup steps" launch_once 1
-check "relaunch on the same data: all 8 startup steps" launch_once 2
-check "each launch logs 04's 8 steps in order (login item between ingest and scheduler)" logged_steps
-check "step 1 logs version, build, macOS, locale, timezone (04)" launch_fields
-check "zero error/fault records across both launches (D10)" clean_audit
+# Every launch check (and every check that reads a launch's log) goes through `launch_check`: skipped while the H5
+# soak runs on this Mac (TB_SOAK=1, Q-060).
+launch_check "launch clean on a throwaway root: all 8 startup steps" launch_once 1
+launch_check "relaunch on the same data: all 8 startup steps" launch_once 2
+launch_check "each launch logs 04's 8 steps in order (login item between ingest and scheduler)" logged_steps
+launch_check "step 1 logs version, build, macOS, locale, timezone (04)" launch_fields
+launch_check "zero error/fault records across both launches (D10)" clean_audit
 
 for suite in SettingsTests SchedulerTests IngestTailerTests StartupSequenceTests; do
   check "suite $suite passed" suite_passed "$suite"
