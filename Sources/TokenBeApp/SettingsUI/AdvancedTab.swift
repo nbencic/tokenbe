@@ -3,8 +3,8 @@ import TokenBeCore
 
 /// Advanced tab (08 § Settings, Paper `1WN-0`, `22Q-0`): log level (live, 07), log retention, `Open log folder`;
 /// `Last daily run` (14 § Stage 4.3, 09 `tb.daily.lastRunAt`); `Run integrity check now` and `Back up now`
-/// (14 § Stage 2.2); the price feed URL (09 `tb.price.feedURL`, 14 § Stage 5.1). Diagnostics and data rows arrive in
-/// 9.x.
+/// (14 § Stage 2.2); the price feed URL (09 `tb.price.feedURL`, 14 § Stage 5.1); the retention days of hourly buckets
+/// and raw harness events (09 `tb.retention.*`, 14 § Stage 9.1). Diagnostics and data rows arrive in 9.2–9.5.
 struct AdvancedTab: View {
   @Bindable var settings: TokenBeCore.Settings
   let logsDirectory: URL
@@ -27,6 +27,17 @@ struct AdvancedTab: View {
         .accessibilityIdentifier("settings.advanced.logRetention")
         OpenLogFolderButton(logsDirectory: logsDirectory)
           .accessibilityIdentifier("settings.advanced.openLogFolder")
+      }
+      Section {
+        Stepper(value: $settings.retentionHourlyDays, in: SettingsKey.retentionHourlyDays.spec.intBounds ?? 30...730) {
+          LabeledContent(Strings.hourlyDetailKeptFor, value: Strings.days(settings.retentionHourlyDays))
+        }
+        .accessibilityIdentifier("settings.advanced.hourlyRetention")
+        Stepper(value: $settings.retentionRawHarnessDays,
+                in: SettingsKey.retentionRawHarnessDays.spec.intBounds ?? 7...730) {
+          LabeledContent(Strings.rawHarnessEventsKeptFor, value: Strings.days(settings.retentionRawHarnessDays))
+        }
+        .accessibilityIdentifier("settings.advanced.rawHarnessRetention")
       }
       Section {
         PriceFeedURLField(settings: settings)

@@ -30,7 +30,7 @@ public struct KeyUsageDay: Sendable, Equatable {
              SUM(COALESCE(est_cost_cents, 0)) AS est, SUM(input_uncached) AS iu, SUM(cache_write_5m) AS cw5,
              SUM(cache_write_1h) AS cw1, SUM(cache_read) AS cr, SUM(output) AS out, SUM(reasoning) AS rsn,
              SUM(requests) AS req
-      FROM usage_bucket WHERE bucket_start >= ?
+      FROM usage_bucket WHERE bucket_start >= ? AND bucket_width <> '1mo'
       GROUP BY account_id, day, provider_key_id, source ORDER BY account_id, day, provider_key_id, source
       """, arguments: [since]).map {
       KeyUsageDay(accountId: $0["account_id"], day: $0["day"], providerKeyId: $0["provider_key_id"],

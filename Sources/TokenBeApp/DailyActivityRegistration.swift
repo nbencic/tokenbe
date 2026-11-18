@@ -5,9 +5,9 @@ import TokenBeCore
 /// 04 § Daily activity in the app (14 § Stage 4.3 step 1, startup step 7). It registers
 /// `NSBackgroundActivityScheduler` (`dev.bathyon.tokenbe.daily`, interval 86400 s, tolerance 3600 s, `.utility`,
 /// repeating) over Core's `DailyActivity`, with the steps of 04 that exist so far, in 04's order:
-/// `cost polls` → `harness drift` (7.2) → `model drift` (8.1) → `price refresh` (5.1) → `db backup` →
-/// `weekly integrity_check` (every 7th run) → `incremental_vacuum`. Roll-ups (9.1, between the model drift and the
-/// price refresh) and the update check (9.4, after the price refresh) register at their 04 positions in their stages.
+/// `cost polls` → `harness drift` (7.2) → `model drift` (8.1) → `roll-ups` (9.1) → `price refresh` (5.1) →
+/// `db backup` → `weekly integrity_check` (every 7th run) → `incremental_vacuum`. The update check (9.4, after the
+/// price refresh) registers at its 04 position in its stage.
 /// `Run daily tasks now` (Settings → Sources) runs the same function out of band. After each run it writes
 /// `tb.daily.lastRunAt` and `tb.daily.runCount` (09); the backup and the integrity check write `tb.db.last*`.
 @MainActor @Observable
@@ -38,6 +38,7 @@ final class DailyActivityRegistration {
     })
     // `ledger.drift` once per account, model and day, also when `Run daily tasks now` repeats the step (8.1).
     let drifted = DailyOnce()
+    let rollup = Rollup(store: repository)
     activity = DailyActivity(steps: [
       DailyStep("cost polls") { _ in try await costPolls.run() },
       // 06 precedence 2: yesterday's harness spend against the balance delta (`ledger.harness_drift`, 14 § 7.2).
@@ -55,6 +56,14 @@ final class DailyActivityRegistration {
         if let current = await inputs.next() {
           Drift.report(current, now: Date(), thresholdPct: threshold, once: drifted)
         }
+      },
+      // 03 § Retention tiers with 09's windows: hourly → daily, daily → monthly, the harness purge, the balance
+      // thinning (`db.rollup` per tier, 9.1). `incremental_vacuum` below reclaims the pages.
+      DailyStep("roll-ups") { _ in
+        let policy = await MainActor.run {
+          RetentionPolicy(hourlyDays: settings.retentionHourlyDays, rawHarnessDays: settings.retentionRawHarnessDays)
+        }
+        try await rollup.run(policy, now: Date())
       },
       // A feed failure is logged by the fetcher and keeps the snapshot; only a store failure fails the step.
       DailyStep("price refresh") { _ in try await prices?.refresh() },

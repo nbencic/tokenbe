@@ -7,7 +7,8 @@ import GRDB
 /// Sources strip); 5.2 the daily usage, cost and priced-model aggregates of the last 91 UTC days (the numbers strip);
 /// 5.3 the ledger, the latest balance, `band_state` and the anchor day's remainder, and the aggregates reach back
 /// to the oldest current anchor (PM-2.2-3); 7.1 apps, bindings, provider keys and the per-key daily aggregates (the
-/// By-app table, Apps this period, popover row 4).
+/// By-app table, Apps this period, popover row 4). Usage reads skip `1mo` rows: 9.1's monthly roll-ups sit alongside
+/// the daily rows they sum (03), and a window that reaches back to an old anchor would count them twice.
 public struct SummaryInputs: Sendable, Equatable {
   /// Oldest first, like `fetchAccounts()`.
   public var accounts: [AccountRecord]
@@ -93,14 +94,14 @@ public struct SummaryInputs: Sendable, Equatable {
                SUM(CASE WHEN unpriced = 1
                    THEN input_uncached + cache_write_5m + cache_write_1h + cache_read + output + reasoning
                    ELSE 0 END) AS unpriced_tokens
-        FROM usage_bucket WHERE bucket_start >= ? GROUP BY account_id, day, source ORDER BY account_id, day, source
+        FROM usage_bucket WHERE bucket_start >= ? AND bucket_width <> '1mo' GROUP BY account_id, day, source ORDER BY account_id, day, source
         """, arguments: [start]).map {
           UsageDay(accountId: $0["account_id"], day: $0["day"], source: $0["source"], estCents: $0["est"],
                    unpricedTokens: $0["unpriced_tokens"])
         },
       pricedModels: try Row.fetchAll(db, sql: """
         SELECT DISTINCT account_id, substr(bucket_start, 1, 10) AS day, model FROM usage_bucket
-        WHERE bucket_start >= ? AND unpriced = 0 AND est_cost_cents IS NOT NULL ORDER BY account_id, day, model
+        WHERE bucket_start >= ? AND bucket_width <> '1mo' AND unpriced = 0 AND est_cost_cents IS NOT NULL ORDER BY account_id, day, model
         """, arguments: [start]).map { PricedModelDay(accountId: $0["account_id"], day: $0["day"], model: $0["model"]) },
       costDays: try Row.fetchAll(db, sql: """
         SELECT account_id, day, SUM(amount_cents) AS amount FROM cost_bucket
@@ -117,7 +118,8 @@ public struct SummaryInputs: Sendable, Equatable {
       anchorDayUsage: try anchors.sorted { $0.accountId < $1.accountId }.flatMap { anchor in
         try Row.fetchAll(db, sql: """
           SELECT source, SUM(COALESCE(est_cost_cents, 0)) AS est FROM usage_bucket
-          WHERE account_id = ? AND bucket_start >= ? AND substr(bucket_start, 1, 10) = ? GROUP BY source ORDER BY source
+          WHERE account_id = ? AND bucket_start >= ? AND substr(bucket_start, 1, 10) = ? AND bucket_width <> '1mo'
+          GROUP BY source ORDER BY source
           """, arguments: [anchor.accountId, anchor.ts, String(anchor.ts.prefix(10))]).map {
           UsageDay(accountId: anchor.accountId, day: String(anchor.ts.prefix(10)), source: $0["source"], estCents: $0["est"])
         }

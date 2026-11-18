@@ -124,13 +124,17 @@ extension Attribution {
   }
 
   /// 06 precedence 2 for an account without a usage API: each day's harness spend (USD accounts) split by app with
-  /// badge `harness`; an inferred day's balance delta to its single app with badge `inferred`.
+  /// badge `harness`; an inferred day's balance delta to its single app with badge `inferred`. A day whose raw lines
+  /// were purged (`tb.retention.rawHarnessDays`, 9.1) but whose harness buckets remain goes whole to the single
+  /// harness app, the only tag the lines can have had; with several apps its split is gone (Q-055).
   static func harnessRows(_ account: AccountSummary, days: [String], today: String,
                           inputs: SummaryInputs) -> Accumulator {
     let daily = Spend.daily(account, today: today, inputs: inputs)
     let inferred = inferredDays(account, today: today, inputs: inputs)
     let single = harnessApps(account.id, inputs: inputs).first
     let lines = Dictionary(grouping: inputs.harnessDays.filter { $0.accountId == account.id }, by: \.day)
+    let reported = harnessBucketDays(account.id, inputs: inputs)
+    let onlyApp = harnessApps(account.id, inputs: inputs).count == 1 ? single : nil
     var rows = Accumulator()
     for day in days {
       guard let figure = daily[day] else { continue }
@@ -140,7 +144,8 @@ extension Attribution {
       }
       let dayLines = lines[day] ?? []
       guard !dayLines.isEmpty else {
-        rows.add(RowKey(key: "", app: nil, kind: .harness), cents: figure.cents, estimate: figure.isEstimate,
+        let app = reported.contains(day) ? onlyApp : nil
+        rows.add(RowKey(key: "", app: app, kind: .harness), cents: figure.cents, estimate: figure.isEstimate,
                  tokens: TokenClasses())
         continue
       }
@@ -152,6 +157,12 @@ extension Attribution {
     return rows
   }
 
+  /// The UTC days with harness usage buckets for the account. They outlive the raw lines (03: the purge after
+  /// `tb.retention.rawHarnessDays` keeps the buckets), so a purged day still counts as a day with reports.
+  static func harnessBucketDays(_ accountID: String, inputs: SummaryInputs) -> Set<String> {
+    Set(inputs.usageDays.filter { $0.accountId == accountID && $0.source == "harness" }.map(\.day))
+  }
+
   /// The tags bound to the account by `harness_tag` (06 processLine), sorted.
   static func harnessApps(_ accountID: String, inputs: SummaryInputs) -> [String] {
     inputs.bindings.filter { $0.accountId == accountID && $0.kind == "harness_tag" }.map(\.value).sorted()
@@ -159,10 +170,11 @@ extension Attribution {
 
   /// D-deepseek-single-app (06): for an account without a usage API that has exactly one harness app, each closed day
   /// with no harness lines and no top-up takes the day's balance delta, when the balance fell; in the account's
-  /// currency (Q-049).
+  /// currency (Q-049). A day with harness buckets had lines, even after the raw lines were purged (9.1, Q-055).
   public static func inferredDays(_ account: AccountSummary, today: String, inputs: SummaryInputs) -> [String: Int64] {
     guard account.capabilities?.usage == false, harnessApps(account.id, inputs: inputs).count == 1 else { return [:] }
     let withLines = Set(inputs.harnessDays.filter { $0.accountId == account.id }.map(\.day))
+      .union(harnessBucketDays(account.id, inputs: inputs))
     let topUps = Set(inputs.ledgerEvents.filter { $0.accountId == account.id && $0.kind == "topup" }
       .map { String($0.ts.prefix(10)) })
     var result: [String: Int64] = [:]

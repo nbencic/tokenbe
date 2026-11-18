@@ -123,4 +123,13 @@ import Testing
     openai.cacheSavings = .notComputed(.openAIAggregate)
     #expect(CacheSavings.total([openai]) == nil, "nothing computed: the headline reads —")
   }
+
+  @Test("PM-8.2-4: Anthropic counts its roll-up rows, so savings of days past the hourly horizon remain (9.1)")
+  func rollupRows() {
+    let rows = [Self.row("claude-x", source: "rollup", day: "2026-11-08"), Self.row("claude-x", source: "provider")]
+    #expect(Self.figure(.anthropic, rows) == .saved(cents: 519), "2 × 259.5 ¢, rounded once")
+    #expect(Self.figure(.anthropic, [Self.row("claude-x", source: "harness")]) == .notComputed(.noUsage))
+    #expect(Self.figure(.deepseek, [Self.row("claude-x", source: "rollup")]) == .notComputed(.noHarnessReports),
+            "DeepSeek's harness buckets keep `harness` when rolled up (Q-055)")
+  }
 }

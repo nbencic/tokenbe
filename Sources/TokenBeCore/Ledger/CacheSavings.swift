@@ -31,14 +31,15 @@ public enum CacheSavingsFigure: Sendable, Equatable {
 ///       − Σ cacheWrite1h × (cache_write_1h_rate − in)
 /// ```
 /// i.e. what the cached tokens would have cost as plain input, minus what they cost, with `CostEstimator`'s rates
-/// and fallbacks, in `Int128` picodollars rounded once. Anthropic counts its provider buckets; DeepSeek and xAI their
-/// harness buckets (per-response cache fields); OpenAI and OpenRouter are not computed. Unpriced models are left out.
+/// and fallbacks, in `Int128` picodollars rounded once. Anthropic counts its provider buckets and their retention
+/// roll-ups (`rollup`, 9.1; PM-8.2-4); DeepSeek and xAI their harness buckets (per-response cache fields), which keep
+/// `harness` when rolled up (Q-055); OpenAI and OpenRouter are not computed. Unpriced models are left out.
 public enum CacheSavings {
-  /// The usage source the provider's savings are computed from, or why there is none.
-  static func source(_ provider: ProviderID) -> Result<String, CacheSavingsGap> {
+  /// The usage sources the provider's savings are computed from, or why there are none.
+  static func sources(_ provider: ProviderID) -> Result<Set<String>, CacheSavingsGap> {
     switch provider {
-    case .anthropic: .success("provider")
-    case .deepseek, .xai: .success("harness")
+    case .anthropic: .success(["provider", "rollup"])
+    case .deepseek, .xai: .success(["harness"])
     case .openai: .failure(.openAIAggregate)
     case .openrouter: .failure(.noCacheCounts)
     }
@@ -46,16 +47,16 @@ public enum CacheSavings {
 
   public static func figure(_ account: AccountSummary, days: [String], inputs: SummaryInputs,
                             pricer: Pricer) -> CacheSavingsFigure {
-    let source: String
-    switch Self.source(account.provider) {
-    case .success(let value): source = value
+    let sources: Set<String>
+    switch Self.sources(account.provider) {
+    case .success(let value): sources = value
     case .failure(let gap): return .notComputed(gap)
     }
     let wanted = Set(days)
     let rows = inputs.modelUsageDays.filter {
-      $0.accountId == account.id && $0.source == source && wanted.contains($0.day)
+      $0.accountId == account.id && sources.contains($0.source) && wanted.contains($0.day)
     }
-    guard !rows.isEmpty else { return .notComputed(source == "harness" ? .noHarnessReports : .noUsage) }
+    guard !rows.isEmpty else { return .notComputed(sources == ["harness"] ? .noHarnessReports : .noUsage) }
     var total: Int128 = 0
     for row in rows {
       guard let entry = pricer.lookup(provider: account.provider, model: row.model)?.entry else { continue }

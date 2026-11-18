@@ -34,7 +34,7 @@ public struct ModelUsageDay: Sendable, Equatable {
              SUM(CASE WHEN unpriced = 1 OR est_cost_cents IS NULL THEN 1 ELSE 0 END) AS unpriced_buckets,
              SUM(input_uncached) AS iu, SUM(cache_write_5m) AS cw5, SUM(cache_write_1h) AS cw1,
              SUM(cache_read) AS cr, SUM(output) AS out, SUM(reasoning) AS rsn, SUM(requests) AS req
-      FROM usage_bucket WHERE bucket_start >= ?
+      FROM usage_bucket WHERE bucket_start >= ? AND bucket_width <> '1mo'
       GROUP BY account_id, day, model, source ORDER BY account_id, day, model, source
       """, arguments: [since]).map {
       ModelUsageDay(accountId: $0["account_id"], day: $0["day"], model: $0["model"], source: $0["source"],

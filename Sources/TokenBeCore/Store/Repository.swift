@@ -8,7 +8,8 @@
 /// |---|---|---|
 /// | accounts | `insertAccount, updateAccount, deleteAccount, fetchAccounts` | 2.1 |
 /// | maintenance | `backup, integrityCheck, quickCheck, incrementalVacuum` | 2.1 |
-/// | maintenance | `rollup, purgeHarnessEvents, thinBalanceSnapshots, exportJSON, importJSON, exportCSV, stats` | with their features |
+/// | retention | `rollupHourly, rollupMonthly, purgeHarnessEvents, thinBalanceSnapshots` (`Rollup.swift`) | 9.1 |
+/// | maintenance | `exportJSON, importJSON, exportCSV, stats` | with their features |
 /// | observation | `observeSummaryInputs` (in `Observation.swift`) | 2.2 |
 /// | providerKeys, usage, cost, poll | `Repository+ProviderKeys/Usage/Cost/Poll.swift` | 3.4 |
 /// | ledger (insert) | `Repository+Ledger.swift` | 3.5 |
@@ -20,7 +21,7 @@
 /// | ledger reads | see 14 § Stage 2.1 | with their feature |
 public typealias Repository = AccountRepository & MaintenanceRepository & ObservationRepository
   & ProviderKeyRepository & UsageRepository & CostRepository & PollRepository & LedgerRepository & PriceRepository
-  & BandRepository & BalanceRepository & AppRepository & IngestRepository
+  & BandRepository & BalanceRepository & AppRepository & IngestRepository & RetentionRepository
 
 /// What `Poller` writes (14 § Stage 3.4 step 6).
 public typealias PollStore = ProviderKeyRepository & UsageRepository & CostRepository & PollRepository
