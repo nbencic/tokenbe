@@ -1,5 +1,5 @@
 # Postmortem — Stage 10.0.1 Add and remove accounts from the sidebar; soak-safe verify
-Date: 2026-11-18 · Branch: s10.0.1-sidebar-accounts · PR: #44 · Planned size: S · Commits: 5
+Date: 2026-11-18 · Branch: s10.0.1-sidebar-accounts · PR: #44 · Planned size: S · Commits: 6
 
 ## Outcome
 The Dashboard sidebar now has `+` and `−` at its foot (08 § Dashboard window, Q-060):
@@ -43,8 +43,13 @@ D1–D13 are met. **H5 opens with this merge:** the owner rebuilds the soak copy
 - **First cumulative guard sweep (`TB_SOAK=1`): `FAIL 0.1 swiftlint --strict`.**
   - **Cause:** the shared confirm took `AccountsTab.swift` to 411 lines, over SwiftLint's 400-line limit (`file_length`). Only the `build-app` and UI runs had been done, and they don't lint.
   - **Fix:** `IntervalOverrides`, which 4.1 added and nothing in this stage touches, moved unchanged to `SettingsUI/AccountIntervalOverrides.swift` (AccountsTab is now 340 lines). `RefreshPauseUITests` declares the new path (`// ui-covers:`). No stage grep reads that struct's body.
-- The cumulative guard sweep `TB_SOAK=1 scripts/verify-stage.sh 10.0.1`: (filled in below once it ran).
-- The full verify with UI tests on: (filled in below once it ran).
+- **Second sweep: `TB_SOAK=1 scripts/verify-stage.sh 10.0.1` printed `STAGE 10.0.1 OK`.**
+  - 122 checks printed `soak running` skips, 36 of them the launch checks of 0.4, 2.1, 4.1 and 9.5.
+  - The rest were UI checks and the real-domain guards.
+  - No app launched, and nothing else failed.
+- **Full verify with UI tests on (`scripts/verify-stage.sh 10.0.1`): `STAGE 10.0.1 OK` on its first run.**
+  - **UI suites (8 selected by Q-047):** LaunchSmoke, PopoverEmptyState, AppsBinding, DashboardShell, Drilldown, Onboarding, RefreshPause and SidebarAccounts. 10 tests, 0 failures, 422 s.
+  - **The rest:** `swift test` 583 tests in 87 suites; `swiftlint --strict` 0 violations; every launch check of 0.4, 2.1, 4.1 and 9.5 ran and passed.
 
 ## Deviations from the docs
 - **14 § Stage 10.0.1 Inventory:** adds two files, both corrected in 14 in this PR.
