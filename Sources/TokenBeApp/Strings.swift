@@ -596,3 +596,11 @@ extension Strings {
     "This file is from database version \(found); this TokenBe uses version \(expected)."
   }
 }
+
+/// Settings → Advanced → `Export diagnostics…` (08; 14 § Stage 9.3). The sheet's text is Q-057.
+extension Strings {
+  static let exportDiagnostics = "Export diagnostics\u{2026}"
+  static let diagnosticsSavedTitle = "Diagnostics saved"
+  static let diagnosticsFailedTitle = "Diagnostics export failed"
+  static func diagnosticsDetail(files: Int, size: String) -> String { "\(files) files, \(size)" }
+}

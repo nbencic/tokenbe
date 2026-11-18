@@ -2,9 +2,11 @@ import XCTest
 
 // ui-covers: Sources/TokenBeApp/SettingsUI/AdvancedTab.swift Sources/TokenBeApp/SettingsUI/SettingsView.swift
 // ui-covers: Sources/TokenBeCore/Store/Integrity.swift Sources/TokenBeCore/Store/Database.swift
+// ui-covers: Sources/TokenBeApp/SettingsUI/DiagnosticsExportButton.swift Sources/TokenBeCore/Export/DiagnosticsBundle.swift
+// ui-covers: Sources/TokenBeCore/Store/Repository+Diagnostics.swift
 /// 14 § Stage 2.2 Tests: Settings → Advanced → `Run integrity check now` reports `ok`; `Back up now` writes
 /// `tokenbe.sqlite.bak` and reports its size, time and path. 14 § Stage 9.1: the two retention steppers write their
-/// 09 keys a day at a time. Everything happens under a throwaway
+/// 09 keys a day at a time. 14 § Stage 9.3: `Export diagnostics…` writes 07's zip into the test folder. Everything happens under a throwaway
 /// `TOKENBE_TEST_ROOT` (Q-014, Q-025), never in the owner's support folder. Settings are not reset, so the values
 /// earlier stages' checks read survive (PM-1.2-2); the `tb.db.*` writes are asserted from the app's log (Q-025).
 final class AdvancedMaintenanceUITests: XCTestCase {
@@ -94,6 +96,36 @@ final class AdvancedMaintenanceUITests: XCTestCase {
     let general = app.toolbars.buttons["General"].exists ? app.toolbars.buttons["General"] : app.buttons["General"]
     general.click()
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
+  }
+
+  /// 14 § Stage 9.3: `Export diagnostics…` writes `TokenBe-diagnostics-….zip` (07) into `TOKENBE_TEST_EXPORT_DIR`
+  /// instead of opening the panel (Q-056, Q-057), reports it, and logs `app.diagnostics_exported`.
+  @MainActor
+  func testExportDiagnostics() throws {
+    let exports = root.appendingPathComponent("exports", isDirectory: true)
+    try FileManager.default.createDirectory(at: exports, withIntermediateDirectories: true)
+    let app = makeApp(root: root)
+    app.launchEnvironment["TOKENBE_TEST_EXPORT_DIR"] = exports.path
+    app.launch()
+    try openAdvanced(app)
+    let button = control(app, "settings.advanced.exportDiagnostics")
+    XCTAssertTrue(button.waitForExistence(timeout: 5), "Export diagnostics… exists")
+    XCTAssertEqual(button.title.isEmpty ? button.label : button.title, "Export diagnostics\u{2026}")
+    button.click()
+    XCTAssertEqual(reportTitle(app), "Diagnostics saved")
+    XCTAssertTrue(text(control(app, "settings.advanced.report.line1")).hasSuffix(".zip"), "the sheet names the zip")
+    dismissReport(app)
+    let zips = try FileManager.default.contentsOfDirectory(at: exports, includingPropertiesForKeys: [.fileSizeKey])
+      .filter { $0.lastPathComponent.hasPrefix("TokenBe-diagnostics-") && $0.pathExtension == "zip" }
+    XCTAssertEqual(zips.count, 1, "one zip in the test folder")
+    XCTAssertGreaterThan(try zips.first?.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0, 0)
+    let general = app.toolbars.buttons["General"].exists ? app.toolbars.buttons["General"] : app.buttons["General"]
+    general.click()
+    XCTAssertTrue(quitThroughPopover(app), "the app quits")
+    let log = try logLines()
+    XCTAssertTrue(log.contains { $0.contains("\"evt\":\"app.diagnostics_exported\"") }, "app.diagnostics_exported")
+    let failures = log.filter { $0.contains("\"lvl\":\"error\"") || $0.contains("\"lvl\":\"fault\"") }
+    XCTAssertEqual(failures, [], "no error or fault records")
   }
 
   // MARK: - Helpers
