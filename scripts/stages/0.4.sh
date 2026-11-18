@@ -61,20 +61,22 @@ count_evt() { cat "$1"/Logs/TokenBe/tokenbe-*.ndjson 2>/dev/null | grep -c "\"ev
 no_errors() { ! cat "$1"/Logs/TokenBe/tokenbe-*.ndjson | grep -E '"lvl":"(error|fault)"'; }
 
 root="$(mktemp -d)/tokenbe-verify"
-check "clean launch and quit" launch_cycle "$root"
-check "app.launch logged" test "$(count_evt "$root" app.launch)" -ge 1
-check "app.terminate logged" test "$(count_evt "$root" app.terminate)" -eq 1
-check "sentinel removed on clean quit" test ! -e "$root/Application Support/TokenBe/.running"
-check "log directory is 0700" test "$(stat -f '%Lp' "$root/Logs/TokenBe")" = 700
-check "second launch on top of the first run's data" launch_cycle "$root"
-check "app.terminate logged twice" test "$(count_evt "$root" app.terminate)" -eq 2
-check "zero error/fault records across both runs (D10)" no_errors "$root"
+# Every launch check (and every check that reads a launch's log) goes through `launch_check`: skipped while the H5
+# soak runs on this Mac (TB_SOAK=1, Q-060).
+launch_check "clean launch and quit" launch_cycle "$root"
+launch_check "app.launch logged" test "$(count_evt "$root" app.launch)" -ge 1
+launch_check "app.terminate logged" test "$(count_evt "$root" app.terminate)" -eq 1
+launch_check "sentinel removed on clean quit" test ! -e "$root/Application Support/TokenBe/.running"
+launch_check "log directory is 0700" test "$(stat -f '%Lp' "$root/Logs/TokenBe")" = 700
+launch_check "second launch on top of the first run's data" launch_cycle "$root"
+launch_check "app.terminate logged twice" test "$(count_evt "$root" app.terminate)" -eq 2
+launch_check "zero error/fault records across both runs (D10)" no_errors "$root"
 
 crash_root="$(mktemp -d)/tokenbe-verify-crash"
-check "launch then kill -9" launch_cycle "$crash_root" kill
-check "kill -9 leaves the sentinel" test -e "$crash_root/Application Support/TokenBe/.running"
-check "relaunch after the kill" launch_cycle "$crash_root"
-check "crash.previous_launch logged once" test "$(count_evt "$crash_root" crash.previous_launch)" -eq 1
+launch_check "launch then kill -9" launch_cycle "$crash_root" kill
+launch_check "kill -9 leaves the sentinel" test -e "$crash_root/Application Support/TokenBe/.running"
+launch_check "relaunch after the kill" launch_cycle "$crash_root"
+launch_check "crash.previous_launch logged once" test "$(count_evt "$crash_root" crash.previous_launch)" -eq 1
 
 check "StartupSequenceTests passed" suite_passed StartupSequenceTests
 ui_check "UI tests (LaunchSmokeTests)" scripts/run.sh uitest

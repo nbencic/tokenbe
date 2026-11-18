@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 # The stage order of 14 § 0.5. A phase's last stage is the last id with that phase number.
 STAGES=(0.1 0.2 0.3 0.4 0.5  1.1 1.2 1.3  2.1 2.2  3.1 3.2 3.3 3.4 3.5 3.6  4.1 4.2 4.3
         5.1 5.2 5.3 5.4 5.5  6.1 6.2  7.1 7.2 7.3  8.1 8.2 8.3 8.4  9.1 9.2 9.3 9.4 9.5
-        10.1 10.2 10.3  11.1 11.2 11.3 11.4 11.5)
+        10.0.1 10.1 10.2 10.3  11.1 11.2 11.3 11.4 11.5)
 
 STAGE_HEADINGS=("## Outcome" "## What went as planned" "## What went wrong" "## Verify and CI failures"
                 "## Deviations from the docs" "## Judgment calls" "## Carry-forward actions")
@@ -26,7 +26,18 @@ if (( target < 0 )); then echo "verify-stage.sh: unknown stage '${id}'" >&2; exi
 # paths (`// ui-covers:`) the branch touched, plus LaunchSmokeTests and PopoverEmptyStateUITests; a shared file runs
 # them all. `TB_UI_TESTS=0` turns them off; `TB_UI_TESTS=1` runs every suite (the full run before 11.5). Off, every
 # `ui_check` prints `skip`; unit tests, lint, the guards and every other check still run, and CI is unchanged.
-if [[ "${TB_UI_TESTS:-}" == 0 ]]; then
+# The H5 soak on this Mac (Q-060, the owner's choice of 2026-11-18): `TB_SOAK=1` turns UI tests off and every
+# `launch_check` into `skip`. XCUITest launches dev.bathyon.tokenbe, and the launch checks quit `TokenBe` by name; either
+# would stop the soak app, which then logs `crash.previous_launch` (fault) and fails SOAK-1. The real-domain guards skip
+# too: the soak app owns that domain and writes to it while the verify runs (Q-061).
+SOAK=0
+if [[ "${TB_SOAK:-}" == 1 ]]; then
+  SOAK=1; TB_UI_TESTS=0
+  echo "soak: TB_SOAK=1, the H5 soak is running; UI tests, app launches and real-domain guards are skipped (Q-060, Q-061)"
+fi
+if [[ "$SOAK" == 1 ]]; then
+  UI_TESTS=0; ui_reason="soak running: TB_SOAK=1"
+elif [[ "${TB_UI_TESTS:-}" == 0 ]]; then
   UI_TESTS=0; ui_reason="TB_UI_TESTS=0"
 elif [[ "${TB_UI_TESTS:-}" == 1 ]]; then
   UI_TESTS=1; TB_UI_SUITES=ALL; ui_reason="TB_UI_TESTS=1, every suite"
@@ -42,9 +53,13 @@ fi
 export TB_UI_SUITES="${TB_UI_SUITES:-ALL}"
 echo "ui-tests: $([[ "$UI_TESTS" == 1 ]] && echo "on: $TB_UI_SUITES" || echo off) ($ui_reason)"
 
-# check <name> <command…>: runs the command quietly; on failure prints its output tail and stops.
+# check <name> <command…>: runs the command quietly; on failure prints its output tail and stops. Under the soak a
+# real-domain guard prints `skip` instead (Q-061).
 check() {
   local name="$1"; shift
+  if [[ "$SOAK" == 1 && " real_untouched real_tb_unchanged real_support_unchanged " == *" $1 "* ]]; then
+    echo "skip ${STAGE} ${name} (soak running: TB_SOAK=1, the soak app writes the real domain)"; return 0
+  fi
   local out; out="$(mktemp)"
   if "$@" >"$out" 2>&1; then
     echo "ok   ${STAGE} ${name}"
@@ -72,6 +87,17 @@ ui_check_for() {
   elif [[ "$TB_UI_SUITES" != ALL && " $TB_UI_SUITES " != *" $suite "* ]]; then
     echo "skip ${STAGE} $1 ($suite not selected: no covered path changed, Q-047)"
   else check "$@"; fi
+}
+# launch_check <name> <command…>: a check that launches the Debug app (`open -n`) or quits it (`osascript … quit app
+# "TokenBe"`, which quits any TokenBe by name), or that reads what such a launch left behind. `check`, except while
+# the H5 soak runs on this Mac (TB_SOAK=1, Q-060): then one `skip` line. Reads SOAK at call time.
+launch_check() {
+  if [[ "$SOAK" == 1 ]]; then echo "skip ${STAGE} $1 (soak running: TB_SOAK=1)"; else check "$@"; fi
+}
+# launch_check_for <Suite> <name> <command…>: `launch_check` for a launch that also needs <Suite> selected (4.1).
+launch_check_for() {
+  local suite="$1"; shift
+  if [[ "$SOAK" == 1 ]]; then echo "skip ${STAGE} $1 (soak running: TB_SOAK=1)"; else ui_check_for "$suite" "$@"; fi
 }
 # suite_passed <Suite>: the last `run.sh test` (its xunit result, newer than the run's start) ran the suite, no failures.
 # Reads the structured result, not console text, which SwiftPM's relay sometimes truncates (Q-022).

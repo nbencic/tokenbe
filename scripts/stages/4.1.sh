@@ -83,7 +83,7 @@ ui_check "RefreshPauseUITests passed" grep -q "Test Suite 'RefreshPauseUITests' 
 # `tb.poll.usageIntervalOpenAIS = 60`; the log shows `poll.ok usage` every 60 s ± 5 s and no error or fault (D10).
 # Settings go in as launch arguments (the argument domain, never stored), so nothing is left in the UI-test suite.
 # It launches the app, so it runs when UI tests do (Q-034) and RefreshPauseUITests, which covers Scheduling/, is
-# selected (Q-047).
+# selected (Q-047), and never while the H5 soak runs on this Mac (`launch_check_for`, TB_SOAK=1, Q-060).
 APP="build/DerivedData/Build/Products/Debug/TokenBe.app"
 cad_root="$(mktemp -d)/tokenbe-verify-4.1"
 cad_log() { cat "$cad_root"/Logs/TokenBe/tokenbe-*.ndjson 2>/dev/null; }
@@ -138,7 +138,7 @@ if any(abs(g - 60) > 5 for g in gaps):
     sys.exit(1)
 PY
 }
-ui_check_for RefreshPauseUITests "fixture-mode run: account seeded, 190 s of polling" cadence_run
-ui_check_for RefreshPauseUITests "poll.ok usage every 60 s ± 5 s, zero error/fault (14 Verify, D10)" cadence_ok
+launch_check_for RefreshPauseUITests "fixture-mode run: account seeded, 190 s of polling" cadence_run
+launch_check_for RefreshPauseUITests "poll.ok usage every 60 s ± 5 s, zero error/fault (14 Verify, D10)" cadence_ok
 check "the owner's real support folder is unchanged (D10)" real_support_unchanged
 check "no TokenBe settings changed in the owner's real domain" real_tb_unchanged
