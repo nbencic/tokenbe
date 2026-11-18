@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Reset and environment: Advanced → `Reset all settings…` (after a confirm) returns every setting to its default, keeping onboarding, keys and data. A time-zone change while running is handled without extra polls, and the log file still turns over at local midnight (Stage 9.5).
 - Dashboard sidebar: `+` and `−` at its foot. `+` adds another provider's account (the same Add account steps), `−` removes the selected account after the usual confirm. Verification gains `TB_SOAK=1`, which skips UI tests and app launches while the 14-day soak runs on the same Mac (Stage 10.0.1).
 - xAI: accounts now use an xAI management key and read the team's daily spend from xAI's Management API, so the runway works from your anchor. The old inference-key check returned no balance. TokenBe calls only the key-validation and usage endpoints (Stage 10.0.2).
+- Database: migration 002 lets an account belong to the new providers (Moonshot, Novita, StepFun, SiliconFlow, DeepInfra) and keeps every existing row. Exports made before it still import (Stage 10.0.3).
 
 ### Changed
 - The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).

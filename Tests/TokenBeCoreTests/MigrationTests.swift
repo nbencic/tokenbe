@@ -87,8 +87,7 @@ struct StoreHarness {
         (row["version"], row["applied_at"])
       }
     }
-    #expect(versions.count == 1, "001 seeds its own row; the migrator adds none")
-    #expect(versions.first?.0 == 1)
+    #expect(versions.map(\.0) == [1, 2], "001 seeds its own row; the migrator adds 002's")
     let appliedAt = try #require(versions.first?.1)
     #expect(DBTime.date(appliedAt) != nil, "RFC3339 with milliseconds: \(appliedAt)")
     let sentinel = try await database.read { db in try AppRecord.fetchOne(db, key: "app_unassigned") }
@@ -108,16 +107,14 @@ struct StoreHarness {
     #expect(open.ctx["page_size"] == .int(4096))
     #expect(open.ctx["size_bytes"] != nil)
     let migrate = await harness.records(.dbMigrate)
-    #expect(migrate.count == 1)
-    #expect(migrate.first?.ctx["from"] == .int(0))
-    #expect(migrate.first?.ctx["to"] == .int(1))
-    #expect(migrate.first?.durMs != nil)
+    #expect(migrate.map { [$0.ctx["from"], $0.ctx["to"]] } == [[.int(0), .int(1)], [.int(1), .int(2)]])
+    #expect(migrate.allSatisfy { $0.durMs != nil })
     #expect(await harness.records(.dbQuickCheck).first?.ctx["result"] == .string("ok"))
     try first.database.close()
 
     _ = try await harness.open()
     #expect(await harness.records(.dbOpen).count == 2)
-    #expect(await harness.records(.dbMigrate).count == 1, "already at v1")
+    #expect(await harness.records(.dbMigrate).count == 2, "already at v2")
   }
 
   @Test("the support folder is private (0700), even when it already existed")
@@ -130,17 +127,18 @@ struct StoreHarness {
     #expect(mode == 0o700)
   }
 
-  @Test("the committed schema_v1.sqlite opens, is already current, and keeps every row")
+  @Test("the committed schema_v1.sqlite migrates to v2 (002) and keeps every row")
   func fixtureOpens() async throws {
     let harness = try StoreHarness()
     try harness.makeDirectory()
     try FixtureDBBuilder.install("schema_v1.sqlite", into: harness.directory)
     let database = try await harness.open().database
-    #expect(await harness.records(.dbMigrate).isEmpty)
+    #expect(await harness.records(.dbMigrate).map { [$0.ctx["from"], $0.ctx["to"]] } == [[.int(1), .int(2)]])
     for table in Self.tables {
       let expected = switch table {
       case "app": 2
       case "poll_state": 4
+      case "schema_version": 2
       default: 1
       }
       #expect(try await Self.count(database, table) == expected, "\(table)")
@@ -148,7 +146,7 @@ struct StoreHarness {
     #expect(try await database.quickCheck().isOK)
   }
 
-  @Test("a corrupt file is moved aside with its sidecars, db.corrupt is logged, and a fresh v1 is created")
+  @Test("a corrupt file is moved aside with its sidecars, db.corrupt is logged, and a fresh v2 is created")
   func corruptWithoutBackup() async throws {
     let harness = try StoreHarness()
     try harness.makeDirectory()
@@ -166,7 +164,7 @@ struct StoreHarness {
     #expect(corrupt.ctx["path"] == .string(harness.databaseURL.path))
     #expect(await harness.records(.dbRestore).isEmpty)
     #expect(try await Self.count(opened.database, "account") == 0)
-    #expect(try await Self.count(opened.database, "schema_version") == 1)
+    #expect(try await Self.count(opened.database, "schema_version") == 2)
     #expect(await harness.records(.dbMigrate).first?.ctx["from"] == .int(0))
   }
 
@@ -191,42 +189,42 @@ struct StoreHarness {
   func failedMigration() async throws {
     let harness = try StoreHarness()
     try await harness.open().database.close()
-    let broken = Migration(version: 2, name: "002_broken.sql", sql: "CREATE TABLE extra (x INTEGER); NOT SQL;")
+    let broken = Migration(version: 3, name: "003_broken.sql", sql: "CREATE TABLE extra (x INTEGER); NOT SQL;")
     let error = await #expect(throws: DatabaseOpenError.self) {
       try await harness.open(migrations: try Migration.bundled() + [broken])
     }
-    #expect(error?.migration == "002_broken.sql")
+    #expect(error?.migration == "003_broken.sql")
     #expect(error?.databasePath == harness.databaseURL.path)
     #expect(error?.backupPath == harness.databaseURL.path + ".bak")
-    #expect(error?.description.contains("002_broken.sql") == true)
-    #expect(error.map { LogError($0).desc.contains("002_broken.sql") } == true, "the log names the migration")
+    #expect(error?.description.contains("003_broken.sql") == true)
+    #expect(error.map { LogError($0).desc.contains("003_broken.sql") } == true, "the log names the migration")
     let failed = try #require(await harness.records(.dbMigrateFailed).first)
     #expect(failed.lvl == .fault)
-    #expect(failed.ctx["from"] == .int(1))
-    #expect(failed.ctx["to"] == .int(2))
+    #expect(failed.ctx["from"] == .int(2))
+    #expect(failed.ctx["to"] == .int(3))
     #expect(failed.err != nil)
     #expect(try harness.files().allSatisfy { !$0.contains("corrupt") })
     let database = try await harness.open().database
     #expect(try await database.read { db in try db.tableExists("extra") } == false)
-    #expect(try await database.read { db in try Migrator.currentVersion(db) } == 1)
+    #expect(try await database.read { db in try Migrator.currentVersion(db) } == 2)
   }
 
   @Test("a later migration runs once, in order, and appends its schema_version row")
   func laterMigration() async throws {
     let harness = try StoreHarness()
-    let added = Migration(version: 2, name: "002_note.sql", sql: "ALTER TABLE app ADD COLUMN note TEXT;")
+    let added = Migration(version: 3, name: "003_note.sql", sql: "ALTER TABLE app ADD COLUMN note TEXT;")
     let database = try await harness.open(migrations: try Migration.bundled() + [added]).database
     let versions = try await database.read { db in try Int.fetchAll(db, sql: "SELECT version FROM schema_version") }
-    #expect(versions == [1, 2])
+    #expect(versions == [1, 2, 3])
     let steps = await harness.records(.dbMigrate).map { [$0.ctx["from"], $0.ctx["to"]] }
-    #expect(steps == [[.int(0), .int(1)], [.int(1), .int(2)]])
+    #expect(steps == [[.int(0), .int(1)], [.int(1), .int(2)], [.int(2), .int(3)]])
   }
 
-  @Test("only NNN_slug.sql files are migrations; the bundled set is 001_initial.sql")
+  @Test("only NNN_slug.sql files are migrations; the bundled set is 001_initial.sql and 002_providers.sql")
   func bundledMigrations() throws {
     let bundled = try Migration.bundled()
-    #expect(bundled.map(\.name) == ["001_initial.sql"])
-    #expect(bundled.first?.version == TokenBeCoreInfo.schemaVersion)
+    #expect(bundled.map(\.name) == ["001_initial.sql", "002_providers.sql"])
+    #expect(bundled.last?.version == TokenBeCoreInfo.schemaVersion)
     let temp = try TempDirectory()
     for name in ["002_b.sql", "001_a.sql", "README.md", "3_bad.sql", "004_Upper.sql"] {
       try Data("SELECT 1;".utf8).write(to: temp.url.appendingPathComponent(name))

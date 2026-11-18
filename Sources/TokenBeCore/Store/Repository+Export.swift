@@ -168,8 +168,10 @@ extension GRDBRepository {
 
   public func importDocument(_ document: ExportDocument) async throws -> Int {
     try await database.write("importDocument") { db in
+      // A document from this schema or an earlier one imports: no migration since 001 changes an exported column
+      // (002 only widens account.provider's CHECK, Q-063). A newer document is refused.
       let expected = try Migrator.currentVersion(db)
-      guard document.schemaVersion == expected else {
+      guard (1...expected).contains(document.schemaVersion) else {
         throw ImportRefusal.schemaVersion(found: document.schemaVersion, expected: expected)
       }
       let occupied = try Int.fetchOne(db, sql: """

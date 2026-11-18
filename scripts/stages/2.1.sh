@@ -64,10 +64,11 @@ launch_and_inspect() { # launch_and_inspect <launches so far, this one included>
   osascript -e 'quit app "TokenBe"' >/dev/null
   for i in $(seq 1 40); do pgrep -f "$APP/Contents/MacOS/TokenBe" >/dev/null || break; sleep 0.5; done
   ! pgrep -f "$APP/Contents/MacOS/TokenBe" >/dev/null || { echo "TokenBe did not exit"; return 1; }
-  [[ "$(db_log | grep -c '"evt":"db.migrate"')" -eq 1 ]] || { echo "db.migrate logged $(db_log | grep -c '"evt":"db.migrate"') times, want 1"; return 1; }
+  # A fresh root runs 001 and 002 (10.0.3): two db.migrate records on the first launch, none on the second.
+  [[ "$(db_log | grep -c '"evt":"db.migrate"')" -eq 2 ]] || { echo "db.migrate logged $(db_log | grep -c '"evt":"db.migrate"') times, want 2"; return 1; }
 }
 logged_open() { db_log | grep '"evt":"db.open"' | grep -q '"journal_mode":"wal"'; }
-logged_migrate() { db_log | grep '"evt":"db.migrate"' | grep -q '"from":0,"to":1'; }
+logged_migrate() { db_log | grep '"evt":"db.migrate"' | grep -q '"from":0,"to":1' && db_log | grep '"evt":"db.migrate"' | grep -q '"from":1,"to":2'; }
 logged_quick_check() { db_log | grep '"evt":"db.quick_check"' | grep -q '"result":"ok"'; }
 steps_in_order() {
   # 3.5 added 04 step 3, `accounts`, after the database; 5.1 added step 4, `prices`, after accounts; 7.2 step 5,
@@ -81,7 +82,7 @@ no_db_errors() { ! db_log | grep -E '"lvl":"(error|fault)"'; }
 # soak runs on this Mac (TB_SOAK=1, Q-060).
 launch_check "launch: tokenbe.sqlite + WAL exist, folder 0700" launch_and_inspect 1
 launch_check "log has db.open (journal_mode wal)" logged_open
-launch_check "log has db.migrate from=0 to=1" logged_migrate
+launch_check "log has db.migrate from=0 to=1 and from=1 to=2" logged_migrate
 launch_check "log has db.quick_check ok" logged_quick_check
 launch_check "startup steps logged in 04 order" steps_in_order
 launch_check "relaunch on the same data: no second migration" launch_and_inspect 2

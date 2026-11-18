@@ -39,10 +39,21 @@ public struct Migration: Sendable, Equatable {
 /// Forward-only migrations: each file newer than `MAX(schema_version.version)` runs in its own transaction and
 /// appends its `schema_version` row (001 seeds its own). A failure rolls that file back, logs
 /// `db.migrate_failed` at fault and stops; nothing is deleted (03).
+///
+/// Every migration runs with `foreign_keys` OFF, set outside its transaction (SQLite ignores the pragma inside one),
+/// so a table rebuild (002) cannot cascade-delete the rows that reference it. Before the commit,
+/// `PRAGMA foreign_key_check` must return no row, else the migration rolls back. Foreign keys are back ON afterwards,
+/// on success and on failure (03 § Migrations).
 struct Migrator {
   struct Failure: Error, Sendable {
     let migration: Migration
     let underlying: any Error
+  }
+
+  /// `PRAGMA foreign_key_check` found rows that reference nothing: the migration would break referential integrity.
+  struct ForeignKeyViolation: Error, Sendable, CustomStringConvertible {
+    let rows: Int
+    var description: String { "foreign_key_check: \(rows) row(s) reference a missing parent" }
   }
 
   let migrations: [Migration]
@@ -54,6 +65,25 @@ struct Migrator {
     return try Int.fetchOne(db, sql: "SELECT MAX(version) FROM schema_version") ?? 0
   }
 
+  /// One migration in one transaction: its SQL, its `schema_version` row, then the foreign-key check.
+  static func apply(_ migration: Migration, _ db: GRDB.Database) throws {
+    try db.inTransaction {
+      try db.execute(sql: migration.sql)
+      let recorded = try Int.fetchOne(
+        db, sql: "SELECT COUNT(*) FROM schema_version WHERE version = ?", arguments: [migration.version]
+      ) ?? 0
+      if recorded == 0 {
+        try db.execute(
+          sql: "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",
+          arguments: [migration.version, DBTime.string(Date())]
+        )
+      }
+      let violations = try Row.fetchAll(db, sql: "PRAGMA foreign_key_check")
+      guard violations.isEmpty else { throw ForeignKeyViolation(rows: violations.count) }
+      return .commit
+    }
+  }
+
   /// Returns the schema version after migrating.
   @discardableResult
   func migrate(_ database: AppDatabase) async throws -> Int {
@@ -63,19 +93,15 @@ struct Migrator {
       let from = current
       do {
         try await database.pool.writeWithoutTransaction { db in
-          try db.inTransaction {
-            try db.execute(sql: migration.sql)
-            let recorded = try Int.fetchOne(
-              db, sql: "SELECT COUNT(*) FROM schema_version WHERE version = ?", arguments: [migration.version]
-            ) ?? 0
-            if recorded == 0 {
-              try db.execute(
-                sql: "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",
-                arguments: [migration.version, DBTime.string(Date())]
-              )
-            }
-            return .commit
+          try db.execute(sql: "PRAGMA foreign_keys = OFF")
+          do {
+            try Self.apply(migration, db)
+          } catch {
+            // Back ON before the failure is reported (and logged below as db.migrate_failed).
+            try db.execute(sql: "PRAGMA foreign_keys = ON")
+            throw error
           }
+          try db.execute(sql: "PRAGMA foreign_keys = ON")
         }
       } catch {
         log.emit(.fault, .dbMigrateFailed, msg: "migration failed", err: error, ctx: [
