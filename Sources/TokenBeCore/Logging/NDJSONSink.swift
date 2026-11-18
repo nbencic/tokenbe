@@ -55,7 +55,8 @@ public actor NDJSONSink: LogSink {
     directory: URL = NDJSONSink.defaultDirectory,
     limits: Limits = Limits(),
     now: @escaping @Sendable () -> Date = { Date() },
-    calendar: Calendar = .current,
+    // Follows a time-zone change while running (O-14), so the file still turns over at local midnight.
+    calendar: Calendar = .autoupdatingCurrent,
     crashTarget: Bool = false,
     onFailure: @escaping FailureHandler = { op, path, error in Log.reportSinkFailure(op: op, path: path, error: error) }
   ) {

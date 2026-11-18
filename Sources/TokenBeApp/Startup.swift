@@ -257,19 +257,7 @@ final class Startup {
     self.environment = environment
     await coordinator.follow(repository.observeSummaryInputs())
     await coordinator.follow(networkMonitor())
-    schedulerWatchers = [
-      coordinator.follow(settings),
-      Task {
-        for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
-          await coordinator.setLowPower(ProcessInfo.processInfo.isLowPowerModeEnabled)
-        }
-      },
-      Task {
-        for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
-          await coordinator.systemDidWake()
-        }
-      }
-    ]
+    schedulerWatchers = [coordinator.follow(settings)] + Self.systemWatchers(coordinator)
     await coordinator.start()
   }
 
@@ -341,5 +329,30 @@ extension Startup {
     } catch {
       Log.error(.uiError, cat: .ui, msg: "band states not loaded", err: error, ctx: ["view": "startup"])
     }
+  }
+}
+
+extension Startup {
+  /// The system events the scheduler follows (04 § Scheduler): Low Power transitions, wake, and a time-zone change
+  /// (O-14), for which Foundation's cached zone is dropped first, so local-time days follow it.
+  static func systemWatchers(_ coordinator: PollCoordinator<ContinuousClock>) -> [Task<Void, Never>] {
+    [
+      Task {
+        for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
+          await coordinator.setLowPower(ProcessInfo.processInfo.isLowPowerModeEnabled)
+        }
+      },
+      Task {
+        for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
+          await coordinator.systemDidWake()
+        }
+      },
+      Task {
+        for await _ in NotificationCenter.default.notifications(named: .NSSystemTimeZoneDidChange) {
+          NSTimeZone.resetSystemTimeZone()
+          await coordinator.timeZoneDidChange()
+        }
+      }
+    ]
   }
 }

@@ -71,6 +71,14 @@ extension PollCoordinator {
     wake()
   }
 
+  /// `NSSystemTimeZoneDidChange` (O-14): logged as a clock jump with `tz = true`; next runs recomputed from now. The
+  /// app has reset Foundation's cached zone first, so "today" in local time (log rotation, quiet hours) moves with it;
+  /// spend days are UTC and do not move (Q-040, Q-059).
+  public func timeZoneDidChange() {
+    clockJumped(wall: now(), mono: clock.now, reason: "timezone")
+    wake()
+  }
+
   /// `NSWorkspace.didWakeNotification` (04): logged as a clock jump; next runs recomputed from now.
   public func systemDidWake() {
     let mono = clock.now

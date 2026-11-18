@@ -239,13 +239,20 @@ public actor PollCoordinator<C: Clock<Duration>> {
     }
   }
 
+  /// `reason` is `drift`, `wake` or `timezone` (07, Q-034, Q-059); `tz` is true for `timezone`, else when the zone
+  /// differs from the last tick's.
   func clockJumped(wall: Date, mono: C.Instant, reason: String) {
     let timeZone = TimeZone.current.identifier
     let last = lastTick
-    log.emit(.warn, .schedClockJump, cat: .sched, msg: reason == "wake" ? "system woke" : "wall clock jumped", ctx: [
+    let message = switch reason {
+    case "wake": "system woke"
+    case "timezone": "time zone changed"
+    default: "wall clock jumped"
+    }
+    log.emit(.warn, .schedClockJump, cat: .sched, msg: message, ctx: [
       "wall_delta_s": .int(Int((last.map { wall.timeIntervalSince($0.wall) } ?? 0).rounded())),
       "mono_delta_s": .int(Int(last.map { Self.seconds($0.mono.duration(to: mono)) } ?? 0)),
-      "tz": .bool(last.map { $0.timeZone != timeZone } ?? false),
+      "tz": .bool(reason == "timezone" || (last.map { $0.timeZone != timeZone } ?? false)),
       "reason": .string(reason)
     ])
     schedule.rebase(at: mono)

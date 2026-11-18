@@ -218,6 +218,22 @@ import Testing
     await env.stop()
   }
 
+  @Test("O-14: a time-zone change logs sched.clock_jump {tz: true, reason: timezone} and runs nothing extra")
+  func timeZoneChange() async throws {
+    let env = try await Harness()
+    await env.answerOK()
+    await env.start()
+    await env.settled(next: 300)
+    await env.coordinator.timeZoneDidChange()
+    await eventually("sched.clock_jump") { await env.records(.schedClockJump).count == 1 }
+    let jump = try #require(await env.records(.schedClockJump).first)
+    #expect(jump.ctx["tz"] == .bool(true) && jump.ctx["reason"] == .string("timezone") && jump.lvl == .warn)
+    #expect(jump.msg == "time zone changed")
+    await env.settled(next: 300)
+    #expect(await env.calls(OpenAIHarness.usage) == 1, "no extra run: the schedule is only rebased")
+    await env.stop()
+  }
+
   @Test("global pause: due jobs are skipped (paused); Resume runs them at once")
   func pauseResume() async throws {
     var settings = ScheduleSettings.defaults

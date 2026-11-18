@@ -161,6 +161,10 @@ enum Strings {
   static let accountLabel = "Label"
   static let paste = "Paste"
   static let keychainNote = "Stored in the macOS Keychain, this device only."
+  /// DEBUG test-root launches only (PM-7.3-5, Q-059): the key goes to a plain-text file, not the Keychain.
+  static func testRootKeyNote(_ path: String) -> String {
+    "Test root: this key is stored in plain text in \(path), not in the Keychain. Use test keys only."
+  }
   static let wrongPrefixOpenAI = "This looks like a project key. TokenBe needs an Admin key (sk-admin-\u{2026})."
   static func wrongPrefix(_ expected: String) -> String { "TokenBe needs a key that starts with \(expected)\u{2026}" }
   static let testAndContinue = "Test & continue"
@@ -615,4 +619,12 @@ extension Strings {
   static func updateVersion(_ version: String) -> String { "TokenBe \(version)" }
   static let openReleasePage = "Open release page"
   static let skipThisVersion = "Skip this version"
+}
+
+/// Settings → Advanced → `Reset all settings…` (08; 09 § Reset semantics; 14 § Stage 9.5). The dialog's text is Q-059.
+extension Strings {
+  static let resetAllSettings = "Reset all settings\u{2026}"
+  static let resetAllTitle = "Reset all settings?"
+  static let resetAllMessage = "Every setting returns to its default. Keys, accounts, data and logs are not touched."
+  static let resetConfirm = "Reset"
 }
