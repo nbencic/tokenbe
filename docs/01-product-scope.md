@@ -14,10 +14,10 @@ Not a target in V1: teams, subscription-plan users (Claude Max, ChatGPT Plus), p
 
 | # | Capability | Detail |
 |---|---|---|
-| S1 | One key per provider | Adapters for OpenAI (admin key), Anthropic (admin key), OpenRouter (management key), DeepSeek (standard key), xAI (standard key). Max one account per provider. **The 1.0.0 Release build offers only providers whose live-API fixtures were recorded** (`13 § D-verified-providers`): OpenAI, DeepSeek, xAI (the last two subject to key availability). Anthropic and OpenRouter are compiled and tested on synthetic fixtures and hidden until a contributor records fixtures. |
-| S2 | Remaining funds | Direct from OpenRouter / DeepSeek / xAI. Estimated (anchor − spend) for OpenAI / Anthropic. Estimates rendered `≈ $N ± M`. |
+| S1 | One key per provider | Adapters for OpenAI (admin key), Anthropic (admin key), OpenRouter (management key), DeepSeek (standard key), xAI (management key, Q-062), Moonshot / Kimi (standard key), Novita (standard key). StepFun, SiliconFlow and DeepInfra (standard keys) follow once a live response is recorded for each (H6, Q-062). Max one account per provider. **The 1.0.0 Release build offers only providers whose live-API fixtures were recorded** (`13 § D-verified-providers`): OpenAI, DeepSeek, xAI (the last two subject to key availability). Anthropic and OpenRouter are compiled and tested on synthetic fixtures and hidden until a contributor records fixtures. |
+| S2 | Remaining funds | Direct from OpenRouter / DeepSeek / Moonshot / Novita. Estimated (anchor − spend) for OpenAI / Anthropic / xAI (xAI turns direct once a recorded prepaid balance proves its meaning, Q-062). Estimates rendered `≈ $N ± M`. |
 | S3 | Runway | Two paces (7-day, today). Band from the worse. Hard dollar floor. |
-| S4 | Per-app attribution | By provider key id (OpenAI, Anthropic, OpenRouter). By harness report (DeepSeek, xAI, and optional for all). |
+| S4 | Per-app attribution | By provider key id (OpenAI, Anthropic, OpenRouter). By harness report (DeepSeek, xAI, Moonshot, Novita, and optional for all). |
 | S5 | Ledger | Anchor, top-up, reconcile, note events. History never deleted by the app. |
 | S6 | Popover | Ranked account cards, alert banner, empty state, day-1 state. |
 | S7 | Dashboard | Overview page (headline, runway board, spend-by-day chart, apps this period, cache savings tile), per-account page (header, badges, numbers strip, by-app table, by-model reconciliation table, sources strip, ledger list), Apps page. Pricing lives in Settings → Sources → Price book. Exactly as `08`. |

@@ -37,7 +37,7 @@ check "14 ยง 13.4 maps the foot to 10.0.1" grep -qF 'Apps section 7.1, `+` / `โ
 
 # Step 2: the soak switch.
 check "verify-stage.sh: TB_SOAK=1 forces UI tests off and prints one banner" bash -c "grep -qF 'SOAK=1; TB_UI_TESTS=0' scripts/verify-stage.sh && test \$(grep -c 'echo \"soak: TB_SOAK=1' scripts/verify-stage.sh) -eq 1"
-check "verify-stage.sh: STAGES runs 10.0.1 after 9.5" bash -c "grep -A1 ' 9.4 9.5\$' scripts/verify-stage.sh | grep -qE '^ +10\\.0\\.1 10\\.1 '"
+check "verify-stage.sh: STAGES runs 10.0.1 after 9.5" bash -c "grep -A1 ' 9.4 9.5\$' scripts/verify-stage.sh | grep -qE '^ +10\\.0\\.1 '"
 launch_checks_routed() { # every check of a launch, or of what a launch left, goes through launch_check(_for)
   local f want got
   for f in 0.4:12 2.1:7 4.1:2 9.5:5; do

@@ -68,8 +68,8 @@ struct Step1Provider: View {
     switch provider {
     case .openai: Strings.captionOpenAI
     case .anthropic: Strings.captionAnthropic
-    case .openrouter: Strings.captionOpenRouter
-    case .deepseek, .xai: Strings.captionBalanceOnly
+    case .openrouter, .xai: Strings.captionOpenRouter
+    case .deepseek: Strings.captionBalanceOnly
     }
   }
 }

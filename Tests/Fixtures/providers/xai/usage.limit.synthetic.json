@@ -1,0 +1,1 @@
+{"status": 200, "headers": {"Content-Type": "application/json"}, "body": {"timeSeries": [{"group": ["Chat grok-4-0709"], "groupLabels": ["Chat grok-4-0709"], "dataPoints": [{"timestamp": "2026-11-10T00:00:00Z", "values": [2]}]}], "limitReached": true}}

@@ -244,5 +244,7 @@ import Testing
     #expect(Job.keys.interval(for: .openrouter, settings: settings, override: none, lowPower: false) == .seconds(3600))
     #expect(Job.cost.interval(for: .openai, settings: settings, override: none, lowPower: false) == nil)
     #expect(Job.minuteCadence == [.usage, .balance, .keys])
+    #expect(Job.scheduled == [.usage, .balance, .keys, .cost])
+    #expect(Job.cost.interval(for: .xai, settings: settings, override: none, lowPower: false) == .seconds(3600))
   }
 }

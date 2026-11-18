@@ -1,0 +1,1 @@
+{"status": 200, "headers": {"Content-Type": "application/json"}, "body": {"apiKeyId": "mk_fixture", "scope": "SCOPE_ORGANIZATION", "scopeId": "org_fixture", "name": "tokenbe", "acls": []}}

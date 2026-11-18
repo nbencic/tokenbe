@@ -25,7 +25,7 @@ check "Release onboarding is limited to verified providers" grep -qF '(isDebug |
 
 # 14 Verify: the recorder's offline self-test; its help names every key variable; it never reads .env.
 check "record-fixtures.sh --self-test (14 Verify)" scripts/record-fixtures.sh --self-test
-for var in OPENAI_ADMIN_KEY ANTHROPIC_ADMIN_KEY OPENROUTER_MANAGEMENT_KEY DEEPSEEK_API_KEY XAI_API_KEY; do
+for var in OPENAI_ADMIN_KEY ANTHROPIC_ADMIN_KEY OPENROUTER_MANAGEMENT_KEY DEEPSEEK_API_KEY XAI_MANAGEMENT_KEY; do  # xAI: Q-062
   check "record-fixtures.sh --help names $var" bash -c "scripts/record-fixtures.sh --help | grep -q $var"
 done
 check "record-fixtures.sh never reads .env" bash -c "! grep -nE '(source|\\.) +[^ ]*\\.env|cat +[^ ]*\\.env|< *[^ ]*\\.env' scripts/record-fixtures.sh"
