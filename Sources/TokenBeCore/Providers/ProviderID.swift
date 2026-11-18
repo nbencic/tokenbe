@@ -3,7 +3,7 @@ import Foundation
 /// Provider identifiers (03 `account.provider` CHECK, widened by migration 002), in 08's onboarding tile order. Moved here from
 /// `SettingSpec.swift` (14 § Stage 3.3 step 1).
 public enum ProviderID: String, CaseIterable, Sendable, Codable {
-  case openai, anthropic, openrouter, deepseek, xai, moonshot
+  case openai, anthropic, openrouter, deepseek, xai, moonshot, novita
 
   /// The provider's name as 08's onboarding tiles write it; also the default account label (08 § Onboarding).
   public var displayName: String {
@@ -14,18 +14,19 @@ public enum ProviderID: String, CaseIterable, Sendable, Codable {
     case .deepseek: "DeepSeek"
     case .xai: "xAI"
     case .moonshot: "Moonshot"
+    case .novita: "Novita"
     }
   }
 
   /// The prefix 02's capability matrix gives for the key a user pastes. Nil where 02 names none (OpenRouter's
-  /// Management key, xAI's management key, DeepSeek's and Moonshot's standard keys): those keys are checked by the probe only (Q-028).
+  /// Management key, xAI's management key, DeepSeek's, Moonshot's and Novita's standard keys): those keys are checked by the probe only (Q-028).
   public var keyPrefix: String? {
     // Joined at run time: as literals, Swift stores these short strings inline in the instructions, side by side,
     // and the build-product scan of `check-no-secrets.sh` then reads them as one key-shaped run (Q-028).
     switch self {
     case .openai: ["sk", "admin", ""].joined(separator: "-")
     case .anthropic: ["sk", "ant", "admin01", ""].joined(separator: "-")
-    case .openrouter, .deepseek, .xai, .moonshot: nil
+    case .openrouter, .deepseek, .xai, .moonshot, .novita: nil
     }
   }
 

@@ -30,6 +30,7 @@ struct TokenClasses: Sendable, Equatable {
 | openrouter per-response (harness) | as openai per-response (chat.completions); `cost_cents`, when present, is the line's cost (06; Q-049) | | | | | |
 | xai per-response (harness) | `prompt_tokens − (prompt_tokens_details.cached_tokens ?? 0)` | 0 | 0 | `prompt_tokens_details.cached_tokens ?? 0` | `completion_tokens − (completion_tokens_details.reasoning_tokens ?? 0)` | `completion_tokens_details.reasoning_tokens ?? 0` |
 | moonshot per-response (harness) | as openai per-response (chat.completions): Moonshot's API is OpenAI-compatible (02 § moonshot, `[expected]` until H6) | | | | | |
+| novita per-response (harness) | as openai per-response (chat.completions): Novita's API is OpenAI-compatible (02 § novita, `[expected]` until H6) | | | | | |
 
 Unknown keys in a usage object are collected and logged once per day per provider as `normalize.unknown_keys`. They never fail normalization. A missing REQUIRED key (`prompt_tokens`/`input_tokens`/`uncached_input_tokens`) fails normalization: the harness line is stored with `classes_json = NULL` and logged `normalize.failed`.
 
@@ -38,7 +39,7 @@ Unknown keys in a usage object are collected and logged once per day per provide
 Given `provider` and `model` (string as reported by the provider):
 1. `price_override[model]`
 2. feed key `model` exactly
-3. feed key `"{litellm_provider_prefix}/{model}"` where prefix is `openai` → none (OpenAI keys are bare), `anthropic` → none (bare), `deepseek` → `deepseek`, `xai` → `xai`, `moonshot` → `moonshot`, `openrouter` → `openrouter`
+3. feed key `"{litellm_provider_prefix}/{model}"` where prefix is `openai` → none (OpenAI keys are bare), `anthropic` → none (bare), `deepseek` → `deepseek`, `xai` → `xai`, `moonshot` → `moonshot`, `novita` → `novita`, `openrouter` → `openrouter`
 4. feed key with a trailing date suffix stripped (`-YYYYMMDD` or `-YYYY-MM-DD`) applied to 2 and 3
 5. feed key with `-latest` appended applied to 2 and 3
 6. UNPRICED → `nil`
@@ -123,6 +124,8 @@ saved = Σ cacheRead × (in − cache_read_rate)  − Σ cacheWrite5m × (cache_
 i.e. NET of write premiums. Computed only from `source='provider'` buckets for Anthropic, and from harness buckets for providers where per-response cache fields exist. For OpenAI the tile shows "not computed — OpenAI aggregate cache counts are unreliable" (quirk in `02`). The same rates and fallbacks as § Cost formula, summed over the range and rounded once; unpriced models left out; an account with no rows of its source reads "—" (Q-052).
 
 ## Currency
+
+- **Novita** reports USD in 1/10000 units (02 § novita): cents = units ÷ 100, rounded half away from zero, once (`MinorUnits.cents`).
 
 Each account has one `currency`. All of an account's figures are shown in that currency with the correct symbol (`$`, `CN¥`). Cross-account totals (Overview subline) sum USD accounts only and append "+ N non-USD" when others exist. No conversion in V1.
 

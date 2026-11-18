@@ -69,6 +69,7 @@ public struct FixtureTransport: HTTPTransport {
   /// Every adapter's routes, added with each adapter.
   public static let knownRoutes: [Route] = OpenAIAdapter.fixtureRoutes + DeepSeekAdapter.fixtureRoutes
     + XAIAdapter.fixtureRoutes + MoonshotAdapter.fixtureRoutes
+    + NovitaAdapter.fixtureRoutes
 
   public let root: URL
   public let routes: [Route]

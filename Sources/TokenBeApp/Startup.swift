@@ -155,7 +155,8 @@ final class Startup {
         version: info?["CFBundleShortVersionString"] as? String ?? "dev",
         cases: fixtureCases()
       ),
-      registry: ProviderRegistry(adapters: [OpenAIAdapter(), DeepSeekAdapter(), XAIAdapter(), MoonshotAdapter()]),
+      registry: ProviderRegistry(adapters: [OpenAIAdapter(), DeepSeekAdapter(), XAIAdapter(), MoonshotAdapter(),
+                                            NovitaAdapter()]),
       keyStore: makeKeyStore(),
       notifiers: Notifiers.make(testRoot: paths.testRoot)
     )

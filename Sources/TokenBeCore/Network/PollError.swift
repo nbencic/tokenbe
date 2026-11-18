@@ -91,6 +91,7 @@ extension PollError {
     case .deepseek: CoreStrings.DeepSeek.keyRejected
     case .xai: CoreStrings.XAI.keyRejected
     case .moonshot: CoreStrings.Moonshot.keyRejected
+    case .novita: CoreStrings.Novita.keyRejected
     case .anthropic, .openrouter: CoreStrings.unexpectedStatus(provider.displayName, status: status)
     }
   }

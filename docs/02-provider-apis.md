@@ -16,6 +16,7 @@ RULE: Every adapter stores the raw response body of the LAST successful call per
 | deepseek | Standard key | **no** | **no** | yes | **no** | no | direct | seconds–minutes | n/a |
 | xai | Management key (console.x.ai → Settings → Management Keys; Q-062) | no | yes [expected] (USD per day per model, `/usage`) | not yet (prepaid balance unrecorded, H6) | no | no | anchored | ~1 h assumed (unpublished) | 1d |
 | moonshot | Standard key (platform.kimi.ai, or platform.kimi.com for China; Q-062) | **no** | **no** | yes [expected] | **no** | no | direct | "may lag" (read as 5 min) | n/a |
+| novita | Standard key (novita.ai → Settings → Key Management; Q-062) | **no** | not used in V1 | yes [expected] | **no** | no | direct | none published (read as 5 min) | n/a |
 
 `balance_mode` values: `direct`, `anchored`, `spend_only`. `anchored` requires an anchor; until one exists the account behaves as `spend_only` and the UI shows "no runway until anchored".
 
@@ -141,6 +142,16 @@ Hosts: `https://api.moonshot.ai` (international, amounts in **USD**) and `https:
 - Refused on both hosts (or 403) → `Moonshot did not accept this API key. Check it at platform.kimi.ai (or platform.kimi.com for China) → API Keys and paste it again.`
 - Snapshot: `amount_cents = available_balance`, `granted_cents = voucher_balance`, `topped_up_cents = cash_balance` (may be negative), each rounded to cents once, half up.
 No usage, cost, or key-list endpoint exists (spend history is console only; the day's bill updates at 07:00 the next day). Per-app attribution comes ONLY from harness reports (`06`). Per-response usage is OpenAI-compatible (`prompt_tokens`, `completion_tokens`, `total_tokens`) [expected].
+
+## novita
+
+Base: `https://api.novita.ai`. Header: `Authorization: Bearer <key>` (the inference key). Fields are from Novita's API reference (docs.novita.ai → API reference → Basic → User Balance Info) and are **[expected]** until H6 records them (Q-062).
+
+### Probe + balance (every `tb.poll.balanceIntervalS`)
+`GET /openapi/v1/billing/balance/detail` (no parameters) → `{ "availableBalance": "1000000", "cashBalance": "800000", "creditLimit": "200000", "pendingCharges": "0", "outstandingInvoices": "0" }`. All amounts are STRINGS in **1/10000 USD** (`"10000"` = $1.00): `availableBalance` is what can be spent (it includes the credit limit), `cashBalance` the remaining top-up, `creditLimit` the most the account may owe, `outstandingInvoices` what it owes now, `pendingCharges` currently always 0.
+- Snapshot: `amount_cents = availableBalance`, `topped_up_cents = cashBalance`, each ÷ 100 and rounded half away from zero (05 § Currency); currency USD.
+- 401/403 → `Novita did not accept this API key. Check it at novita.ai → Settings → Key Management and paste it again.`
+The per-key bill list (`GET /openapi/v1/billing/apikey/bill/list`) is NOT used in V1 (direct balance; per-app attribution comes from harness reports, `06`). Per-response usage is OpenAI-compatible (`prompt_tokens`, `completion_tokens`, `total_tokens`) [expected].
 
 ## Price feed
 

@@ -31,6 +31,12 @@ public enum CoreStrings {
       "Moonshot did not accept this API key. Check it at platform.kimi.ai (or platform.kimi.com for China) → API Keys and paste it again."
   }
 
+  public enum Novita {
+    /// 02 § novita: the key was refused (401/403).
+    public static let keyRejected =
+      "Novita did not accept this API key. Check it at novita.ai → Settings → Key Management and paste it again."
+  }
+
   /// `Test` with no Keychain item for the account; authored (Q-030), pointing at 08's `Replace key…`.
   public static let keyMissing = "The key is missing from the Keychain. Use Replace key… to add it again."
 

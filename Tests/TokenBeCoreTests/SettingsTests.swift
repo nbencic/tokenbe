@@ -262,7 +262,8 @@ import Testing
 
   @Test("every ProviderID is allowed by 03's CHECK (002), in 08's tile order")
   func providerIDs() {
-    #expect(ProviderID.allCases.map(\.rawValue) == ["openai", "anthropic", "openrouter", "deepseek", "xai", "moonshot"])
+    #expect(ProviderID.allCases.map(\.rawValue) == ["openai", "anthropic", "openrouter", "deepseek", "xai", "moonshot",
+                                                  "novita"])
     #expect(Set(ProviderID.allCases.map(\.rawValue)).isSubset(of: Set(Migration002Tests.providers)))
   }
 }
