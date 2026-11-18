@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Database: migration 002 lets an account belong to the new providers (Moonshot, Novita, StepFun, SiliconFlow, DeepInfra) and keeps every existing row. Exports made before it still import (Stage 10.0.3).
 - Moonshot (Kimi): add a Moonshot account with its API key; TokenBe finds the key's region (international in USD, China in CNY) and shows the balance directly (Stage 10.0.4).
 - Novita: add a Novita account with its API key and see its balance directly. The provider picker scrolls once there are more tiles than fit (Stage 10.0.5).
+- Fixture recorder: `scripts/record-fixtures.sh` now records xAI's management endpoints, Moonshot, Novita, and the StepFun, SiliconFlow and DeepInfra balance endpoints, so their adapters can be checked against live answers (Stage 10.0.6, H6).
 
 ### Changed
 - The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).
