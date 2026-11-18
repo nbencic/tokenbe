@@ -50,7 +50,7 @@ Totals stay exact in every reader: Spend, burn, `spend_since_anchor`, By app, By
 - **Stage-script dry run** (9.1 static checks, plus the edited checks in 4.3 and 8.2): every check passed.
 - **UI, targeted:** AdvancedMaintenanceUITests (incl. `testRetentionSteppers`) and SettingsGeneralUITests passed, 3 tests in 2 min 53 s.
 - **Guard sweep** (`TB_UI_TESTS=0 verify 9.1`): 1,411 checks passed. Core: 564 tests in 84 suites. The run failed only D13 (this postmortem).
-- **Full verify:** see the PR body. `Observation.swift` is a shared file, so Q-047 selected every suite.
+- **Full verify** (`Observation.swift` is a shared file, so Q-047 selected every suite): `STAGE 9.1 OK` on the first run, with 1 448 checks passed and 1 printing `skip` (3.6's H2 check). 25 UI tests passed with 0 failures in 19 min 46 s; the ⌥-click test did not flake. DailyRunNowUITests saw the app's own daily run log the four `db.rollup` tiers. 564 Core tests in 84 suites passed. Disk had 87 GiB free, the screen was unlocked, and no runner was killed.
 - **CI:** green on 27eaa42. The head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
