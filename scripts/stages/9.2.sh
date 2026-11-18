@@ -13,7 +13,7 @@ for f in "${inventory[@]}"; do check "non-empty $f" test -s "$f"; done
 # 03's document (O-5): its tables, its key order, no poll_state / ingest_file, no key.
 check "the nine tables of 03's document, in order" grep -qF 'case account, providerKey = "provider_key", app, appBinding = "app_binding", usageBucket = "usage_bucket"' $core/Store/Repository+Export.swift
 check "top-level keys in 03's order (schema_version, exported_at, then the tables)" bash -c "grep -qF 'try part(.schemaVersion, document.schemaVersion), try part(.exportedAt, document.exportedAt),' $core/Export/JSONExporter.swift && grep -qF 'try part(.balanceSnapshots, document.balanceSnapshots), try part(.ledgerEvents, document.ledgerEvents),' $core/Export/JSONExporter.swift"
-check "poll_state and ingest_file are not exported (O-5)" bash -c "! grep -nE 'poll_state|ingest_file' $core/Export/*.swift && ! grep -nE 'case .*(pollState|ingestFile)' $core/Store/Repository+Export.swift"
+check "poll_state and ingest_file are not exported (O-5)" bash -c "! grep -nE 'poll_state|ingest_file' $core/Export/JSONExporter.swift $core/Export/JSONImporter.swift $core/Export/TablesCSVExporter.swift && ! grep -nE 'case .*(pollState|ingestFile)' $core/Store/Repository+Export.swift"
 check "provider_key.redacted leaves as its key hint (A9, Q-056)" bash -c "grep -qF 'key.redacted = Self.exportedHint(key.redacted)' $core/Store/Repository+Export.swift && grep -qF 'table == .providerKey && column == \"redacted\"' $core/Store/Repository+Export.swift"
 
 # O-17: only into an empty database, all or nothing; the account's poll_state seeding shared with insertAccount.

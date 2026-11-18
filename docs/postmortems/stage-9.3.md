@@ -38,17 +38,24 @@ The files are zipped with `ditto -c -k --sequesterRsrc` (D-ditto-zip). The bundl
    - **Fix:** `DiagnosticsBundleTests.failures` and `values`. To keep the cleanup assertion free of races with parallel tests, `export` takes an internal `scratch` folder, and the test owns that folder. The gate now reads 97.11 %.
    - **Cost:** one CI run and one full verify.
    - **Lesson:** run `scripts/coverage-gate.sh 97` after `swift test --enable-code-coverage` before the first full verify of a stage that adds a Core file. A new file with untested error paths can sink the gate from 97.1 %.
-3. **One shell command was refused by the harness's safety check.**
-   - **Symptom:** an `rm -f $D/*.dry.sh` cleanup with an unguarded variable was refused. The whole command didn't run, including writing 9.3.sh.
-   - **Fix:** the script was written with the editor, and the cleanup uses `"${D:?}"`.
-   - **Cost:** one retry, no lost work.
+3. **An earlier stage's glob check matched a new file.**
+   - **Symptom:** full verify 2 failed 9.2's negative grep over `Export/*.swift` (above).
+   - **Root cause:** a guard written over a folder glob also guards files that later stages add to that folder. PM-8.3-2's sweep grepped for names (`Export`, `Import`), not for globs over the folders this stage writes into.
+   - **Fix:** the check lists its own files.
+   - **Cost:** one full verify (about 20 min).
+   - **Lesson:** before the first full verify, also grep `scripts/stages/*.sh` for globs over each folder the stage adds a file to (`<folder>/*.swift`), and dry-run every check of the stages whose files changed, not only the edited lines.
+4. **One shell command was refused by the harness's safety check.**
+   - **Symptom:** an `rm -f $D/*.dry.sh` cleanup with an unguarded variable was refused. The whole command didn't run, including writing 9.3.sh. Later a `bash -c` script containing `rm` was refused too.
+   - **Fix:** the script was written with the editor, and dry-run files stay in the session scratchpad without cleanup.
+   - **Cost:** two retries, no lost work.
 
 ## Verify and CI failures
 - **Core and lint:** 25 tests in the touched suites passed (after What went wrong 1). Lint was clean on the first run. One extra run: the first cleanup assertion raced parallel tests over the shared temp folder, fixed by the `scratch` parameter.
 - **Stage-script dry run** (9.3's static checks and 9.2's rewritten 1.3 check): every check passed.
 - **UI, targeted:** AdvancedMaintenanceUITests passed, 3 tests in 1 min 26 s.
 - **Full verify 1** (Q-047 selected 6 suites; no shared file changed): FAIL 0.5, the coverage gate (What went wrong 2). All 8 UI tests passed in 6 min 34 s, and 574 Core tests passed.
-- **Full verify 2:** see the PR body.
+- **Full verify 2:** FAIL 9.2, `poll_state and ingest_file are not exported`. That check grepped `Export/*.swift`, and 9.3's `DiagnosticsBundle.swift` lives there and writes `poll_state.json` by design (07). **Fix:** the check names 9.2's three exporter files. The coverage gate passed (97.11 %), and the 8 UI tests passed again. My dry run had exercised only one line of 9.2.sh, so it missed this; the re-run dry-ran 9.1–9.3 in full (What went wrong 3).
+- **Full verify 3:** see the PR body.
 - **CI:** red on 63e7559 (the coverage gate, What went wrong 2); the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
