@@ -56,7 +56,7 @@ D1–D13 are met. This stage closes phase 9 (`phase-9.md`), and the H5 soak star
 - **Guard sweep** (`TB_UI_TESTS=0 verify 9.5`): `STAGE 9.5 OK` on the first run, with 1 516 checks passed.
 - **Full verify 1:** FAIL 0.1, `swift test` (What went wrong 3).
 - **Full verify 2:** all 29 UI tests passed, then FAIL 1.3 `UI-test suite: tb.menubar.metric = todaySpend` (What went wrong 4).
-- **Full verify 3:** see the PR body. `Startup.swift` is a shared file, so Q-047 selects every suite.
+- **Full verify 3** (every suite: `Startup.swift` is shared): `STAGE 9.5 OK`, with 1 556 checks passed and 1 printing `skip` (3.6's H2 check). All 29 UI tests passed with 0 failures in 24 min 13 s, and 583 Core tests in 87 suites passed. Disk had 86 GiB free, and the screen was unlocked. `Startup.swift` is a shared file, so Q-047 selects every suite.
 - **CI:** the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
