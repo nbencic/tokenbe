@@ -44,7 +44,7 @@ Date: 2026-11-17 · Stages: 8.1 (#35), 8.2 (#36), 8.3 (#37), 8.4 (#38)
    - Each pushed head was gated on lint (PM-8.2-5); 8.2 learned that rule from one red CI run.
    - Merges waited for green CI selected by SHA.
    - `caffeinate` was held and the lock checked before UI runs, and no runner was killed (89–107 GiB free).
-   - No stage changed a shared file, so Q-047 selected 6 to 18 suites instead of all 24.
+   - 8.1 changed a shared file (`Observation.swift`), so Q-047 selected every suite and all 23 UI tests ran (stage-8.1.md). 8.2, 8.3 and 8.4 changed none, so Q-047 selected 7 to 18 suites instead of all of them. (Corrected in 9.1: this line first said no stage changed a shared file.)
 5. **Screenshots are the owner's screen.** 8.2's diagnostic `app.screenshot()` captured the whole display, and it was deleted at once. Since then only `app.windows.firstMatch.screenshot()` is used (PM-8.2-3), and 8.3 and 8.4 needed none.
 
 ## Plan and doc changes
@@ -78,7 +78,7 @@ Date: 2026-11-17 · Stages: 8.1 (#35), 8.2 (#36), 8.3 (#37), 8.4 (#38)
   - PM-8.2-4 · agent · 9.1 · roll-up rows and Anthropic cache savings.
   - PM-8.3-1 · agent · 9.2, 9.4, 9.5 · retire 1.3.sh's "not yet" guards with their controls.
   - PM-8.4-1 · Nikola · 11.3 · Q-054's accessibility checklist.
-  - PM-8.4-2 · agent · 11.3 · the popover header's contrast against Paper.
+  - PM-8.4-2 · agent · 11.3 · the popover header's contrast against Paper; narrow the audit's empty-identifier contrast tolerance to the window title (widened in 9.1).
   - PM-8.2-3, PM-8.2-5, PM-8.3-2, PM-8.4-3 · agent · every stage · process.
 - **Phase 7 and earlier (unchanged):**
   - PM-7.1-4 (11.3), PM-7.1-5 (11.5), PM-7.2-1 (9.1), PM-7.2-3 (10.2), PM-7.3-4 (11.3), PM-7.3-5 (9.5);

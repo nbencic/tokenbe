@@ -731,3 +731,4 @@ Options and choices (each the least code; none adds a dependency, screen or sett
   - [ ] Reduce Motion on: the refresh button pulses, no spinner turns.
   - [ ] Accessibility Inspector's audit on the popover, the Dashboard and Settings: no issue beyond the three tolerated classes.
 Blocking: no
+- **Correction (2026-11-18, Stage 9.1).** The audit's contrast tolerance is wider than this entry says: AccessibilityUITests tolerates contrast on the sidebar's rows and on *any* element with an empty identifier, not only the window title. The code is unchanged; the test's comment now says so, and PM-8.4-2 (11.3) narrows the predicate to the window title.
