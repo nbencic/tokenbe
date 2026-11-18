@@ -49,8 +49,12 @@ import Testing
       return result
     }
 
+    func inputs() async throws -> SummaryInputs {
+      try await repository.database.read { try SummaryInputs.fetch($0) }
+    }
+
     func remaining() async throws -> [String: Int64?] {
-      let inputs = try await repository.database.read { try SummaryInputs.fetch($0) }
+      let inputs = try await inputs()
       let summaries = AccountSummaryBuilder.summaries(from: inputs, spend: .init(now: ExportImportTests.now))
       return Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0.remainingCents) })
     }
@@ -70,19 +74,25 @@ import Testing
     let rows = try await JSONImporter.run(url, into: target.repository, log: EventLog(pipeline: target.harness.pipeline))
     #expect(try await target.counts() == source.counts())
     #expect(try await target.counts()["usage_bucket 1mo"] == 1, "PM-9.1-2: the monthly row comes back as it was")
-    #expect(try await target.remaining() == source.remaining())
+    let (sourceInputs, targetInputs) = (try await source.inputs(), try await target.inputs())
+    #expect(targetInputs.usageDays == sourceInputs.usageDays, "\(targetInputs.usageDays) vs \(sourceInputs.usageDays)")
+    #expect(targetInputs.costDays == sourceInputs.costDays, "\(targetInputs.costDays) vs \(sourceInputs.costDays)")
+    #expect(targetInputs.anchorDayUsage == sourceInputs.anchorDayUsage)
+    #expect(targetInputs.ledgerEvents == sourceInputs.ledgerEvents && targetInputs.balances == sourceInputs.balances)
+    let (before, after) = (try await source.remaining(), try await target.remaining())
+    #expect(after == before, "Remaining \(after) vs \(before)")
     #expect(try await target.count("SELECT COUNT(*) FROM poll_state") == 4, "the account's four poll_state rows (03)")
     #expect(try await target.count("SELECT COUNT(*) FROM poll_state WHERE last_attempt_at IS NOT NULL") == 0)
     #expect(try await target.count("SELECT COUNT(*) FROM harness_event") == 0, "not in 03's document (Q-056)")
-    let before = try await source.repository.exportDocument(exportedAt: "x")
-    var after = try await target.repository.exportDocument(exportedAt: "x")
-    #expect(after.usageBuckets == before.usageBuckets && after.ledgerEvents == before.ledgerEvents)
+    let original = try await source.repository.exportDocument(exportedAt: "x")
+    var copy = try await target.repository.exportDocument(exportedAt: "x")
+    #expect(copy.usageBuckets == original.usageBuckets && copy.ledgerEvents == original.ledgerEvents)
     // Each database seeds its own `Unassigned` app; the import skips the document's.
-    var seeded = before
+    var seeded = original
     seeded.apps.removeAll { $0.id == Attribution.unassignedID }
-    after.apps.removeAll { $0.id == Attribution.unassignedID }
-    #expect(after == seeded, "every exported row, field by field (keys as their hint, Q-056)")
-    #expect(rows == before.rows)
+    copy.apps.removeAll { $0.id == Attribution.unassignedID }
+    #expect(copy == seeded, "every exported row, field by field (keys as their hint, Q-056)")
+    #expect(rows == original.rows)
     let imported = await target.harness.records(.dbImport)
     #expect(imported.count == 1 && imported.first?.ctx["rows"] == .int(rows) && imported.first?.ctx["path"] == .string(url.path))
   }
