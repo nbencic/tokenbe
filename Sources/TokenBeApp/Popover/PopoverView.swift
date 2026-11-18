@@ -26,6 +26,12 @@ struct PopoverView: View {
       }
       content
       Divider()
+      if model.environment?.updates.available != nil {
+        UpdateBadge(updates: model.environment?.updates, place: "popover")
+          .padding(.horizontal, 16)
+          .padding(.vertical, 8)
+        Divider()
+      }
       footer
     }
     .frame(width: 360)

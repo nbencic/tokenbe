@@ -36,7 +36,10 @@ struct AppEnvironment {
   let alerts: AlertCenter
   /// The system notifier, whose `Open`/`Snooze 24 h` actions the app delegate wires; nil in UI tests (Q-043).
   let systemNotifier: UNNotifier?
+  /// The daily update check and its badge (02 § Update check, 14 § Stage 9.4).
+  let updates: UpdateModel
 
+  @MainActor
   init(settings: TokenBeCore.Settings, clock: ContinuousClock, logSinks: [any LogSink], logsDirectory: URL,
        transport: any HTTPTransport, registry: ProviderRegistry, keyStore: any KeyStore,
        notifiers: (any Notifier, UNNotifier?)) {
@@ -49,6 +52,7 @@ struct AppEnvironment {
     self.keyStore = keyStore
     alerts = AlertCenter(notifier: notifiers.0)
     systemNotifier = notifiers.1
+    updates = UpdateModel(settings: settings, transport: transport)
   }
 
   /// Onboarding, `Replace key…`, `Test`, `Remove account…` and startup step 3 (14 § Stage 3.5). Nil before step 2.

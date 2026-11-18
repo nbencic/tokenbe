@@ -604,3 +604,15 @@ extension Strings {
   static let diagnosticsFailedTitle = "Diagnostics export failed"
   static func diagnosticsDetail(files: Int, size: String) -> String { "\(files) files, \(size)" }
 }
+
+/// 02 § Update check (08 § Settings Privacy `1U1-0`/`1U2-0`; 09 `tb.update.*`; 14 § Stage 9.4). The button names are
+/// Q-058.
+extension Strings {
+  static let checkForUpdatesDaily = "Check for updates daily"
+  static let checkForUpdatesCaption = "One GET a day to the GitHub releases API. Sends nothing. Install via Homebrew "
+    + "or the release page \u{2014} no in-app updater in v1."
+  static let updateAvailable = "Update available"
+  static func updateVersion(_ version: String) -> String { "TokenBe \(version)" }
+  static let openReleasePage = "Open release page"
+  static let skipThisVersion = "Skip this version"
+}

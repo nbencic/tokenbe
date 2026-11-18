@@ -6,8 +6,7 @@ import TokenBeCore
 /// `NSBackgroundActivityScheduler` (`dev.bathyon.tokenbe.daily`, interval 86400 s, tolerance 3600 s, `.utility`,
 /// repeating) over Core's `DailyActivity`, with the steps of 04 that exist so far, in 04's order:
 /// `cost polls` → `harness drift` (7.2) → `model drift` (8.1) → `roll-ups` (9.1) → `price refresh` (5.1) →
-/// `db backup` → `weekly integrity_check` (every 7th run) → `incremental_vacuum`. The update check (9.4, after the
-/// price refresh) registers at its 04 position in its stage.
+/// `update check` (9.4) → `db backup` → `weekly integrity_check` (every 7th run) → `incremental_vacuum`.
 /// `Run daily tasks now` (Settings → Sources) runs the same function out of band. After each run it writes
 /// `tb.daily.lastRunAt` and `tb.daily.runCount` (09); the backup and the integrity check write `tb.db.last*`.
 @MainActor @Observable
@@ -31,7 +30,8 @@ final class DailyActivityRegistration {
     var description: String { "integrity_check: \(result)" }
   }
 
-  init(settings: TokenBeCore.Settings, repository: any Repository, poller: Poller, prices: PriceBookModel?) {
+  init(settings: TokenBeCore.Settings, repository: any Repository, poller: Poller, updates: UpdateModel?,
+       prices: PriceBookModel?) {
     self.settings = settings
     let costPolls = CostPolls(store: repository, poller: poller, isPaused: {
       await MainActor.run { ScheduleSettings(settings).isPaused(at: Date()) }
@@ -67,6 +67,8 @@ final class DailyActivityRegistration {
       },
       // A feed failure is logged by the fetcher and keeps the snapshot; only a store failure fails the step.
       DailyStep("price refresh") { _ in try await prices?.refresh() },
+      // 02 § Update check: one GET a day while `tb.update.checkEnabled` is on; a failure is logged, not thrown.
+      DailyStep("update check") { _ in await updates?.check() },
       DailyStep("db backup") { _ in
         _ = try await repository.backup()
         await MainActor.run { settings.dbLastBackupAt = Date().timeIntervalSince1970 }

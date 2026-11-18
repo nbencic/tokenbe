@@ -13,6 +13,7 @@ struct OverviewView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
+        UpdateBadge(updates: model.environment?.updates, place: "dashboard.overview")
         if model.accounts.isEmpty {
           VStack(spacing: 6) {
             Text(Strings.emptyHeadline)

@@ -30,8 +30,9 @@ check "check-log-events.sh (14 Verify)" scripts/check-log-events.sh
 # A control appears only with its action (D6): later tabs and rows arrive with their stages.
 # Accounts arrived in 3.5, Sources in 4.1 (4.1.sh checks it), Alerts in 5.3 (5.3.sh checks it).
 # "integrity" and "Back up" arrived in 2.2; the data rows `Export data (JSON)…`, `Import…` and `Export CSV (all
-# tables)…` in 9.2 (9.2.sh checks them), `Export diagnostics…` in 9.3 (9.3.sh checks it; PM-8.3-1).
-for later in "Reset all" "Check for updates"; do
+# tables)…` in 9.2 (9.2.sh checks them), `Export diagnostics…` in 9.3, `Check for updates daily` in 9.4 (9.3.sh and
+# 9.4.sh check them; PM-8.3-1).
+for later in "Reset all"; do
   check "Settings tabs have no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/SettingsUI"
 done
 
