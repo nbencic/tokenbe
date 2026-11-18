@@ -663,8 +663,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ### Stage 9.4 — Update check
 **Goal:** `02 § Update check`. **Depends on:** 9.3. **Adds:** Privacy row `Check for updates daily` + caption; `Update available` badge in Privacy, Overview, popover footer with `html_url` button and `Skip this version`. **Size:** S.
-**Inventory** — Files: `Update/UpdateChecker.swift`, daily step at the `update check` position. Settings: `tb.update.checkEnabled`, `tb.update.lastCheckedAt`, `tb.update.latestSeen`, `tb.update.ignoredVersion`. Events: `update.check_ok`, `update.check_failed`.
-**Tests:** `UpdateCheckerTests` (semver compare, `v` prefix, ignored version).
+**Inventory** — Files: `Update/UpdateChecker.swift` (Core: `SemVer`, `UpdateChecker`), `Update/UpdateModel.swift` (app), `Components/UpdateBadge.swift`, `SettingsUI/{PrivacyTab,SettingsView}.swift`, `Dashboard/OverviewView.swift`, `Popover/PopoverView.swift`, `AppEnvironment.swift`, `Startup.swift`, `DailyActivityRegistration.swift` (the daily step at the `update check` position), `Strings.swift`, `scripts/stages/9.4.sh`. Settings: `tb.update.checkEnabled`, `tb.update.lastCheckedAt`, `tb.update.latestSeen`, `tb.update.ignoredVersion`. Events: `update.check_ok`, `update.check_failed`.
+**Tests:** `UpdateCheckerTests` (semver compare, `v` prefix, ignored version, logs, failures, one GET a day), `TokenBeUITests/UpdateCheckUITests` (the badge in three places, the toggle, Skip).
 **Stage DoD:** D1–D12.
 
 ### Stage 9.5 — Reset, cleanups, environment audits

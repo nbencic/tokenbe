@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Retention roll-ups: the daily run sums hourly usage older than 90 days into daily rows, daily rows older than 400 days into monthly rows, deletes raw harness events after their window and keeps two balance snapshots per day after a week; Advanced sets the two windows (`Hourly detail kept for`, `Raw harness events kept for`). Older days keep their totals and cache savings (Stage 9.1).
 - Data export and import: Advanced → `Export data (JSON)…` writes every account, key, app, usage, cost, balance, ledger and price-override row; `Import…` reads such a file into an empty database; `Export CSV (all tables)…` writes one CSV per table. Keys are never exported (Stage 9.2).
 - Diagnostics: Advanced → `Export diagnostics…` saves a zip with the last 3 log files, recent log records, settings, the database schema and row counts, poll state (redacted), price overrides and the environment. It never includes the database or any key (Stage 9.3).
+- Update check: once a day TokenBe asks GitHub for the latest release; when it is newer, Privacy, the Overview and the popover show `Update available` with the release page and `Skip this version`. Privacy → `Check for updates daily` turns it off. Nothing is downloaded or installed (Stage 9.4).
 
 ### Changed
 - The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).
