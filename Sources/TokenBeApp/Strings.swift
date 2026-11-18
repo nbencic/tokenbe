@@ -576,3 +576,23 @@ extension Strings {
   /// A spinner's VoiceOver label under Reduce Motion, where it is a pulsing dot.
   static let busy = "In progress"
 }
+
+/// Settings → Advanced, the data rows (08 § Settings Advanced, 14 § Stage 9.2). 08 names the buttons; the sheets'
+/// text is Q-056.
+extension Strings {
+  static let exportDataJSON = "Export data (JSON)\u{2026}"
+  static let importData = "Import\u{2026}"
+  static let exportCSVAllTables = "Export CSV (all tables)\u{2026}"
+  static let exportSavedTitle = "Export saved"
+  static let exportFailedTitle = "Export failed"
+  static let importDoneTitle = "Import complete"
+  static let importFailedTitle = "Import failed"
+  static let importNotEmptyTitle = "Import needs an empty database"
+  static let importNotEmptyDetail = "This database already holds accounts, apps or price overrides, and TokenBe does "
+    + "not merge. To import, quit TokenBe, move its data folder (~/Library/Application Support/TokenBe) aside, "
+    + "open TokenBe and import again."
+  static func rowsCount(_ count: Int) -> String { count == 1 ? "1 row" : "\(count) rows" }
+  static func importSchemaVersion(found: Int, expected: Int) -> String {
+    "This file is from database version \(found); this TokenBe uses version \(expected)."
+  }
+}

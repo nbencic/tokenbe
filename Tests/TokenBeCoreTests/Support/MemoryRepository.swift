@@ -57,6 +57,12 @@ actor MemoryRepository: Repository {
     RollupCount(tier: "balance_snapshot")
   }
 
+  func exportDocument(exportedAt: String) async throws -> ExportDocument {
+    ExportDocument(schemaVersion: 1, exportedAt: exportedAt, accounts: accounts)
+  }
+  func exportTables() async throws -> [(table: ExportedTable, csv: CSVTable)] { [] }
+  func importDocument(_ document: ExportDocument) async throws -> Int { 0 }
+
   func incrementalVacuum() async throws -> Int {
     vacuums += 1
     return 0
