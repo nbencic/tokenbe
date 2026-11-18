@@ -74,7 +74,7 @@ The files are zipped with `ditto -c -k --sequesterRsrc` (D-ditto-zip). The bundl
 
 ## Carry-forward actions
 - PM-9.3-1 · agent · 11.3 · 04 § Retry's decode badge ("Provider changed its response · Copy diagnostics", after 3 decode failures in a row) has no place in 08 and no stage in 14. Decide where it sits on the account page and what "Copy diagnostics" copies (likely the failing job's redacted `last_raw` on the pasteboard), then build it or record why not.
-- PM-9.3-2 · agent · 9.4 · Before the first full verify, run `swift test --enable-code-coverage` then `scripts/coverage-gate.sh 97`. Grep `scripts/stages/*.sh` for globs over every folder the stage adds a file to, and dry-run every check of each stage whose files changed (What went wrong 2–3).
+- PM-9.3-2 · agent · 9.4 · **closed (Stage 9.4: applied before its first verify)** · Before the first full verify, run `swift test --enable-code-coverage` then `scripts/coverage-gate.sh 97`. Grep `scripts/stages/*.sh` for globs over every folder the stage adds a file to, and dry-run every check of each stage whose files changed (What went wrong 2–3).
 - Earlier actions that targeted 9.3:
   - PM-8.3-1: closed for 9.3 (the `Export diagnostics` guard retired); still open for 9.4 (`Check for updates`) and 9.5 (`Reset all`). Status edited in stage-8.3 and phase-8.
 - Still open:

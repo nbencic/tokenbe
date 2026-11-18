@@ -46,7 +46,7 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block.
 - Q-053: which table each page exports; the filter, footer and sort; cell text as the screen prints it (the `Attribution` header for the By-app badge column); the RFC 4180 details; the file name and its sanitizing; the `db.export` fields; the panel; a UI test that cancels.
 
 ## Carry-forward actions
-- PM-8.3-1 · agent · 9.2, 9.4, 9.5 · **closed for 9.2 (`Export` / `Import` guards retired; `Export diagnostics` guarded for 9.3); closed for 9.3 (`Export diagnostics`); open for 9.4, 9.5** · 1.3.sh still guards `Settings tabs have no '<x>' yet` for `Export` and `Import` (9.2), `Check for updates` (9.4) and `Reset all` (9.5). Each of those stages retires its own entry in the same commit as the control, as 8.3 did for 1.2 and 4.2.
+- PM-8.3-1 · agent · 9.2, 9.4, 9.5 · **closed for 9.2 (`Export` / `Import` guards retired; `Export diagnostics` guarded for 9.3); closed for 9.3 (`Export diagnostics`) and 9.4 (`Check for updates`); open for 9.5** · 1.3.sh still guards `Settings tabs have no '<x>' yet` for `Export` and `Import` (9.2), `Check for updates` (9.4) and `Reset all` (9.5). Each of those stages retires its own entry in the same commit as the control, as 8.3 did for 1.2 and 4.2.
 - PM-8.3-2 · agent · every stage · Before the first guard sweep, grep `scripts/stages/*.sh` for every control name the stage adds and for every expression it rewrites, not only for file names. `verify-stage.sh` stops at the first failure, so each stale check otherwise costs a full sweep. (Process; extends PM-7.3-2.)
 - Earlier actions that targeted 8.3: none.
 - Still open from earlier stages: PM-7.3-3, PM-8.2-1, PM-8.2-2 (8.4); PM-8.1-1 (H2 PR); PM-8.1-2 (10.1); PM-8.1-3 (9.5); PM-8.2-4 (9.1).

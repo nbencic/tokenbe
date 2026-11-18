@@ -277,6 +277,7 @@ final class Startup {
   private func startDailyActivity() {
     guard var environment, let repository = environment.repository, let poller = environment.poller else { return }
     let daily = DailyActivityRegistration(settings: environment.settings, repository: repository, poller: poller,
+                                          updates: environment.updates,
                                           prices: environment.prices)
     daily.register()
     environment.daily = daily

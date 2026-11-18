@@ -26,7 +26,8 @@ struct SettingsView: View {
             AlertsTab(settings: environment.settings, model: model)
           }
           Tab(Strings.tabPrivacy, systemImage: "hand.raised", value: SettingsTab.privacy) {
-            PrivacyTab(logsDirectory: environment.logsDirectory)
+            PrivacyTab(settings: environment.settings, updates: environment.updates,
+                       logsDirectory: environment.logsDirectory)
           }
           Tab(Strings.tabAdvanced, systemImage: "wrench.and.screwdriver", value: SettingsTab.advanced) {
             AdvancedTab(settings: environment.settings, logsDirectory: environment.logsDirectory,
