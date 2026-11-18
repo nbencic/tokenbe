@@ -651,8 +651,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ### Stage 9.2 — JSON export/import & CSV (all tables)
 **Goal:** `03 § Durability` export/import. **Depends on:** 9.1. **Adds:** Advanced → `Export data (JSON)…`, `Import…` (only into an empty DB; otherwise a sheet explains), `Export CSV (all tables)…`. **Size:** M.
-**Inventory** — Files: `Export/{JSONExporter,JSONImporter,TablesCSVExporter}.swift`. Events: `db.export`, `db.import`, `db.import_failed`.
-**Tests:** `ExportImportTests` (round-trip row counts; no `sk-` in output), E2E-7.
+**Inventory** — Files: `Export/{JSONExporter,JSONImporter,TablesCSVExporter}.swift`, `Store/Repository+Export.swift` (`ExportedTable`, `ExportDocument`, `ImportRefusal`, `DataTransferRepository`), `Store/{Repository,GRDBRepository}.swift` (the aggregate; one `poll_state` seeding), `SettingsUI/{DataTransferRows,AdvancedTab}.swift`, `Strings.swift`, `scripts/stages/9.2.sh`. Events: `db.export`, `db.import`, `db.import_failed`.
+**Tests:** `ExportImportTests` (round-trip row counts per table and `usage_bucket` width; Remaining; no `sk-` in output; refusal; version; atomicity; CSV), E2E-7 = `TokenBeUITests/ExportImportUITests`.
 **Stage DoD:** D1–D12.
 
 ### Stage 9.3 — Diagnostics bundle

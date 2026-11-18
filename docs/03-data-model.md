@@ -213,8 +213,8 @@ Roll-up is idempotent: it is keyed on bucket primary keys; re-running produces i
 
 - Launch: `PRAGMA quick_check` (full `integrity_check` weekly in the background activity). Failure → log `db.integrity_failed`, copy the corrupt file to `tokenbe.sqlite.corrupt-<ts>`, restore from `.bak`, alert the user with both paths.
 - Daily: online backup via GRDB `backup(to:)` into a temp file, then atomic rename to `tokenbe.sqlite.bak`. Log `db.backup` with size and duration.
-- Export (Settings → Advanced): JSON document `{ "schema_version":N, "exported_at":…, "accounts":[…], "provider_keys":[…], "apps":[…], "app_bindings":[…], "usage_buckets":[…], "cost_buckets":[…], "balance_snapshots":[…], "ledger_events":[…], "price_overrides":[…] }`. Secrets are NOT exported. Import of the same document into an empty DB reproduces every table except `poll_state` and `ingest_file`.
-- CSV export: one file per table listed above, RFC4180, header row, UTF-8.
+- Export (Settings → Advanced): JSON document `{ "schema_version":N, "exported_at":…, "accounts":[…], "provider_keys":[…], "apps":[…], "app_bindings":[…], "usage_buckets":[…], "cost_buckets":[…], "balance_snapshots":[…], "ledger_events":[…], "price_overrides":[…] }`. Secrets are NOT exported; `provider_key.redacted` is exported as its key hint (`…` + last 4). Import of the same document into an empty DB (no account, no price override, no app besides the `Unassigned` seed) reproduces every exported table, in one transaction; each account gets fresh `poll_state` rows. `harness_event`, `band_state`, `price_snapshot`, `ingest_file` and `schema_version` are not in the document (Q-056).
+- CSV export: one file per table listed above (`<table>.csv` in a new folder), RFC4180, header row of column names, stored values (NULL empty), UTF-8.
 
 ## Definition of done
 - Fresh launch creates the DB with migration 001 and the PRAGMAs above (asserted by test reading `PRAGMA journal_mode` etc.).
