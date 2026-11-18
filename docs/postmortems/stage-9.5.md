@@ -43,13 +43,20 @@ D1–D13 are met. This stage closes phase 9 (`phase-9.md`), and the H5 soak star
    - **Fix:** those three get a private, silent pipeline, like every other test (only LogFacadeTests may use the global `Log`). A full Core run then passed.
    - **Cost:** one full verify (it fails at the first stage, within minutes).
 
+4. **E2E-6's Reset wiped values that 1.3's checks read.**
+   - **Symptom:** full verify 2 ran all 29 UI tests green, then failed 1.3's `UI-test suite: tb.menubar.metric = todaySpend`.
+   - **Root cause:** Reset removed every `tb.*` key from the shared UI-test settings suite, after SettingsGeneralUITests had written the values that 1.3.sh reads from it (PM-1.2-2). The advisor had named this risk; I took DashboardShell's reset at its start as precedent, but a reset that runs after another suite's writes is different.
+   - **Fix:** a DEBUG opt-in, `TOKENBE_TEST_SETTINGS_SUITE`, gives one test a suite of its own under the UI-test prefix (`….uitests.roundtrip`, cleared at its first launch). `resetUITests` accepts only that prefix, `uiTestsName(isolated:)` strips anything but letters, digits and `-`, and `DashboardShellTests` asserts both. SettingsGeneral and RoundTrip then passed in that order, and the shared suite kept `todaySpend`.
+   - **Cost:** one full verify (35 min).
+
 ## Verify and CI failures
 - **Core and lint:** 583 Core tests in 87 suites passed; coverage 97.12 %; lint clean after What went wrong 1.
 - **Launch audit run alone:** both launches, the order, step 1's fields and no error or fault records, all passing.
 - **UI, targeted:** SettingsRoundTripUITests passed on its first run.
 - **Guard sweep** (`TB_UI_TESTS=0 verify 9.5`): `STAGE 9.5 OK` on the first run, with 1 516 checks passed.
 - **Full verify 1:** FAIL 0.1, `swift test` (What went wrong 3).
-- **Full verify 2:** see the PR body. `Startup.swift` is a shared file, so Q-047 selects every suite.
+- **Full verify 2:** all 29 UI tests passed, then FAIL 1.3 `UI-test suite: tb.menubar.metric = todaySpend` (What went wrong 4).
+- **Full verify 3:** see the PR body. `Startup.swift` is a shared file, so Q-047 selects every suite.
 - **CI:** the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs

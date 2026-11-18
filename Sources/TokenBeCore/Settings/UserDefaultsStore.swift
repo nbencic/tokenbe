@@ -82,10 +82,18 @@ public enum SettingsSuite {
   /// The suite UI tests run against (Q-014): never the owner's real settings.
   public static let uiTestsName = name + ".uitests"
 
+  /// `uiTestsName`, or a suite of its own under it (`….uitests.<isolated>`) for a test that must not share it (Q-059).
+  /// Only letters, digits and `-` are kept, so the name can never leave the UI-test prefix.
+  public static func uiTestsName(isolated: String?) -> String {
+    let clean = (isolated ?? "").filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+    return clean.isEmpty ? uiTestsName : uiTestsName + "." + clean
+  }
+
   /// Clears the UI-test suite so a test starts from 09's defaults (Q-020). Refuses every other suite: the
   /// owner's real settings can never be cleared through this path.
   public static func resetUITests(named suiteName: String) -> Bool {
-    guard suiteName == uiTestsName, let defaults = UserDefaults(suiteName: suiteName) else { return false }
+    guard suiteName == uiTestsName || suiteName.hasPrefix(uiTestsName + "."),
+          let defaults = UserDefaults(suiteName: suiteName) else { return false }
     defaults.removePersistentDomain(forName: suiteName)
     return true
   }

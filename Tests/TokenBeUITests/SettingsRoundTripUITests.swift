@@ -5,7 +5,7 @@ import XCTest
 /// changed through the UI and its 09 key is written (`app.settings_changed`); a relaunch shows the new values; `Reset
 /// all settings…` (destructive confirm) logs `app.settings_reset` and every control shows its 09 default again, live.
 /// The keys `makeApp` pins by launch argument (log level, onboarding, fixture mode) are left alone: the argument domain
-/// would hide a reset. Each tab's other controls have their own suites (General, Sources, Alerts, Privacy, Advanced).
+/// would hide a reset. The test runs in a settings suite of its own, so its Reset leaves the shared one alone. Each tab's other controls have their own suites (General, Sources, Alerts, Privacy, Advanced).
 final class SettingsRoundTripUITests: XCTestCase {
   private var root: URL!
 
@@ -20,10 +20,19 @@ final class SettingsRoundTripUITests: XCTestCase {
     }
   }
 
+  /// A settings suite of its own (`TOKENBE_TEST_SETTINGS_SUITE`), cleared at the first launch: Reset must not wipe
+  /// the shared UI-test suite, whose values later checks read (PM-1.2-2, Q-059).
+  @MainActor
+  private func launch(resetFirst: Bool) -> XCUIApplication {
+    let app = makeApp(root: root, resetSettings: resetFirst)
+    app.launchEnvironment["TOKENBE_TEST_SETTINGS_SUITE"] = "roundtrip"
+    app.launch()
+    return app
+  }
+
   @MainActor
   func testEveryTabRoundTripsAndResets() throws {
-    let app = makeApp(root: root)
-    app.launch()
+    let app = launch(resetFirst: true)
     try openSettings(app)
 
     // One control per tab, each written to its 09 key.
@@ -49,8 +58,7 @@ final class SettingsRoundTripUITests: XCTestCase {
     XCTAssertTrue(quitThroughPopover(app), "the app quits")
 
     // A relaunch shows what was written.
-    let again = makeApp(root: root)
-    again.launch()
+    let again = launch(resetFirst: false)
     try openSettings(again)
     try selectTab(again, "Privacy")
     XCTAssertEqual(toggleValue(control(again, "settings.privacy.checkForUpdates")), checks == "true",

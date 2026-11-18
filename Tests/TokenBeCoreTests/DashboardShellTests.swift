@@ -116,5 +116,11 @@ import Testing
     #expect(!SettingsSuite.resetUITests(named: SettingsSuite.name))
     #expect(!SettingsSuite.resetUITests(named: "dev.bathyon.tokenbe.other"))
     #expect(!SettingsSuite.resetUITests(named: ""))
+    // 9.5 (Q-059): a test's own suite stays under the UI-test prefix, whatever it is given.
+    #expect(SettingsSuite.uiTestsName(isolated: "roundtrip") == "dev.bathyon.tokenbe.uitests.roundtrip")
+    #expect(SettingsSuite.uiTestsName(isolated: nil) == SettingsSuite.uiTestsName)
+    #expect(SettingsSuite.uiTestsName(isolated: "../x y") == "dev.bathyon.tokenbe.uitests.xy")
+    #expect(SettingsSuite.uiTestsName(isolated: "") == SettingsSuite.uiTestsName)
+    #expect(!SettingsSuite.resetUITests(named: "dev.bathyon.tokenbe.uitestsX"), "the prefix needs its dot")
   }
 }

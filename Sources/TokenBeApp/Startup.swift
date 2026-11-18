@@ -21,7 +21,8 @@ final class Startup {
         return Paths(
           support: base.appendingPathComponent("Application Support/TokenBe", isDirectory: true),
           logs: base.appendingPathComponent("Logs/TokenBe", isDirectory: true),
-          settingsSuite: SettingsSuite.uiTestsName, testRoot: base
+          settingsSuite: SettingsSuite.uiTestsName(isolated: ProcessInfo.processInfo.environment[testSettingsSuiteVariable]),
+          testRoot: base
         )
       }
       #endif
@@ -37,6 +38,9 @@ final class Startup {
   nonisolated static let testResetSettingsVariable = "TOKENBE_TEST_RESET_SETTINGS"
   /// Debug-only, with `TOKENBE_TEST_ROOT`: fixture cases for `FixtureTransport`, `openai/projects=401` (Q-030).
   nonisolated static let testFixtureCasesVariable = "TOKENBE_TEST_FIXTURE_CASES"
+  /// Debug-only, with `TOKENBE_TEST_ROOT`: a name of its own under the UI-test suite, so a test that resets every
+  /// setting (E2E-6) leaves the shared suite's values to the suites that read them (PM-1.2-2, Q-059).
+  nonisolated static let testSettingsSuiteVariable = "TOKENBE_TEST_SETTINGS_SUITE"
   /// `1`: the scheduler sees a Mac that stays offline (DEBUG, test root only; the Offline UI test, Q-036).
   nonisolated static let testOfflineVariable = "TOKENBE_TEST_OFFLINE"
 
