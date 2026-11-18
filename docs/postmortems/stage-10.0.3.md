@@ -1,5 +1,5 @@
 # Postmortem — Stage 10.0.3 Migration 002: the provider list
-Date: 2026-11-18 · Branch: s10.0.3-migration-002 · PR: #47 · Planned size: M · Commits: 2
+Date: 2026-11-18 · Branch: s10.0.3-migration-002 · PR: #47 · Planned size: M · Commits: 3
 
 ## Outcome
 The database now accepts accounts for Moonshot, Novita, StepFun, SiliconFlow and DeepInfra (Q-062).
@@ -35,7 +35,7 @@ Nothing visible changes. D1–D13 are met; the soak runs, so the verify ran with
 ## Verify and CI failures
 - **Dry run of 2.1, 9.2 and 10.0.3:** green. The first draft of 10.0.3.sh called 2.1.sh's `ddl_matches`, which doesn't exist in another stage's subshell, so that line was removed; 2.1.sh still checks 001 byte for byte.
 - **Local coverage gate:** 9985/10290 = 97.04 %. Every new line is covered; Core's margin stays thin (PM-10.0.2-4).
-- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.3`:** result below.
+- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.3`: `STAGE 10.0.3 OK` on its first run.** 1535 checks ok and 127 skipped (UI and soak); the coverage gate passed in its own run; `✔ Test run with 595 tests in 89 suites passed after 4.313 seconds.`.
 
 ## Deviations from the docs
 - **14 § 10.0.3 step 2** said only rebuilding migrations take the FK-off path. Every migration takes it now: one path is the least code, and it is harmless for 001 and for additive files. 14 is corrected.
