@@ -25,7 +25,7 @@ Novita stays out of `Verified` until H6 records it. D1–D13 are met; the soak r
 
 ## Verify and CI failures
 - **Dry run of 3.3, 7.2, 8.2, 10.0.4 and 10.0.5:** one failure, above.
-- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.5`:** result below.
+- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.5`: `STAGE 10.0.5 OK` on its first run.** 1593 checks ok and 131 skipped (UI and soak); the coverage gate passed; `✔ Test run with 616 tests in 91 suites passed after 4.266 seconds.`.
 
 ## Deviations from the docs
 - **The tile grid scrolls.** The plan didn't mention it, but 08's fixed 520×440 window could not hold a third row of tiles, so 08 now says so.
