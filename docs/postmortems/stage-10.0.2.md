@@ -1,5 +1,5 @@
 # Postmortem — Stage 10.0.2 xAI on its Management API
-Date: 2026-11-18 · Branch: s10.0.2-xai-mgmt-api · PR: #45 · Planned size: M · Commits: 3
+Date: 2026-11-18 · Branch: s10.0.2-xai-mgmt-api · PR: #45 · Planned size: M · Commits: 9
 
 ## Outcome
 An xAI account now uses a management key (Q-062, the owner's choice).
@@ -53,6 +53,8 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
   - **Final fix:** `XAIUsageRequest.json()` now writes its fixed-shape body directly. Its only variables are two date stamps, so no encoder and no `catch` are left. Local coverage is 9974/10274 = 97.08 %, and 97.01 % even at the observed variance.
   - **The one-line attempt:** the third sweep caught that lint violation (`FAIL 0.1 swiftlint --strict`). My lint step before it had gated on `grep "Done linting"`, which also prints when violations are found. Gate on `wait.sh`'s exit code instead (PM-10.0.2-5).
   - **Margin:** under 0.1 %. Each new adapter must test every failure branch (PM-10.0.2-4).
+
+- **Final sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.2`: `STAGE 10.0.2 OK`**, with the coverage gate passing in its own run.
 
 ## Deviations from the docs
 - **14 § Stage 10.0.2 step 2** said the cost job ran "like OpenAI's cost". OpenAI's cost is daily-only. xAI's cost now runs on the keys period through `Job.scheduled`, and 04 is updated.
