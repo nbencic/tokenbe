@@ -129,4 +129,34 @@ import Testing
                                                                missing.path + ".zip"])
     }
   }
+
+  @Test("a tool that cannot start throws; a failed export leaves no staging folder and no zip")
+  func failures() async throws {
+    let missingTool = URL(fileURLWithPath: "/usr/bin/tokenbe-no-such-tool")
+    await #expect(throws: (any Error).self) { try await DiagnosticsBundle.run(missingTool, []) }
+    let fixture = try await Fixture()
+    let nowhere = fixture.harness.temp.url.appendingPathComponent("no-folder/TokenBe-diagnostics.zip")
+    let scratch = fixture.harness.temp.url.appendingPathComponent("scratch", isDirectory: true)
+    try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+    await #expect(throws: (any Error).self) {
+      try await DiagnosticsBundle.export(store: fixture.repository, inputs: fixture.inputs(), to: nowhere, flush: {},
+                                         scratch: scratch)
+    }
+    #expect(try FileManager.default.contentsOfDirectory(atPath: scratch.path) == [],
+            "the staging folder is removed after a failure")
+    #expect(!FileManager.default.fileExists(atPath: nowhere.path))
+    #expect(await fixture.harness.records(.appDiagnosticsExported).isEmpty)
+  }
+
+  @Test("values: last_raw that is not text is Base64, NULL columns are null, settings keep their JSON types")
+  func values() throws {
+    let row = PollStateRecord(accountId: "a", job: "usage", lastAttemptAt: nil, lastSuccessAt: nil, lastErrorClass: nil,
+                              lastErrorMessage: nil, consecutiveFailures: 2, circuitOpenUntil: nil, cursor: nil,
+                              lastRaw: Data([0xFF, 0xFE]))
+    let object = DiagnosticsBundle.pollState(row)
+    #expect(object["last_raw"] as? String == "//4=" && object["cursor"] is NSNull)
+    #expect(object["consecutive_failures"] as? Int64 == 2)
+    #expect(DiagnosticsBundle.any(.double(1.5)) as? Double == 1.5 && DiagnosticsBundle.any(.null) is NSNull)
+    #expect(DiagnosticsBundle.any(.int(3)) as? Int == 3 && DiagnosticsBundle.any(.bool(true)) as? Bool == true)
+  }
 }

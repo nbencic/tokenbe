@@ -32,17 +32,24 @@ The files are zipped with `ditto -c -k --sequesterRsrc` (D-ditto-zip). The bundl
    - **Symptom:** the first test build failed: "parameter of noncopyable type 'Mutex<Bool>?' must specify ownership".
    - **Fix:** a small `Sendable` class holds the flag.
    - **Cost:** one build.
-2. **One shell command was refused by the harness's safety check.**
+2. **The coverage gate fell to 96.89 %.**
+   - **Symptom:** CI (63e7559) and full verify 1 failed 0.5's gate: Core lines 96.89 % / 96.94 % < 97 % (Q-035). `DiagnosticsBundle.swift` was at 82 %.
+   - **Root cause:** the tests covered the paths that succeed, but not the failure paths (a tool that can't start, a move that fails and the staging cleanup after it) or the non-text and null branches. Core was already near the floor (97.0x %), so about 30 untested lines in a new file were enough to sink it.
+   - **Fix:** `DiagnosticsBundleTests.failures` and `values`. To keep the cleanup assertion free of races with parallel tests, `export` takes an internal `scratch` folder, and the test owns that folder. The gate now reads 97.11 %.
+   - **Cost:** one CI run and one full verify.
+   - **Lesson:** run `scripts/coverage-gate.sh 97` after `swift test --enable-code-coverage` before the first full verify of a stage that adds a Core file. A new file with untested error paths can sink the gate from 97.1 %.
+3. **One shell command was refused by the harness's safety check.**
    - **Symptom:** an `rm -f $D/*.dry.sh` cleanup with an unguarded variable was refused. The whole command didn't run, including writing 9.3.sh.
    - **Fix:** the script was written with the editor, and the cleanup uses `"${D:?}"`.
    - **Cost:** one retry, no lost work.
 
 ## Verify and CI failures
-- **Core and lint:** 25 tests in the touched suites passed (after What went wrong 1). Lint was clean on the first run.
+- **Core and lint:** 25 tests in the touched suites passed (after What went wrong 1). Lint was clean on the first run. One extra run: the first cleanup assertion raced parallel tests over the shared temp folder, fixed by the `scratch` parameter.
 - **Stage-script dry run** (9.3's static checks and 9.2's rewritten 1.3 check): every check passed.
 - **UI, targeted:** AdvancedMaintenanceUITests passed, 3 tests in 1 min 26 s.
-- **Full verify:** see the PR body. Q-047 selected 6 suites; no shared file changed.
-- **CI:** the head that carries this file is checked by SHA before the merge.
+- **Full verify 1** (Q-047 selected 6 suites; no shared file changed): FAIL 0.5, the coverage gate (What went wrong 2). All 8 UI tests passed in 6 min 34 s, and 574 Core tests passed.
+- **Full verify 2:** see the PR body.
+- **CI:** red on 63e7559 (the coverage gate, What went wrong 2); the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
 - **07 § Diagnostics bundle** leaves the time zone of the file name open; it is UTC. Its `settings.json` covers the per-provider keys too (Q-057).

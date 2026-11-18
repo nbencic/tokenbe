@@ -69,12 +69,12 @@ public enum DiagnosticsBundle {
   public static func export(
     store: any DiagnosticsRepository, inputs: DiagnosticsInputs, to url: URL, now: Date = Date(),
     redactor: Redactor = Log.redactor, flush: @Sendable () async -> Void = { await Log.current?.drain() },
-    log: EventLog = EventLog()
+    log: EventLog = EventLog(), scratch: URL = FileManager.default.temporaryDirectory
   ) async throws -> DiagnosticsResult {
     await flush()
     let snapshot = try await store.diagnosticsSnapshot()
     let manager = FileManager.default
-    let work = manager.temporaryDirectory.appendingPathComponent("tokenbe-diagnostics-\(UUID().uuidString)")
+    let work = scratch.appendingPathComponent("tokenbe-diagnostics-\(UUID().uuidString)")
     let staging = work.appendingPathComponent("bundle", isDirectory: true)
     do {
       try manager.createDirectory(at: staging, withIntermediateDirectories: true)
