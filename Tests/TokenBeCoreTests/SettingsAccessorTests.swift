@@ -133,7 +133,7 @@ import Testing
 @MainActor @Suite struct SettingsFallbackTests {
   @Test("bool/int/double/string/strings of a key of another type read as false, 0, 0, empty")
   func fallbacks() {
-    let settings = Settings(store: InMemorySettingsStore())
+    let settings = Settings(store: InMemorySettingsStore(), logPipeline: LogPipeline(sinks: [], version: "test"))
     #expect(settings.bool(.pollBalanceIntervalS) == false)
     #expect(settings.int(.uiAppearance) == 0)
     #expect(settings.double(.uiAppearance) == 0)
