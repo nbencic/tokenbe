@@ -1,0 +1,75 @@
+# Postmortem — Stage 9.5 Reset, cleanups, environment audits
+Date: 2026-11-18 · Branch: s9.5-reset-audits · PR: #43 · Planned size: S · Commits: 4
+
+## Outcome
+Every remaining 09 behaviour and 04's startup sequence are verified end to end:
+- **Reset all settings…** is Advanced's last row. After a destructive confirm it runs `Settings.resetAll`, which removes every `tb.*` key except `tb.ui.onboardingDone`, re-registers the defaults, reaches every live consumer and logs `app.settings_reset`. Keys, the database and logs are untouched.
+- **A time-zone change while running (O-14)** resets Foundation's zone and logs `sched.clock_jump {tz: true, reason: timezone}`. The schedule is rebased with no extra polls, and the log file turns over at local midnight in the new zone.
+- **Sleep and wake** stay wired from 4.1.
+- **9.5.sh audits 04.** It launches the Debug app twice on a throwaway root and asserts each launch's 8 startup steps in 04's order, step 1's fields, and zero error or fault records.
+- **PM-0.2-3:** `check-log-events.sh --from-tests` now requires every event to be produced in a test.
+- **E2E-6** (SettingsRoundTripUITests) changes one control per tab, relaunches, and resets.
+
+D1–D13 are met. This stage closes phase 9 (`phase-9.md`), and the H5 soak starts here (owner; see `phase-9.md` § Gates and risks).
+
+## What went as planned
+- **The advisor's review settled the design before code:**
+  - check that Reset reaches the live consumers (every one subscribes to `settings.changes`, and `resetAll` publishes every key);
+  - lower the test pipeline to debug for `ingest.duplicate`;
+  - look for zone caches beyond the sink (none: quiet hours and dates read `.current` at call time);
+  - avoid the keys `makeApp` pins in E2E-6;
+  - audit step 1's fields, not only the order;
+  - work out how the soak and the verifies share this Mac.
+- **Each test passed on its first run:** the time-zone and `ingest.duplicate` tests (16 tests in 2 suites), the launch audit run on its own, and `SettingsRoundTripUITests` (1 min 15 s).
+- **PM-9.3-2's routine held** before the first verify:
+  - the coverage gate (97.12 %);
+  - a grep of the stage scripts for globs over the folders this stage writes into (only 7.1.sh's per-suite `ui-covers` loop, which the new suites satisfy);
+  - a full dry run of 9.5.sh.
+- **Carry-forwards closed:** PM-8.3-1 (the last guard), PM-1.2-4, PM-0.2-3, PM-8.1-3 and PM-7.3-5. PM-5.4-2 is re-targeted to 11.5, after the soak (Q-059).
+
+## What went wrong
+1. **`Startup`'s class body went past 250 lines.**
+   - **Symptom:** the time-zone watcher pushed the body to 256 lines (`type_body_length`).
+   - **Fix:** the three system watchers moved to `Startup.systemWatchers(_:)` in an extension. 4.1.sh's literal checks still find them in the file.
+   - **Cost:** one lint run.
+2. **A dry-run script broke on its own filtering.**
+   - **Symptom:** dropping the `suite_passed` lines left a stray `done`.
+   - **Fix:** a stub instead of a filter.
+   - **Cost:** one rerun; 9.5.sh itself was fine (`bash -n`).
+
+## Verify and CI failures
+- **Core and lint:** 583 Core tests in 87 suites passed; coverage 97.12 %; lint clean after What went wrong 1.
+- **Launch audit run alone:** both launches, the order, step 1's fields and no error or fault records, all passing.
+- **UI, targeted:** SettingsRoundTripUITests passed on its first run.
+- **Guard sweep** (`TB_UI_TESTS=0 verify 9.5`): `STAGE 9.5 OK` on the first run, with 1 516 checks passed.
+- **Full verify:** see the PR body. `Startup.swift` is a shared file, so Q-047 selects every suite.
+- **CI:** the head that carries this file is checked by SHA before the merge.
+
+## Deviations from the docs
+- **07 `sched.clock_jump`:** the `reason` gains `timezone` (O-14); 07 is updated in this PR.
+- **O-14 "recompute today boundaries":** "today" for spend is the UTC day (Q-040) and does not move. Only the local-time days move: log rotation and quiet hours (Q-059).
+- **The audit's step list:** 9 lines per launch. 04's 8 steps, plus `login item` between ingest and the scheduler (Q-023).
+- **14 § Stage 9.5:** the Inventory now lists the files, and the Tests line the cases.
+
+## Judgment calls
+- Q-059 covers the rules the docs leave open:
+  - the Reset dialog's text;
+  - AppKit's window state, which is kept (PM-1.2-4);
+  - the time-zone handling;
+  - the audit;
+  - `--from-tests` and its four exemptions;
+  - the per-process once-a-day logs (PM-8.1-3);
+  - the test-root key note (PM-7.3-5);
+  - E2E-6's scope.
+
+## Carry-forward actions
+- PM-9.5-1 · Nikola · 11.5 · H5: the 14-day soak, set up as described in `phase-9.md` § Gates and risks; its findings go into the phase-11 postmortem (14 § 0.6 rule 5).
+- Earlier actions that targeted 9.5:
+  - closed:
+    - PM-8.3-1 (stage-8.3, phase-8);
+    - PM-1.2-4 (stage-1.2);
+    - PM-0.2-3 (stage-0.2);
+    - PM-8.1-3 (stage-8.1);
+    - PM-7.3-5 (stage-7.3);
+  - re-targeted: PM-5.4-2 → 11.5 (stage-5.4: judged on the soak's data).
+- Still open: see `phase-9.md` § Open carry-forward actions.
