@@ -28,14 +28,20 @@ E2E-7 (ExportImportUITests) runs export, wipe and import in the real app: every 
    - **Fix:** the export writes `…` + the last 4 characters, the only part TokenBe reads (Q-056). `ExportImportTests.document` asserts no `sk-` and no `FIXTURE` in the file.
    - **Cost:** found before the first test run. The database itself still stores the provider's value (PM-9.2-1).
 2. **`err.desc` of a refusal was empty of meaning.** `LogError` takes `localizedDescription`, which is generic for a plain Swift error. **Fix:** `ImportRefusal` is a `LocalizedError`, so the record reads `ImportRefusal.not_empty` / `not_empty`. Caught while writing the test, before it ran.
-3. **Four lint violations on the first lint run.** These were a `String(decoding:)` conversion, an import function with complexity 11, `Strings` past 250 lines, and an extra blank line after moving the strings. **Fix:** the JSON is assembled as `Data`; the inserts became `insert(_:db:)`; the new copy went into its own `extension Strings`. Two lint reruns, before the first commit.
+3. **The `No data yet` gate behaved differently on the two compilers.**
+   - **Symptom:** CI (Xcode 16.4, Swift 6.1) failed `ExportImportTests.roundTrip`: Remaining was `nil` after the import and 5 000 before. Locally (Swift 6.4) it passed. On CI the imported account had never been polled, so the builder held its Remaining back, as 08's `No data yet` requires; locally it computed one.
+   - **Root cause:** `AccountSummaryBuilder`'s gate was `(summary.freshness[.usage] ?? nil) != nil || …` over `[Job: Date?]`. On 6.4, `state.lastSuccessAt.flatMap(DBTime.date)` stores a never-polled job as a nil entry (a probe showed the function reference keeps the entry; a closure removes it), and inside Core's `||` chain `?? nil` kept the double optional, so `.some(nil) != nil` held. The same expression in the test module evaluated false. The bug predates this stage: an app built on this Mac showed Remaining before an account's first poll.
+   - **Fix:** the gate flattens explicitly (`freshness[$0].flatMap { $0 } != nil`, 53ed6aa). `roundTrip` now asserts `nil` before the imported account's first poll, then identical Remaining after it.
+   - **Cost:** two CI runs (the first red, the second added diagnostics) and one local probe of the expression. It needs one more full verify, because `Core/Ledger` selects more UI suites.
+4. **Four lint violations on the first lint run.** These were a `String(decoding:)` conversion, an import function with complexity 11, `Strings` past 250 lines, and an extra blank line after moving the strings. **Fix:** the JSON is assembled as `Data`; the inserts became `insert(_:db:)`; the new copy went into its own `extension Strings`. Two lint reruns, before the first commit.
 
 ## Verify and CI failures
 - **Core and lint:** 34 tests in the touched suites passed on the first run. Lint was clean after What went wrong 3.
 - **Stage-script dry run** (9.2's static checks, 1.3 with its new guard list, 2.2's checks on `AdvancedTab.swift`): every check passed. One FAIL, 2.2's row order, was an artifact of the dry run copying the check without its function; run directly, it passes (rows 98 < 101).
 - **UI, targeted:** ExportImportUITests and AdvancedMaintenanceUITests passed, 3 tests in 3 min 10 s.
-- **Full verify** (Q-047 selected 6 suites: LaunchSmoke, PopoverEmptyState, AdvancedMaintenance, DailyRunNow, ExportImport, SettingsGeneral): `STAGE 9.2 OK` on the first run, with 1 457 checks passed and 23 printing `skip` (the unselected suites' checks and 3.6's H2 check). 7 UI tests passed with 0 failures in 6 min 35 s, and 569 Core tests in 85 suites passed. Disk had 86 GiB free, and the screen was unlocked.
-- **CI:** the head that carries this file is checked by SHA before the merge.
+- **Full verify 1** (Q-047 selected 6 suites: LaunchSmoke, PopoverEmptyState, AdvancedMaintenance, DailyRunNow, ExportImport, SettingsGeneral): `STAGE 9.2 OK` on the first run, with 1 457 checks passed and 23 printing `skip` (the unselected suites' checks and 3.6's H2 check). 7 UI tests passed with 0 failures in 6 min 35 s, and 569 Core tests in 85 suites passed. Disk had 86 GiB free, and the screen was unlocked. It ran before the gate fix, and the Swift 6.4 build let the round trip pass.
+- **Full verify 2** (after 53ed6aa): see the PR body.
+- **CI:** red twice on `ExportImportTests.roundTrip`: e2711ed, then 977f356 with diagnostics (What went wrong 3). Green from 53ed6aa; the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
 - **03 § Durability** (Q-056), with 03 updated in this PR:
