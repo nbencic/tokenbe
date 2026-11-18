@@ -25,7 +25,7 @@ Moonshot stays out of `Verified` until H6 records it, so Release hides it; the D
 
 ## Verify and CI failures
 - **Dry run of 3.3, 6.1, 6.2, 7.2, 8.2 and 10.0.4:** only the 3.3 failure above. 8.2.sh's exact-text grep was updated beforehand for the new cache-savings line (PM-7.3-2).
-- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.4`:** result below.
+- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.4`: `STAGE 10.0.4 OK` on its first run.** 1566 checks ok and 129 skipped (UI and soak); the coverage gate passed; `✔ Test run with 607 tests in 90 suites passed after 4.328 seconds.`.
 
 ## Deviations from the docs
 - **14 § 10.0.4 step 2** planned the host from the currency with "no new column". `PollContext` gained a `currency` field, defaulting to `USD` and filled by the poller from `account.currency`; it is not a database column.
