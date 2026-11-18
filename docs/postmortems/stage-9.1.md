@@ -1,5 +1,5 @@
 # Postmortem — Stage 9.1 Retention roll-ups
-Date: 2026-11-18 · Branch: s9.1-retention-rollups · PR: #39 · Planned size: M · Commits: 7
+Date: 2026-11-18 · Branch: s9.1-retention-rollups · PR: #39 · Planned size: M · Commits: 8
 
 ## Outcome
 03 § Retention tiers runs in the daily activity as the `roll-ups` step, between the model drift and the price refresh (04):
@@ -74,6 +74,7 @@ Totals stay exact in every reader: Spend, burn, `spend_since_anchor`, By app, By
   - first and last balance snapshots;
   - purged harness lines (PM-7.2-1);
   - UTC-day cut-offs and the shape of the `db.rollup` record;
+  - dedup after the purge with a raw window shorter than the hourly window (accepted);
   - the two steppers.
 
 ## Carry-forward actions
