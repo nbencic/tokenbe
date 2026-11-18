@@ -59,5 +59,5 @@ D1–D13 are met. UI tests compile (`build-uitest`) but did not run: the owner c
   - append the H3 addendum here.
 - PM-6.1-2 · agent · 6.2 · Run the full UI suite once (Q-041, the owner's choice for phase 6). If it fits in that run, add a DeepSeek onboarding pass in fixture mode: tile → key → `Direct`/`CNY` → card without `≈`. Status: closed in Stage 6.2 (`DirectBalanceUITests`).
 - PM-6.1-3 · agent · 7.2 · Once harness rows give a DeepSeek account spend, check that `burn_7d`, runway and the band follow, and that D-deepseek-single-app's inferred attribution uses the balance deltas from `balance_snapshot`.
-- PM-6.1-4 · agent · 9.1 · `balance_snapshot` gets a row per currency every 60 s (about 1,440 a day per currency). 03's retention keeps 7 days at full rate, then the first snapshot of each day; `thinBalanceSnapshots` lands with 9.1.
+- PM-6.1-4 · agent · 9.1 · **closed (Stage 9.1, 5280fee: `thinBalanceSnapshots` keeps each day's first and last snapshot, Q-055)** · `balance_snapshot` gets a row per currency every 60 s (about 1,440 a day per currency). 03's retention keeps 7 days at full rate, then the first snapshot of each day; `thinBalanceSnapshots` lands with 9.1.
 - **Earlier actions that targeted this stage:** PM-3.4-4 closed (`Repository+Balance`, `Poller`'s `insertBalanceSnapshots`; status edited in `stage-3.4.md`).
