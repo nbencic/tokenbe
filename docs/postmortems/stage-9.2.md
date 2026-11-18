@@ -1,5 +1,5 @@
 # Postmortem — Stage 9.2 JSON export/import & CSV (all tables)
-Date: 2026-11-18 · Branch: s9.2-export-import · PR: #40 · Planned size: M · Commits: 4
+Date: 2026-11-18 · Branch: s9.2-export-import · PR: #40 · Planned size: M · Commits: 5
 
 ## Outcome
 03 § Durability's export and import are in Settings → Advanced, after `Back up now` (08):
@@ -34,7 +34,7 @@ E2E-7 (ExportImportUITests) runs export, wipe and import in the real app: every 
 - **Core and lint:** 34 tests in the touched suites passed on the first run. Lint was clean after What went wrong 3.
 - **Stage-script dry run** (9.2's static checks, 1.3 with its new guard list, 2.2's checks on `AdvancedTab.swift`): every check passed. One FAIL, 2.2's row order, was an artifact of the dry run copying the check without its function; run directly, it passes (rows 98 < 101).
 - **UI, targeted:** ExportImportUITests and AdvancedMaintenanceUITests passed, 3 tests in 3 min 10 s.
-- **Full verify:** see the PR body (Q-047 selected 6 suites).
+- **Full verify** (Q-047 selected 6 suites: LaunchSmoke, PopoverEmptyState, AdvancedMaintenance, DailyRunNow, ExportImport, SettingsGeneral): `STAGE 9.2 OK` on the first run, with 1 457 checks passed and 23 printing `skip` (the unselected suites' checks and 3.6's H2 check). 7 UI tests passed with 0 failures in 6 min 35 s, and 569 Core tests in 85 suites passed. Disk had 86 GiB free, and the screen was unlocked.
 - **CI:** the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
