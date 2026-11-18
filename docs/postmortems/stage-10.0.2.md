@@ -37,7 +37,7 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
   - `api.x.ai/v1` matched source URLs in `prices.bundled.json`. Now `--include='*.swift'`.
   - The forbidden-path grep matched the ledger's top-ups. Now only path-shaped literals, plus a check that only `XAIClient.swift` names the management host.
 - **First cumulative sweep (`TB_UI_TESTS=0 TB_SOAK=1`): `FAIL 0.5 check-no-secrets.sh`.**
-  - **Cause:** the branch name `s10.0.2-xai-management`, in this postmortem's header, matches the xAI key pattern (`xai-` + 8 letters).
+  - **Cause:** the first branch name (`s10.0.2-xai-` followed by `management`, written apart here), in this postmortem’s header, matches the xAI key pattern (`xai-` + 8 letters).
   - **Fix:** the branch was renamed on GitHub (the PR follows) and locally to `s10.0.2-xai-mgmt-api`.
   - **Lesson:** a branch slug must not start a key-shaped run (`xai-`, `sk-`) of 8 or more letters.
 - **Second sweep:** result below.
