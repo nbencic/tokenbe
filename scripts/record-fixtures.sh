@@ -3,7 +3,8 @@
 # the agent never runs it with keys (H2/H3, CLAUDE.md). Keys come from the environment only; this script never
 # reads .env and never puts a key on a command line (curl reads the auth header from stdin).
 #
-#   scripts/record-fixtures.sh <provider>         record openai|anthropic|openrouter|deepseek|xai
+#   scripts/record-fixtures.sh <provider>         record openai|anthropic|openrouter|deepseek|xai|moonshot|novita|
+#                                                 stepfun|siliconflow|deepinfra (the last three before any adapter, H6)
 #   scripts/record-fixtures.sh --verify-redacted [dir]   no key-shaped string under dir (default Tests/Fixtures)
 #   scripts/record-fixtures.sh --self-test        offline: redact a canned body with fake keys, check the result
 #   scripts/record-fixtures.sh --help
@@ -30,6 +31,11 @@ Environment variable per provider (the key is read from it, never from .env or t
   openrouter  OPENROUTER_MANAGEMENT_KEY   Management (provisioning) key
   deepseek    DEEPSEEK_API_KEY            Standard key
   xai         XAI_MANAGEMENT_KEY          Management key (console.x.ai → Settings → Management Keys; Q-062)
+  moonshot    MOONSHOT_API_KEY            Standard key (platform.kimi.ai or platform.kimi.com)
+  novita      NOVITA_API_KEY              Standard key (novita.ai → Settings → Key Management)
+  stepfun     STEPFUN_API_KEY             Standard key (platform.stepfun.com or platform.stepfun.ai)
+  siliconflow SILICONFLOW_API_KEY         Standard key (cloud.siliconflow.com or cloud.siliconflow.cn)
+  deepinfra   DEEPINFRA_API_KEY           Standard key (deepinfra.com → Dashboard → API keys)
 
 Writes Tests/Fixtures/providers/<provider>/*.recorded.json and RECORDED, then runs --verify-redacted on them.
 Review the files, then commit them with Verified.swift updated (13 § D-verified-providers).
@@ -201,7 +207,9 @@ record() {
   local provider="$1" var now
   case "$provider" in
     openai) var=OPENAI_ADMIN_KEY ;; anthropic) var=ANTHROPIC_ADMIN_KEY ;; openrouter) var=OPENROUTER_MANAGEMENT_KEY ;;
-    deepseek) var=DEEPSEEK_API_KEY ;; xai) var=XAI_MANAGEMENT_KEY ;;
+    deepseek) var=DEEPSEEK_API_KEY ;; xai) var=XAI_MANAGEMENT_KEY ;; moonshot) var=MOONSHOT_API_KEY ;;
+    novita) var=NOVITA_API_KEY ;; stepfun) var=STEPFUN_API_KEY ;; siliconflow) var=SILICONFLOW_API_KEY ;;
+    deepinfra) var=DEEPINFRA_API_KEY ;;
     *) usage; exit 2 ;;
   esac
   KEY_VALUE="${!var:-}"
@@ -260,11 +268,42 @@ record() {
       POST_ARGS=()
       fetch xai prepaid_balance "$base/v1/billing/teams/$team/prepaid/balance" Authorization "Bearer " || return 1
       ;;
+    # 02 § moonshot/§ novita and the H6 providers (Q-062): one GET each. A key works on its own region only, so a 401
+    # on the international host tries the China host, recorded under <endpoint>_cn.
+    moonshot)
+      fetch moonshot balance "https://api.moonshot.ai/v1/users/me/balance" Authorization "Bearer " || return 1
+      if [[ "$LAST_STATUS" == 401 ]]; then
+        fetch moonshot balance_cn "https://api.moonshot.cn/v1/users/me/balance" Authorization "Bearer " || return 1
+      fi
+      ;;
+    novita)
+      fetch novita balance "https://api.novita.ai/openapi/v1/billing/balance/detail" Authorization "Bearer " || return 1
+      ;;
+    stepfun)
+      fetch stepfun accounts "https://api.stepfun.ai/v1/accounts" Authorization "Bearer " || return 1
+      if [[ "$LAST_STATUS" == 401 ]]; then
+        fetch stepfun accounts_cn "https://api.stepfun.com/v1/accounts" Authorization "Bearer " || return 1
+      fi
+      ;;
+    siliconflow)
+      fetch siliconflow user_info "https://api.siliconflow.com/v1/user/info" Authorization "Bearer " || return 1
+      if [[ "$LAST_STATUS" == 401 ]]; then
+        fetch siliconflow user_info_cn "https://api.siliconflow.cn/v1/user/info" Authorization "Bearer " || return 1
+      fi
+      ;;
+    deepinfra)
+      # Whether an inference key may read /payment/usage is the open question (02 § deepinfra): record its answer.
+      fetch deepinfra me "https://api.deepinfra.com/v1/me?checklist=true" Authorization "Bearer " || return 1
+      fetch deepinfra payment_usage "https://api.deepinfra.com/payment/usage?from=current" Authorization "Bearer " || return 1
+      ;;
   esac
   printf '%s\nrecorded by scripts/record-fixtures.sh %s\n' "$(date -u +%F)" "$provider" > "$FIXTURES/$provider/RECORDED"
   unset KEY_VALUE
   if verify_redacted "$FIXTURES/$provider"; then
-    echo "Done. Review $FIXTURES/$provider, add $provider to Verified.swift, then commit."
+    case "$provider" in
+      stepfun|siliconflow|deepinfra) echo "Done. Review $FIXTURES/$provider and commit; the agent builds its adapter from it (H6)." ;;
+      *) echo "Done. Review $FIXTURES/$provider, add $provider to Verified.swift, then commit." ;;
+    esac
   else
     echo "record-fixtures: a key-shaped string survived redaction in $FIXTURES/$provider. Do NOT commit; fix and re-run."
     return 1
