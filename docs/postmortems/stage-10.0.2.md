@@ -40,7 +40,16 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
   - **Cause:** the first branch name (`s10.0.2-xai-` followed by `management`, written apart here), in this postmortem’s header, matches the xAI key pattern (`xai-` + 8 letters).
   - **Fix:** the branch was renamed on GitHub (the PR follows) and locally to `s10.0.2-xai-mgmt-api`.
   - **Lesson:** a branch slug must not start a key-shaped run (`xai-`, `sk-`) of 8 or more letters.
-- **Second sweep:** result below.
+- **Second sweep: `STAGE 10.0.2 OK`.**
+  - 1510 ok and 125 skip, the skips from UI and the soak.
+  - `swift test` 589 tests in 87 suites; `swiftlint --strict` 0 violations.
+- **Local coverage gate (PM-9.3-2, run before CI): `FAIL 9974/10284 = 96.99 % < 97 %`.**
+  - **Causes:** two lines were never run.
+    - The new POST helper's bad-URL `throw`: splitting the `guard` across lines left that `throw` on a line of its own, and nothing tested it.
+    - `XAIUsageRequest.json()`'s unreachable encode `catch`.
+  - **Fix:** a `BearerRequestTests` case for a relative path, and the unreachable `catch` kept on one line.
+  - **Result:** 9976/10281 = 97.03 %, and a third sweep after the fix.
+  - **Margin:** under 0.1 %. Each new adapter must test every failure branch (PM-10.0.2-4).
 
 ## Deviations from the docs
 - **14 § Stage 10.0.2 step 2** said the cost job ran "like OpenAI's cost". OpenAI's cost is daily-only. xAI's cost now runs on the keys period through `Job.scheduled`, and 04 is updated.
@@ -55,4 +64,5 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
 - PM-10.0.2-1 · agent · 11.5 (after the soak) · Run `SidebarAccountsUITests`, `OnboardingUITests` and `DirectBalanceUITests` with UI on. SidebarAccounts onboards xAI in fixture mode, which now shows step 3's anchor field. Caption and Lag-help copy changed.
 - PM-10.0.2-2 · Nikola · H6 · Record xAI with `XAI_MANAGEMENT_KEY` (`scripts/record-fixtures.sh xai`): validation, usage and prepaid balance. Then 02's `[expected]` marks are checked, and whether xAI turns direct is decided from `total`.
 - PM-10.0.2-3 · Nikola · after merge · Remove the soak's xAI account with `−`, rebuild the soak copy, then add xAI from `+` with a management key and an anchor.
+- PM-10.0.2-4 · agent · 10.0.3–10.0.5 · Core coverage is at 97.03 %. Every new adapter and migration branch gets a test, and the local coverage gate runs before the first sweep.
 - Earlier actions that target this stage: none.

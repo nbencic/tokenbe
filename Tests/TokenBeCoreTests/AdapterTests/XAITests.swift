@@ -228,3 +228,17 @@ import Testing
     #expect(XAIAdapter.day("yesterday") == nil)
   }
 }
+
+/// `BearerRequest` (DeepSeek, xAI): a path that is not absolute cannot form a URL and fails as a provider rule, before
+/// any request.
+@Suite struct BearerRequestTests {
+  @Test("a relative path fails as <provider>_bad_url without sending")
+  func badURL() async throws {
+    let transport = StubTransport()
+    await #expect(throws: PollError.providerRule("xai_bad_url no-slash")) {
+      try await BearerRequest.post(BearerRequest.Target(host: "management-api.x.ai", path: "no-slash", provider: .xai),
+                                   key: "k", json: Data(), transport: transport)
+    }
+    #expect(await transport.calls.isEmpty)
+  }
+}

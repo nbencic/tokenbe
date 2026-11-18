@@ -116,10 +116,7 @@ struct XAIUsageRequest: Encodable, Equatable {
   func json() throws(PollError) -> Data {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
-    do {
-      return try encoder.encode(self)
-    } catch {
-      throw .providerRule("xai_usage_request_unencodable")
-    }
+    // Plain strings and arrays always encode; the catch only satisfies the typed throw (R5: no `try?`).
+    do { return try encoder.encode(self) } catch { throw .providerRule("xai_usage_request_unencodable") }
   }
 }
