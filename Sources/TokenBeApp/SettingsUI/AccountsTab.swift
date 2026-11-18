@@ -158,13 +158,8 @@ private struct AccountDetail: View {
       .padding(24)
       .frame(width: OnboardingSheet.size.width, height: 320)
     }
-    .confirmationDialog(Strings.removeAccountQuestion(record.label), isPresented: $confirmingRemove) {
-      Button(Strings.remove, role: .destructive) { remove() }
-        .accessibilityIdentifier("settings.accounts.confirmRemove")
-      Button(Strings.cancel, role: .cancel) {}
-    } message: {
-      Text(Strings.removeAccountDetail)
-    }
+    .removeAccountConfirm(record, isPresented: $confirmingRemove, model: model, environment: environment,
+                          view: "settings.accounts")
   }
 
   /// The minute-cadence jobs this account runs (its capabilities, and a 09 interval for its provider).
@@ -251,8 +246,35 @@ private struct AccountDetail: View {
     }
   }
 
+  private func report(_ error: any Error, _ msg: String) {
+    Log.error(.uiError, cat: .ui, msg: msg, acct: record.provider, err: error, ctx: ["view": "settings.accounts"])
+  }
+}
+
+/// `Remove account…`'s destructive confirm and its action (08: deletes the Keychain item and the account's rows),
+/// shared by Settings → Accounts and the Dashboard sidebar's `−` (14 § Stage 10.0.1, Q-060), so the copy and the
+/// removal exist once. `removed` runs after the account is gone (the sidebar then selects Overview).
+struct RemoveAccountConfirm: ViewModifier {
+  let record: AccountRecord?
+  @Binding var isPresented: Bool
+  let model: AppModel
+  let environment: AppEnvironment?
+  /// `ui.error`'s `view`: where the confirm was opened.
+  let view: String
+  let removed: @MainActor () -> Void
+
+  func body(content: Content) -> some View {
+    content.confirmationDialog(Strings.removeAccountQuestion(record?.label ?? ""), isPresented: $isPresented) {
+      Button(Strings.remove, role: .destructive) { remove() }
+        .accessibilityIdentifier("settings.accounts.confirmRemove")
+      Button(Strings.cancel, role: .cancel) {}
+    } message: {
+      Text(Strings.removeAccountDetail)
+    }
+  }
+
   private func remove() {
-    guard let lifecycle = environment.lifecycle else { return }
+    guard let record, let environment, let lifecycle = environment.lifecycle else { return }
     let coordinator = environment.coordinator
     Task {
       // Its polls stop first, so none reads the key while it is being deleted (Q-034).
@@ -260,14 +282,22 @@ private struct AccountDetail: View {
       do {
         try await lifecycle.remove(record, settings: environment.settings)
         model.missingKeys.remove(record.keychainRef)
+        removed()
       } catch {
-        report(error, "account not removed")
+        Log.error(.uiError, cat: .ui, msg: "account not removed", acct: record.provider, err: error,
+                  ctx: ["view": .string(view)])
       }
     }
   }
+}
 
-  private func report(_ error: any Error, _ msg: String) {
-    Log.error(.uiError, cat: .ui, msg: msg, acct: record.provider, err: error, ctx: ["view": "settings.accounts"])
+extension View {
+  /// `Remove account…`'s confirm for `record` (`RemoveAccountConfirm`).
+  func removeAccountConfirm(_ record: AccountRecord?, isPresented: Binding<Bool>, model: AppModel,
+                            environment: AppEnvironment?, view: String,
+                            removed: @escaping @MainActor () -> Void = {}) -> some View {
+    modifier(RemoveAccountConfirm(record: record, isPresented: isPresented, model: model, environment: environment,
+                                  view: view, removed: removed))
   }
 }
 
