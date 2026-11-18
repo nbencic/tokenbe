@@ -191,7 +191,7 @@ import Testing
     await env.answerOK()
     await env.start()
     await env.settled(next: 300)
-    let settings = Settings(store: InMemorySettingsStore())
+    let settings = Settings(store: InMemorySettingsStore(), logPipeline: LogPipeline(sinks: [], version: "test"))
     let follower = env.coordinator.follow(settings)
     settings.pollUsageIntervalOpenAIS = 60
     await env.settled(next: 60)

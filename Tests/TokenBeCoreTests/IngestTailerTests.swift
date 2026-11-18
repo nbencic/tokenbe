@@ -127,6 +127,7 @@ import Testing
   @Test("dedup: the same request again is a duplicate; with different usage, a conflict, and the first wins")
   func dedupAndConflict() async throws {
     let harness = try await IngestHarness()
+    harness.store.pipeline.minimumLevel = .debug  // `ingest.duplicate` is a debug record (07)
     await harness.service.start(expectFolder: false)
     try harness.write(IngestHarness.line("r1"), to: "a.jsonl")
     try harness.write(IngestHarness.line("r1") + IngestHarness.line("r1", prompt: 5), to: "b.jsonl")
@@ -134,6 +135,8 @@ import Testing
     #expect(try await harness.count("SELECT count(*) FROM harness_event") == 1)
     #expect(try await harness.count("SELECT sum(requests) FROM usage_bucket") == 1, "a duplicate changes no bucket")
     #expect(try await harness.file("b.jsonl")?.linesDup == 2)
+    let duplicate = try #require(await harness.records(.ingestDuplicate).first)
+    #expect(duplicate.lvl == .debug && duplicate.ctx["request_id"] == "r1")
     let conflict = try #require(await harness.records(.ingestDuplicateConflict).first)
     #expect(conflict.lvl == .warn && conflict.ctx["request_id"] == "r1")
     #expect(try await harness.count("""

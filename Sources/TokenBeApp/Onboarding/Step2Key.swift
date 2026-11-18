@@ -51,6 +51,12 @@ struct Step2Key: View {
             .font(.caption)
             .foregroundStyle(Color(.healthLow))
             .accessibilityIdentifier("onboarding.prefixMessage")
+        } else if let plainText = Self.testRootKeyFile {
+          // PM-7.3-5: under a DEBUG test root the key goes to a plain-text file, not the Keychain; say so.
+          Text(Strings.testRootKeyNote(plainText.path))
+            .font(.caption)
+            .foregroundStyle(Color(.healthLow))
+            .accessibilityIdentifier("onboarding.testRootKeyNote")
         } else {
           Text(Strings.keychainNote)
             .font(.caption)
@@ -104,5 +110,15 @@ struct Step2Key: View {
       message = result
       if result == nil { key = "" }
     }
+  }
+
+  /// DEBUG under `TOKENBE_TEST_ROOT`: where `FileKeyStore` keeps keys in plain text (Q-030, PM-7.3-5); nil otherwise.
+  static var testRootKeyFile: URL? {
+    #if DEBUG
+    guard let root = ProcessInfo.processInfo.environment[Startup.testRootVariable], !root.isEmpty else { return nil }
+    return URL(fileURLWithPath: root).appendingPathComponent(FileKeyStore.fileName)
+    #else
+    return nil
+    #endif
   }
 }

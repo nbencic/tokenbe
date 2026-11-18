@@ -6,7 +6,7 @@ import TokenBeCore
 /// `Last daily run` (14 § Stage 4.3, 09 `tb.daily.lastRunAt`); `Run integrity check now` and `Back up now`
 /// (14 § Stage 2.2); the price feed URL (09 `tb.price.feedURL`, 14 § Stage 5.1); the retention days of hourly buckets
 /// and raw harness events (09 `tb.retention.*`, 14 § Stage 9.1); the data export and import rows (`DataTransferRows`,
-/// 14 § Stage 9.2). The settings reset arrives in 9.5.
+/// 14 § Stage 9.2); `Reset all settings…` last (`ResetSettingsButton`, 14 § Stage 9.5).
 struct AdvancedTab: View {
   @Bindable var settings: TokenBeCore.Settings
   let logsDirectory: URL
@@ -55,6 +55,9 @@ struct AdvancedTab: View {
           DatabaseMaintenanceRows(settings: settings, repository: repository)
           DataTransferRows(repository: repository)
         }
+      }
+      Section {
+        ResetSettingsButton(settings: settings)
       }
     }
     .formStyle(.grouped)

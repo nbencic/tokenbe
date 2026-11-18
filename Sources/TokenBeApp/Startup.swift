@@ -21,7 +21,8 @@ final class Startup {
         return Paths(
           support: base.appendingPathComponent("Application Support/TokenBe", isDirectory: true),
           logs: base.appendingPathComponent("Logs/TokenBe", isDirectory: true),
-          settingsSuite: SettingsSuite.uiTestsName, testRoot: base
+          settingsSuite: SettingsSuite.uiTestsName(isolated: ProcessInfo.processInfo.environment[testSettingsSuiteVariable]),
+          testRoot: base
         )
       }
       #endif
@@ -37,6 +38,9 @@ final class Startup {
   nonisolated static let testResetSettingsVariable = "TOKENBE_TEST_RESET_SETTINGS"
   /// Debug-only, with `TOKENBE_TEST_ROOT`: fixture cases for `FixtureTransport`, `openai/projects=401` (Q-030).
   nonisolated static let testFixtureCasesVariable = "TOKENBE_TEST_FIXTURE_CASES"
+  /// Debug-only, with `TOKENBE_TEST_ROOT`: a name of its own under the UI-test suite, so a test that resets every
+  /// setting (E2E-6) leaves the shared suite's values to the suites that read them (PM-1.2-2, Q-059).
+  nonisolated static let testSettingsSuiteVariable = "TOKENBE_TEST_SETTINGS_SUITE"
   /// `1`: the scheduler sees a Mac that stays offline (DEBUG, test root only; the Offline UI test, Q-036).
   nonisolated static let testOfflineVariable = "TOKENBE_TEST_OFFLINE"
 
@@ -257,19 +261,7 @@ final class Startup {
     self.environment = environment
     await coordinator.follow(repository.observeSummaryInputs())
     await coordinator.follow(networkMonitor())
-    schedulerWatchers = [
-      coordinator.follow(settings),
-      Task {
-        for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
-          await coordinator.setLowPower(ProcessInfo.processInfo.isLowPowerModeEnabled)
-        }
-      },
-      Task {
-        for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
-          await coordinator.systemDidWake()
-        }
-      }
-    ]
+    schedulerWatchers = [coordinator.follow(settings)] + Self.systemWatchers(coordinator)
     await coordinator.start()
   }
 
@@ -341,5 +333,30 @@ extension Startup {
     } catch {
       Log.error(.uiError, cat: .ui, msg: "band states not loaded", err: error, ctx: ["view": "startup"])
     }
+  }
+}
+
+extension Startup {
+  /// The system events the scheduler follows (04 § Scheduler): Low Power transitions, wake, and a time-zone change
+  /// (O-14), for which Foundation's cached zone is dropped first, so local-time days follow it.
+  static func systemWatchers(_ coordinator: PollCoordinator<ContinuousClock>) -> [Task<Void, Never>] {
+    [
+      Task {
+        for await _ in NotificationCenter.default.notifications(named: .NSProcessInfoPowerStateDidChange) {
+          await coordinator.setLowPower(ProcessInfo.processInfo.isLowPowerModeEnabled)
+        }
+      },
+      Task {
+        for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
+          await coordinator.systemDidWake()
+        }
+      },
+      Task {
+        for await _ in NotificationCenter.default.notifications(named: .NSSystemTimeZoneDidChange) {
+          NSTimeZone.resetSystemTimeZone()
+          await coordinator.timeZoneDidChange()
+        }
+      }
+    ]
   }
 }

@@ -71,7 +71,7 @@ import Testing
     let lifecycle = Self.lifecycle(env, keyStore: keys)
     let account = try await lifecycle.create(.openai, label: "Work", key: env.key,
                                              probe: await lifecycle.probe(.openai, key: env.key))
-    let settings = Settings(store: InMemorySettingsStore())
+    let settings = Settings(store: InMemorySettingsStore(), logPipeline: LogPipeline(sinks: [], version: "test"))
     settings.setPopoverExpanded(.openai, true)
     settings.setSnoozedUntil(.openai, 99)
     try await lifecycle.remove(account, settings: settings)

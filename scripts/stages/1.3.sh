@@ -27,14 +27,9 @@ check "ui.hotkey_failed emitted" grep -qF "uiHotkeyFailed" Sources/TokenBeApp/Ho
 check "app.login_item_failed emitted" grep -qF "appLoginItemFailed" Sources/TokenBeCore/Settings/LoginItem.swift
 check "check-log-events.sh (14 Verify)" scripts/check-log-events.sh
 
-# A control appears only with its action (D6): later tabs and rows arrive with their stages.
-# Accounts arrived in 3.5, Sources in 4.1 (4.1.sh checks it), Alerts in 5.3 (5.3.sh checks it).
-# "integrity" and "Back up" arrived in 2.2; the data rows `Export data (JSON)…`, `Import…` and `Export CSV (all
-# tables)…` in 9.2 (9.2.sh checks them), `Export diagnostics…` in 9.3, `Check for updates daily` in 9.4 (9.3.sh and
-# 9.4.sh check them; PM-8.3-1).
-for later in "Reset all"; do
-  check "Settings tabs have no '$later' yet" bash -c "! grep -rqF '$later' Sources/TokenBeApp/SettingsUI"
-done
+# A control appears only with its action (D6). Every later Settings control has arrived: integrity and backup (2.2),
+# the data rows (9.2), `Export diagnostics…` (9.3), `Check for updates daily` (9.4) and `Reset all settings…` (9.5),
+# each checked by its stage's script (PM-8.3-1).
 
 for suite in ShortcutTests LoginItemControllerTests AccountOrderTests SettingSpecBoundsTests; do
   check "suite $suite passed" suite_passed "$suite"

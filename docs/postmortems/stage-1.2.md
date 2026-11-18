@@ -76,7 +76,7 @@ DoD D1–D4, D6 and D8–D11 are met; D12 is met by PR #7's green CI; D13 is met
 ## Carry-forward actions
 - PM-1.2-1 · agent · every stage with UI copy · Before verify, grep the source for every string the stage's D6 checks forbid; comments count. Name future controls generically in comments ("the refresh button"). Status: open (process).
 - PM-1.2-2 · agent · every stage with UI tests · Each UI test that needs clean settings resets them itself; a test whose state a stage check reads must run last or be the only one that writes that key. Status: open (process).
-- PM-1.2-4 · agent · 9.5 (reset, environment audits) · `Reset all settings…` should decide whether AppKit's window state in the standard domain (split widths) is reset too; Q-020 records that it lives there. Status: open.
+- PM-1.2-4 · agent · 9.5 (reset, environment audits) · `Reset all settings…` should decide whether AppKit's window state in the standard domain (split widths) is reset too; Q-020 records that it lives there. Status: closed (Stage 9.5, Q-059: only `tb.*` keys are reset; AppKit's window state stays).
 - PM-1.2-5 · agent · every stage that adds a stage check · Helpers or snapshots used by more than one stage script live in `verify-stage.sh`; stage scripts run in subshells. Keep the Mac awake during verify with `caffeinate -dims` bound to the verify process. Status: open (process).
 - PM-1.2-3 · agent · every stage that adds async tests · Before verify, loop the full parallel suite (≥ 50 runs, `swift test --skip-build`) and fix any flake. A new async test must wait on conditions with `eventually` or `TestClock.waitUntil`, never a fixed yield count. Status: open (process).
 - Earlier open actions, unchanged by this stage:
