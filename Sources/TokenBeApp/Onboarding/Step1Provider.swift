@@ -69,7 +69,7 @@ struct Step1Provider: View {
     case .openai: Strings.captionOpenAI
     case .anthropic: Strings.captionAnthropic
     case .openrouter, .xai: Strings.captionOpenRouter
-    case .deepseek: Strings.captionBalanceOnly
+    case .deepseek, .moonshot: Strings.captionBalanceOnly
     }
   }
 }

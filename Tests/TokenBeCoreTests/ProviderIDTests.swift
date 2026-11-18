@@ -43,8 +43,9 @@ import Testing
 
   @Test("display names and order follow 08's onboarding tiles; raw values follow 03's CHECK")
   func names() {
-    #expect(ProviderID.allCases.map(\.displayName) == ["OpenAI", "Anthropic", "OpenRouter", "DeepSeek", "xAI"])
-    #expect(ProviderID.allCases.map(\.rawValue) == ["openai", "anthropic", "openrouter", "deepseek", "xai"])
+    #expect(ProviderID.allCases.map(\.displayName)
+      == ["OpenAI", "Anthropic", "OpenRouter", "DeepSeek", "xAI", "Moonshot"])
+    #expect(ProviderID.allCases.map(\.rawValue) == ["openai", "anthropic", "openrouter", "deepseek", "xai", "moonshot"])
   }
 }
 

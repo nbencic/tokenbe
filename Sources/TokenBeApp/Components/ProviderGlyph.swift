@@ -24,6 +24,7 @@ struct ProviderGlyph: View {
     case .openrouter: "R"
     case .deepseek: "D"
     case .xai: "X"
+    case .moonshot: "K"
     }
   }
 }

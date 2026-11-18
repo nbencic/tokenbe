@@ -74,7 +74,8 @@ A unit test feeds each pattern plus a real-shaped fake key and asserts no sink o
 | `poll.circuit_open` / `poll.circuit_close` | warn/info | acct, job, until |
 | `poll.schema_drift` | error | acct, job, missing_keys, sample (≤512 chars redacted) |
 | `poll.unknown_keys` | info | acct, job, keys (once per day) |
-| `poll.provider_rule` | warn | acct, job, rule (e.g. `anthropic_requires_org`, `deepseek_no_usage_api`; `xai_usage_limit_reached` when xAI's usage answer is partial, `xai_key_has_no_team` when an xAI management key names no team; Q-062) |
+| `poll.region_fallback` | debug | acct, job, from_host, to_host, status — the probe's expected 401 on a provider's other region before it tries the next (Moonshot, 02; Q-062) |
+| `poll.provider_rule` | warn | acct, job, rule (e.g. `anthropic_requires_org`, `deepseek_no_usage_api`; `xai_usage_limit_reached` when xAI's usage answer is partial, `xai_key_has_no_team` when an xAI management key names no team; `moonshot_status_not_ok` when Moonshot's body says `status: false` or `code ≠ 0`; Q-062) |
 | `poll.write_incomplete` | error | acct, job, expected, written — V2: a usage page's stored rows do not add up to its results; the page is rolled back (Q-029) |
 | `normalize.negative` | warn | provider, field, value |
 | `normalize.failed` | error | provider, missing_key, request_id? |

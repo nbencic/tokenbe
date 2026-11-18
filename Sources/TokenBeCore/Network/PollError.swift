@@ -72,14 +72,8 @@ extension PollError {
   public func humanMessage(provider: ProviderID) -> String {
     let name = provider.displayName
     switch self {
-    case .auth(let status, _) where provider == .openai:
-      return status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope
-    case .auth where provider == .deepseek:
-      return CoreStrings.DeepSeek.keyRejected
-    case .auth where provider == .xai:
-      return CoreStrings.XAI.keyRejected
     case .auth(let status, _):
-      return CoreStrings.unexpectedStatus(name, status: status)
+      return Self.keyRefused(provider, status: status)
     case .rateLimited: return CoreStrings.rateLimited(name)
     case .server(let status, _): return CoreStrings.serverError(name, status: status)
     case .transport, .cancelled: return CoreStrings.unreachable(name)
@@ -87,6 +81,17 @@ extension PollError {
       guard rule.hasPrefix("http "), let status = Int(rule.dropFirst(5)) else { return CoreStrings.unexpectedResponse(name) }
       return CoreStrings.unexpectedStatus(name, status: status)
     case .decode, .schemaDrift: return CoreStrings.unexpectedResponse(name)
+    }
+  }
+
+  /// 02's message for a refused key (401/403), per provider; the status where 02 names none.
+  static func keyRefused(_ provider: ProviderID, status: Int) -> String {
+    switch provider {
+    case .openai: status == 401 ? CoreStrings.OpenAI.notAdminKey : CoreStrings.OpenAI.missingScope
+    case .deepseek: CoreStrings.DeepSeek.keyRejected
+    case .xai: CoreStrings.XAI.keyRejected
+    case .moonshot: CoreStrings.Moonshot.keyRejected
+    case .anthropic, .openrouter: CoreStrings.unexpectedStatus(provider.displayName, status: status)
     }
   }
 }
