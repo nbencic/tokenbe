@@ -763,3 +763,23 @@ Options and choices (each the least code; none adds a dependency, screen, settin
 - **Remaining of an imported account.** Its `poll_state` rows are fresh, so until its first poll the card reads `No data yet` (08) and Remaining is withheld, as for a new account. The first poll follows at once (the coordinator observes the new account), and then Remaining is the exported one. This exposed a compiler-dependent gate in `AccountSummaryBuilder`, fixed in this stage (stage-9.2.md, What went wrong 3).
 - **Panels and tests.** The three rows follow `Back up now` in 08's order and report through the maintenance sheet (`Export saved` / `Export failed` / `Import complete` / `Import failed`, with the rows and the path). The panels are app-modal (`runModal`). A DEBUG UI test under `TOKENBE_TEST_ROOT` sets `TOKENBE_TEST_EXPORT_DIR`: the rows then save under the suggested name in that folder and import its newest `.json`, with no panel, so a test never writes into the owner's folders (as Q-053).
 Blocking: no
+
+
+## Q-057 Stage 9.3: diagnostics bundle rules the docs leave open            (2026-11-18)
+Context: 14 § Stage 9.3, 07 § Diagnostics bundle, D-ditto-zip, 04 § Retry; `Export/DiagnosticsBundle.swift`, `Store/Repository+Diagnostics.swift`, `SettingsUI/DiagnosticsExportButton.swift`.
+Options and choices (each the least code; none adds a dependency, screen or setting):
+- **File name.** 07's `TokenBe-diagnostics-YYYYMMDD-HHMMSS.zip` gives no time zone. Chosen: UTC, like every timestamp in the database and logs. `DBTime.fileStamp` writes a different shape (`…T…Z`), so it isn't reused.
+- **Logs.** The last 3 are the newest by (day, rotation index), from NDJSONSink's own file-name rule (now an internal static), so `-10` sorts after `-2` and crash files or strays never count. They are copied as written: each record was redacted before it was written. The pipeline is drained first (`Log.current?.drain()`), so the newest file holds the records up to the click.
+- **Each file.**
+  - `breadcrumbs.ndjson`: the in-memory ring (500 records, every level), one record per line; records are sanitized before they enter the ring.
+  - `settings.json`: every `tb.*` key with its value in effect (the registered default when unset), the per-provider keys included.
+  - `schema.sql`: the stored `CREATE` statements from `sqlite_master`, tables first, `sqlite_*` excluded.
+  - `db-stats.json`: rows per table, `size_bytes` (the main file; not the WAL), `page_count`, `page_size`, `freelist_count`.
+  - `poll_state.json`: every column; `last_raw` as UTF-8 text (Base64 if it isn't text).
+  - `price-overrides.json`: model, JSON, time.
+  - `environment.json`: `macos`, `app_version`, `low_power`, `locale`, `timezone`, plus `exported_at`.
+  - The JSON files are pretty-printed with sorted keys. Everything TokenBe writes into the bundle passes the Redactor once more, so even a `last_raw` stored unredacted shows the marker.
+- **Zip.** Staged in a fresh temporary folder, zipped with exactly `ditto -c -k --sequesterRsrc` (a probe showed no `__MACOSX` entries for these plain files), then moved into place. An existing file of that name, from the panel's Replace, is removed first. The staging folder is removed on success and on failure; a failed removal logs `ui.error`. A failure is thrown, the button logs `ui.error`, and the sheet shows it. 07 has no diagnostics-failure event.
+- **UI.** `Export diagnostics…` sits between `Log retention` and `Open log folder` (08's order), in its own view so `AdvancedTab.swift` keeps its two `ui.error`s (2.2.sh). The save panel offers `.zip`, and Q-056's `TOKENBE_TEST_EXPORT_DIR` stands in for it in UI tests. The sheet reads `Diagnostics saved` / `<N> files, <size>` / the path, or `Diagnostics export failed` with the error.
+- **04's decode badge.** 04 § Retry says three decode failures in a row show "Provider changed its response · Copy diagnostics" on the account. 08 gives it no place, and no stage of 14 schedules it, so it is not built here. PM-9.3-1 (11.3) decides where it sits and what "Copy diagnostics" copies. The likely answer: the failing job's redacted `last_raw` on the pasteboard.
+Blocking: no

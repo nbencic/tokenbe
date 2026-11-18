@@ -657,8 +657,8 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ### Stage 9.3 — Diagnostics bundle
 **Goal:** `07 § Diagnostics bundle`. **Depends on:** 9.2. **Adds:** Advanced → `Export diagnostics…` (zip via `/usr/bin/ditto -c -k --sequesterRsrc`, D-ditto-zip). **Size:** S.
-**Inventory** — Files: `Export/DiagnosticsBundle.swift`. Events: `app.diagnostics_exported`.
-**Tests:** `DiagnosticsBundleTests` (contents list exact; `poll_state.last_raw` redacted; no DB file; SEC-1 grep).
+**Inventory** — Files: `Export/DiagnosticsBundle.swift`, `Store/Repository+Diagnostics.swift` (`DiagnosticsSnapshot`, `DiagnosticsRepository`), `Store/Repository.swift`, `Logging/NDJSONSink.swift` (the shared file-name rule), `Settings/Settings+Accessors.swift` (`diagnosticsValues`), `SettingsUI/{DiagnosticsExportButton,AdvancedTab}.swift`, `Strings.swift`, `scripts/stages/9.3.sh`. Events: `app.diagnostics_exported`.
+**Tests:** `DiagnosticsBundleTests` (contents list exact; `poll_state.last_raw` redacted; no DB file; SEC-1 grep), `TokenBeUITests/AdvancedMaintenanceUITests` (`Export diagnostics…`).
 **Stage DoD:** D1–D12.
 
 ### Stage 9.4 — Update check
