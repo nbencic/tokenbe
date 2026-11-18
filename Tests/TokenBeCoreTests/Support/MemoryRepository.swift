@@ -50,6 +50,13 @@ actor MemoryRepository: Repository {
 
   func quickCheck() async throws -> IntegrityResult { IntegrityResult(result: "ok", corruptCopy: nil) }
 
+  func rollupHourly(accountID: String, before: String) async throws -> RollupCount { RollupCount(tier: "hourly") }
+  func rollupMonthly(accountID: String, before: String) async throws -> RollupCount { RollupCount(tier: "monthly") }
+  func purgeHarnessEvents(before: String) async throws -> RollupCount { RollupCount(tier: "harness_event") }
+  func thinBalanceSnapshots(accountID: String, before: String) async throws -> RollupCount {
+    RollupCount(tier: "balance_snapshot")
+  }
+
   func incrementalVacuum() async throws -> Int {
     vacuums += 1
     return 0

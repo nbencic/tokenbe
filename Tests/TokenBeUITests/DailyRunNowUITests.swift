@@ -48,6 +48,7 @@ final class DailyRunNowUITests: XCTestCase {
     }
     XCTAssertEqual(order, ["sched.daily_start", "poll.ok cost", "db.backup", "db.vacuum", "sched.daily_end"])
     XCTAssertFalse(daily.contains("db.integrity_check"), "the weekly check waits for the 7th run")
+    XCTAssertEqual(daily.filter { $0 == "db.rollup" }.count, 4, "the roll-ups step logs its four tiers (9.1)")
     XCTAssertTrue(FileManager.default.fileExists(
       atPath: root.appendingPathComponent("Application Support/TokenBe/tokenbe.sqlite.bak").path), "backup written")
 

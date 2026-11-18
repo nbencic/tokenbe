@@ -3,7 +3,8 @@ import XCTest
 // ui-covers: Sources/TokenBeApp/SettingsUI/AdvancedTab.swift Sources/TokenBeApp/SettingsUI/SettingsView.swift
 // ui-covers: Sources/TokenBeCore/Store/Integrity.swift Sources/TokenBeCore/Store/Database.swift
 /// 14 § Stage 2.2 Tests: Settings → Advanced → `Run integrity check now` reports `ok`; `Back up now` writes
-/// `tokenbe.sqlite.bak` and reports its size, time and path. Everything happens under a throwaway
+/// `tokenbe.sqlite.bak` and reports its size, time and path. 14 § Stage 9.1: the two retention steppers write their
+/// 09 keys a day at a time. Everything happens under a throwaway
 /// `TOKENBE_TEST_ROOT` (Q-014, Q-025), never in the owner's support folder. Settings are not reset, so the values
 /// earlier stages' checks read survive (PM-1.2-2); the `tb.db.*` writes are asserted from the app's log (Q-025).
 final class AdvancedMaintenanceUITests: XCTestCase {
@@ -69,7 +70,56 @@ final class AdvancedMaintenanceUITests: XCTestCase {
     XCTAssertEqual(failures, [], "no error or fault records")
   }
 
+  /// 14 § Stage 9.1 (D4, D6): `Hourly detail kept for N days` and `Raw harness events kept for N days` step their 09
+  /// keys by one day. Each steps back, so the shared settings domain keeps its value for later suites (PM-7.1-3).
+  @MainActor
+  func testRetentionSteppers() throws {
+    let app = makeApp(root: root)
+    app.launch()
+    try openAdvanced(app)
+    for (id, copy, key) in [("settings.advanced.hourlyRetention", "Hourly detail kept for", "tb.retention.hourlyDays"),
+                            ("settings.advanced.rawHarnessRetention", "Raw harness events kept for",
+                             "tb.retention.rawHarnessDays")] {
+      let stepper = app.steppers[id].firstMatch
+      XCTAssertTrue(stepper.waitForExistence(timeout: 5), "\(id) exists")
+      XCTAssertTrue(app.staticTexts[copy].exists, "the row reads \(copy)")
+      stepper.incrementArrows.firstMatch.click()
+      XCTAssertTrue(waitFor { self.changes(key).count == 1 }, "+1 day writes \(key)")
+      stepper.decrementArrows.firstMatch.click()
+      XCTAssertTrue(waitFor { self.changes(key).count == 2 }, "-1 day writes \(key) again")
+      let steps = changes(key)
+      XCTAssertEqual(steps[0]["new"] as? Int, (steps[0]["old"] as? Int).map { $0 + 1 }, "one day up")
+      XCTAssertEqual(steps[1]["new"] as? Int, steps[0]["old"] as? Int, "and back")
+    }
+    let general = app.toolbars.buttons["General"].exists ? app.toolbars.buttons["General"] : app.buttons["General"]
+    general.click()
+    XCTAssertTrue(quitThroughPopover(app), "the app quits")
+  }
+
   // MARK: - Helpers
+
+  /// The ctx of every `app.settings_changed` record for `key`, in log order.
+  private func changes(_ key: String) -> [[String: Any]] {
+    do {
+      return try logLines().compactMap { line in
+        guard line.contains("\"evt\":\"app.settings_changed\""), line.contains("\"key\":\"\(key)\""),
+              let object = try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { return nil }
+        return object["ctx"] as? [String: Any]
+      }
+    } catch {
+      XCTFail("log unreadable: \(error)")
+      return []
+    }
+  }
+
+  private func waitFor(timeout: TimeInterval = 15, _ condition: () -> Bool) -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+      if condition() { return true }
+      RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+    }
+    return condition()
+  }
 
   private func control(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
     app.descendants(matching: .any).matching(identifier: identifier).firstMatch

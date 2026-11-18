@@ -644,9 +644,9 @@ Date: YYYY-MM-DD · Stages: <ids with PR numbers>
 
 ### Stage 9.1 — Retention roll-ups
 **Goal:** `03 § Retention tiers` in the daily activity. **Depends on:** 8.4. **Adds:** Advanced → retention controls (`Hourly detail kept for N days`, `Raw harness events kept for N days`). **Size:** M.
-**Steps:** `Store/Rollup.swift` (hourly→daily with `source='rollup'`; daily→monthly after 400 d; `harness_event` purge after roll-up; `balance_snapshot` thinning; idempotent on PKs; `db.rollup {tier, rows_in, rows_out}`), registered at the `roll-ups` position of the daily order.
-**Inventory** — Settings: `tb.retention.hourlyDays`, `tb.retention.rawHarnessDays`. Events: `db.rollup`.
-**Tests:** `RetentionTests` (Σ cents and Σ tokens preserved exactly; idempotence; purge after roll-up only).
+**Steps:** `Store/Rollup.swift` (hourly→daily with `source='rollup'`, harness rows keeping `harness`; daily→monthly after 400 d; `harness_event` purge after roll-up; `balance_snapshot` thinning; idempotent on PKs; `db.rollup {tier, rows_in, rows_out}`), registered at the `roll-ups` position of the daily order.
+**Inventory** — Files: `Store/Rollup.swift` (`RetentionPolicy`, `RollupCount`, `RetentionRepository`, `Rollup`), `Store/Repository.swift` (composes it), `Store/Observation.swift`, `Ledger/{Attribution,Drift}.swift` (usage reads skip `1mo`), `Ledger/CacheSavings.swift` (Anthropic counts `rollup`, PM-8.2-4), `Ledger/Attribution+Harness.swift` (a purged harness day, PM-7.2-1), `DailyActivityRegistration.swift` (the `roll-ups` step), `SettingsUI/AdvancedTab.swift`, `Strings.swift`, `scripts/stages/9.1.sh`. Settings: `tb.retention.hourlyDays`, `tb.retention.rawHarnessDays`. Events: `db.rollup`.
+**Tests:** `RetentionTests` (Σ cents and Σ tokens preserved exactly; idempotence; purge after roll-up only; thinning; readers skip `1mo`), `CacheSavingsTests` (roll-up rows), `AttributionTests` (purged lines), `TokenBeUITests/AdvancedMaintenanceUITests` (the two steppers).
 **Stage DoD:** D1–D12.
 
 ### Stage 9.2 — JSON export/import & CSV (all tables)

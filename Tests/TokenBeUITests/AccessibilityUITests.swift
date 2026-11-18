@@ -93,8 +93,10 @@ final class AccessibilityUITests: XCTestCase {
 
   /// XCTest's accessibility audit, the scriptable part of the Accessibility Inspector pass (Q-054). It fails on every
   /// issue except those that belong to system chrome: an unlabelled container (no identifier) that
-  /// `NavigationSplitView` draws as a `Group`, or the `MenuBarExtra` panel, an untitled `Dialog`; contrast on the sidebar's rows and the window title, and a contrast that "nearly
-  /// passed" (secondary text in the system style). Each tolerated issue is logged.
+  /// `NavigationSplitView` draws as a `Group`, or the `MenuBarExtra` panel, an untitled `Dialog`; contrast on the
+  /// sidebar's rows and on any element without an identifier (the window title; wider than it needs to be, 11.3
+  /// narrows it, PM-8.4-2), and a contrast that "nearly passed" (secondary text in the system style). Each tolerated
+  /// issue is logged.
   @MainActor
   private func audit(_ app: XCUIApplication, _ place: String) throws {
     var failed: [String] = []

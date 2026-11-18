@@ -90,6 +90,21 @@ extension AttributionTests {
     #expect(rows.first { $0.appTag == "news" }?.id == "ds//news/harness")
   }
 
+  @Test("purged lines (9.1): a day with harness buckets is never inferred; one app takes it whole, several leave it Unassigned")
+  func purgedLines() {
+    var inputs = Self.deepseekInputs
+    inputs.bindings = [Self.tag("weather", account: "ds")]
+    inputs.harnessDays = []
+    #expect(Attribution.inferredDays(Self.deepseek(), today: Self.today, inputs: inputs) == ["2026-11-08": 100],
+            "11-09's raw lines were purged, but its harness bucket shows it had reports")
+    let rows = Attribution.rows(Self.deepseek(), days: Self.days, today: Self.today, inputs: inputs)
+    #expect(rows.first { $0.appTag == "weather" && $0.kind == .harness }?.spend.cents == 100)
+    #expect(rows.first { $0.appTag == "weather" && $0.kind == .inferred }?.spend.cents == 100)
+    inputs.bindings = [Self.tag("weather", account: "ds"), Self.tag("news", account: "ds")]
+    let shared = Attribution.rows(Self.deepseek(), days: Self.days, today: Self.today, inputs: inputs)
+    #expect(shared.first { $0.appTag == nil && $0.kind == .harness }?.spend.cents == 100, "two apps: the split is gone")
+  }
+
   @Test("inferred: one harness app, no lines and no top-up on a closed day → the balance delta, badge inferred")
   func inferred() {
     var inputs = Self.deepseekInputs

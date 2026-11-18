@@ -94,7 +94,7 @@ D1–D13 are met. Gates H2 and H3 are still open (owner) and do not block.
   - E2E-3's setup.
 
 ## Carry-forward actions
-- PM-7.2-1 · agent · 9.1 · `tb.retention.rawHarnessDays` can be as low as 7, but split and harness weights read `harness_event` over ranges up to 90 days. When 9.1 purges raw events, the split must read rolled-up weights or the By-app table loses its split for older days.
+- PM-7.2-1 · agent · 9.1 · **closed (Stage 9.1, 5280fee: a purged day with harness buckets is never inferred; a single-app account keeps the day; with several apps the split is lost by design, Q-055)** · `tb.retention.rawHarnessDays` can be as low as 7, but split and harness weights read `harness_event` over ranges up to 90 days. When 9.1 purges raw events, the split must read rolled-up weights or the By-app table loses its split for older days.
 - PM-7.2-2 · agent · 7.3 · The drift chip (`DriftChip.swift`) reads `Attribution.harnessDrift`. The `Unassigned` row 7.2 shows for harness days without lines should match 7.3's surfacing.
 - PM-7.2-3 · agent · 10.2 · OpenRouter harness buckets are priced from the book, not `cost_cents` (Q-049); revisit when OpenRouter is verified.
 - PM-7.2-5 · agent · every stage · CI's Swift 6.1 is stricter than the local toolchain in two more ways (PM-7.1-7): no `#require` around a throwing call, and no synchronous read of an actor's `let` from another isolation (mark it `nonisolated`). Push a draft PR as soon as a new module compiles.

@@ -93,7 +93,7 @@ D1–D12 are met. Gates H2 and H3 are still open (owner) and do not block. This 
 
 ## Carry-forward actions
 - PM-8.4-1 · Nikola · 11.3 · Q-054's owner checklist: a VoiceOver pass over the popover, Overview and an account page; macOS Text size (does the popover grow?); Reduce Motion; an Accessibility Inspector audit of the popover, the Dashboard and Settings. Tick the boxes in Q-054. If the system Text size does not reach the popover, decide in 11.3 whether `ScaledFont` should also follow it.
-- PM-8.4-2 · agent · 11.3 · The popover header's `Refreshed …` fails the contrast audit on the header material, while the cards' same style only "nearly" passes. Settle its colour against Paper, then drop its name from AccessibilityUITests' tolerated list.
+- PM-8.4-2 · agent · 11.3 · The popover header's `Refreshed …` fails the contrast audit on the header material, while the cards' same style only "nearly" passes. Settle its colour against Paper, then drop its name from AccessibilityUITests' tolerated list. Widened in 9.1: the audit also tolerates contrast on ANY element without an identifier, which is wider than Q-054's "sidebar rows and window title"; 11.3 narrows that predicate to the window title (or names each element it tolerates).
 - PM-8.4-3 · agent · every stage · A `GridRow` passes its modifiers to each cell: put a row's identifier or accessibility grouping on a cell, never on the `GridRow`. Collect every audit issue before asserting. (Process.)
 - Earlier actions closed here: PM-7.3-3 (18b8290), PM-8.2-1 (18b8290), PM-8.2-2 (18b8290). Their original files are marked.
 - Earlier actions that targeted 8.4: PM-7.3-3, PM-8.2-1, PM-8.2-2 (all closed).

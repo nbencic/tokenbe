@@ -61,7 +61,7 @@ A step that fails is logged (`sched.daily_step_failed`) and retried at the next 
 ## Carry-forward actions
 - PM-4.3-1 · agent · process · Before a full verify, and after any idle gap, run `TB_UI_ONLY=PopoverEmptyStateUITests scripts/run.sh uitest` (~20 s). If it fails on unchanged code, the Mac's state is at fault. Stop and ask the owner instead of bisecting code.
 - PM-4.3-2 · agent · process · Every test that builds a type taking `logPipeline:` passes one. A nil pipeline logs through the global `Log`, which `LogFacadeTests` owns.
-- PM-4.3-3 · agent · 5.1 / 9.1 / 9.4 · Price refresh, roll-ups and the update check register as `DailyStep`s at their 04 positions: after cost polls, roll-ups, then price refresh, then update check, before the backup. Extend `4.3.sh`'s order check when each one arrives.
+- PM-4.3-3 · agent · 5.1 / 9.1 / 9.4 · **closed for 5.1 and 9.1 (5280fee: `roll-ups` after the model drift, in `4.3.sh`'s order check); open for 9.4** · Price refresh, roll-ups and the update check register as `DailyStep`s at their 04 positions: after cost polls, roll-ups, then price refresh, then update check, before the backup. Extend `4.3.sh`'s order check when each one arrives.
 - **Earlier actions that targeted this stage:**
   - PM-4.2-2: closed (451fb19). `Cost · ok · HH:mm` is asserted; no next time (Q-037).
   - Process actions followed: PM-4.2-4 (no identifiers on bare containers), PM-4.2-5 (`DailyRunNowUITests` asserts its own results and reads no shared suite value), PM-4.1-2 (no new timing suite; the runner has no clock waits), PM-3.5-5 (dry-run first).

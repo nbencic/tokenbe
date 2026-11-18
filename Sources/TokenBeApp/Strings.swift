@@ -106,6 +106,9 @@ enum Strings {
   static let logLevelWarn = "Warning"
   static let logLevelError = "Error"
   static let logRetention = "Log retention"
+  /// 14 § Stage 9.1: `Hourly detail kept for N days`, `Raw harness events kept for N days` (the value is `days(_:)`).
+  static let hourlyDetailKeptFor = "Hourly detail kept for"
+  static let rawHarnessEventsKeptFor = "Raw harness events kept for"
   static func days(_ count: Int) -> String { count == 1 ? "1 day" : "\(count) days" }
   static let runIntegrityCheckNow = "Run integrity check now"
   static let backUpNow = "Back up now"

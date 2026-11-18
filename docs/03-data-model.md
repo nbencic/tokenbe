@@ -189,16 +189,16 @@ CREATE TABLE band_state (
 
 | Tier | Rows | Kept | Action after window |
 |---|---|---|---|
-| hourly `usage_bucket` (`1h`, source provider/harness) | per account × model × key × tier | 90 days | summed into `1d` rows with `source='rollup'`, then deleted |
-| `harness_event` | per request | 90 days | contribution is already in `1h`/`1d` buckets (source harness); rows deleted |
-| `balance_snapshot` | per poll | 7 days at full rate; then first snapshot of each day kept forever | others deleted |
-| daily `usage_bucket` (`1d`) | | forever | after 400 days additionally summed into `1mo` rows (kept alongside) |
+| hourly `usage_bucket` (`1h`, source provider/harness) | per account × model × key × tier | `tb.retention.hourlyDays` (default 90) | summed into `1d` rows, then deleted: provider rows with `source='rollup'`; harness rows keep `source='harness'`, so the spend rule (05) still tells them apart. Days that hold an `anchor` ledger event stay hourly (05 `spend_since_anchor` reads the hours after the anchor). Q-055 |
+| `harness_event` | per request | `tb.retention.rawHarnessDays` (default 90) | contribution is already in `1h`/`1d` buckets (source harness); rows deleted, only after the roll-ups succeeded |
+| `balance_snapshot` | per poll | 7 days at full rate; then the first and last snapshot of each UTC day and currency kept forever | others deleted (the last is the day's balance that the 06 deltas read; Q-055) |
+| daily `usage_bucket` (`1d`) | | forever | after 400 days additionally summed into `1mo` rows (kept alongside; whole months only, recomputed from the daily rows; every summary read skips `1mo`) |
 | `cost_bucket` | | forever | never touched |
 | `ledger_event`, `app`, `app_binding`, `provider_key`, `price_override` | | forever | never touched |
 | `price_snapshot` | | current + previous 3 | older deleted |
 | `poll_state.last_raw` | | last success only | overwritten |
 
-Roll-up is idempotent: it is keyed on bucket primary keys; re-running produces identical rows.
+Roll-up is idempotent: it is keyed on bucket primary keys; re-running produces identical rows. Every cut-off is a UTC day boundary. Each roll-up tier is one transaction per account (`12 § R7`) and logs `db.rollup {tier, rows_in, rows_out}` (`07`).
 
 ## Migrations
 
