@@ -28,6 +28,9 @@ final class DailyRunNowUITests: XCTestCase {
   @MainActor
   func testRunDailyTasksNow() throws {
     let app = makeApp(root: root, onboardingDone: false, fixtures: true)
+    // The run number is `tb.daily.runCount` + 1 from the shared test settings domain, which every earlier run of this
+    // test advanced; on every 7th the weekly check ran and the assertion below failed (9.4). Pin it: this is run 1.
+    app.launchArguments += ["-tb.daily.runCount", "0"]
     app.launch()
     try onboard(app)
     XCTAssertTrue(waitFor { self.events().contains("poll.ok usage") }, "the coordinator polls the new account")
