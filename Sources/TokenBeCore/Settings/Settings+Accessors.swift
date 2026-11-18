@@ -266,3 +266,14 @@ extension Settings {
     set { set(.debugFixtureMode, .bool(newValue)) }
   }
 }
+
+extension Settings {
+  /// Every `tb.*` key with the value in effect, the per-provider keys included: the diagnostics bundle's
+  /// `settings.json` (07). No setting holds a secret (R8).
+  public func diagnosticsValues() -> [String: LogValue] {
+    var values: [String: LogValue] = [:]
+    for key in SettingsKey.allCases { values[key.rawValue] = value(key).logValue }
+    for key in TemplatedSettingsKey.allCases { values[key.name] = value(key).logValue }
+    return values
+  }
+}

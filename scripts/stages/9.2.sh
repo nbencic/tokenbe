@@ -37,7 +37,7 @@ rows_order() {
 check "Export data (JSON)…, Import…, Export CSV (all tables)… after Back up now (08)" rows_order
 check "the O-17 sheet explains how to get an empty database" grep -qF 'importNotEmptyTitle = "Import needs an empty database"' $app/Strings.swift
 check "the test folder override is DEBUG-only under a test root (Q-056)" bash -c "grep -qF 'guard environment[Startup.testRootVariable] != nil, let path = environment[directoryVariable]' $app/SettingsUI/DataTransferRows.swift && grep -qF '#if DEBUG' $app/SettingsUI/DataTransferRows.swift"
-check "1.3.sh no longer guards Export / Import (PM-8.3-1)" bash -c "grep -qF 'for later in \"Export diagnostics\" \"Reset all\" \"Check for updates\"; do' scripts/stages/1.3.sh"
+check "1.3.sh no longer guards Export / Import (PM-8.3-1)" bash -c "! grep -qE '^for later in .*\"(Export|Import)\"' scripts/stages/1.3.sh"
 check "03 names what an import reproduces" grep -qF 'reproduces every exported table, in one transaction' docs/03-data-model.md
 
 for suite in ExportImportTests RepositoryAccountTests MigrationTests; do

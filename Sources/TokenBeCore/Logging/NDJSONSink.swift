@@ -204,17 +204,21 @@ public actor NDJSONSink: LogSink {
       fail("retention", directory.path, error)
       return []
     }
-    return names.compactMap { name in
-      guard let match = name.wholeMatch(of: /tokenbe-(\d{4})-(\d{2})-(\d{2})(?:-(\d+))?\.ndjson/),
-        let year = Int(match.output.1), let month = Int(match.output.2), let day = Int(match.output.3),
-        let date = calendar.date(from: DateComponents(year: year, month: month, day: day))
-      else { return nil }
-      let index = match.output.4.flatMap { Int($0) } ?? 0
-      return LogFile(
-        url: directory.appendingPathComponent(name), day: "\(match.output.1)-\(match.output.2)-\(match.output.3)",
-        date: date, index: index
-      )
-    }
+    return names.compactMap { Self.logFile(named: $0, in: directory, calendar: calendar) }
+  }
+
+  /// `tokenbe-YYYY-MM-DD[-N].ndjson` → its day and rotation index; nil for any other name (crash files, strays).
+  /// Also used by the diagnostics bundle's "last 3 log files" (07).
+  static func logFile(named name: String, in directory: URL, calendar: Calendar) -> LogFile? {
+    guard let match = name.wholeMatch(of: /tokenbe-(\d{4})-(\d{2})-(\d{2})(?:-(\d+))?\.ndjson/),
+      let year = Int(match.output.1), let month = Int(match.output.2), let day = Int(match.output.3),
+      let date = calendar.date(from: DateComponents(year: year, month: month, day: day))
+    else { return nil }
+    let index = match.output.4.flatMap { Int($0) } ?? 0
+    return LogFile(
+      url: directory.appendingPathComponent(name), day: "\(match.output.1)-\(match.output.2)-\(match.output.3)",
+      date: date, index: index
+    )
   }
 
   private func fileSize(_ url: URL) -> Int {
