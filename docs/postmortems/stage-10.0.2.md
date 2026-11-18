@@ -1,5 +1,5 @@
 # Postmortem — Stage 10.0.2 xAI on its Management API
-Date: 2026-11-18 · Branch: s10.0.2-xai-mgmt-api · PR: #45 · Planned size: M · Commits: 9
+Date: 2026-11-18 · Branch: s10.0.2-xai-mgmt-api · PR: #46 (#45 closed by the branch rename) · Planned size: M · Commits: 9
 
 ## Outcome
 An xAI account now uses a management key (Q-062, the owner's choice).
@@ -40,6 +40,7 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
   - **Cause:** the first branch name (`s10.0.2-xai-` followed by `management`, written apart here), in this postmortem’s header, matches the xAI key pattern (`xai-` + 8 letters).
   - **Fix:** the branch was renamed on GitHub (the PR follows) and locally to `s10.0.2-xai-mgmt-api`.
   - **Lesson:** a branch slug must not start a key-shaped run (`xai-`, `sk-`) of 8 or more letters.
+  - **Side effect:** renaming the branch closed draft PR #45 instead of moving it. The stage continues in PR #46.
 - **Second sweep: `STAGE 10.0.2 OK`.**
   - 1510 ok and 125 skip, the skips from UI and the soak.
   - `swift test` 589 tests in 87 suites; `swiftlint --strict` 0 violations.
