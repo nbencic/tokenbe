@@ -65,6 +65,7 @@ Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it 
 | H2 | Run `scripts/record-fixtures.sh openai` with `OPENAI_ADMIN_KEY` | 3.6 (marks OpenAI verified) | Phases 4–5 proceed on synthetic fixtures |
 | H3 | Run `scripts/record-fixtures.sh deepseek` and/or `xai` with keys | 6.1/6.2 verification | Phase 7 proceeds |
 | H4 | Developer ID certificate + notarytool keychain profile `tokenbe-notary` on the Mac | 11.5 | Everything else |
+| H6 | Run `scripts/record-fixtures.sh <provider>` for xai (management key), moonshot, novita, stepfun, siliconflow, deepinfra with keys (Q-062) | 10.0.6 adapters (StepFun, SiliconFlow, DeepInfra); `Verified` for xAI-direct, Moonshot, Novita | 10.0.2–10.0.5 build on synthetic fixtures from 02; 10.1 proceeds |
 | H5 | 14-day soak (SOAK-1) — app runs on Nikola's Mac with real keys | 11.5 | Starts once 10.0.1 has merged (the owner adds every provider from the sidebar's `+`, Q-060); 10.x and 11.1–11.4 run in parallel with `TB_SOAK=1` |
 
 ### 0.5 Phase map
@@ -81,7 +82,7 @@ Boundary rule (04): `TokenBeApp` never imports GRDB or touches `URLSession`; it 
 | 7 Apps | 7.1 apps by provider key · 7.2 harness ingest · 7.3 drilldown polish | Per-app attribution incl. harness drop folder |
 | 8 Dashboard | 8.1 by-model & drift · 8.2 chart & cache tile · 8.3 CSV export · 8.4 accessibility | Dashboard complete per 08 |
 | 9 Lifecycle | 9.1 retention · 9.2 export/import · 9.3 diagnostics · 9.4 update check · 9.5 reset & audits | Long-term durability features; startup sequence audited |
-| 10 Gated adapters | 10.0.1 sidebar accounts & soak switch · 10.1 Anthropic · 10.2 OpenRouter · 10.3 contributor path | More accounts can be added and removed after the first; adapters compiled and tested on synthetic fixtures, hidden in Release until recorded |
+| 10 Gated adapters | 10.0.1 sidebar accounts & soak switch · 10.0.2 xAI Management API · 10.0.3 migration 002 (provider list) · 10.0.4 Moonshot · 10.0.5 Novita · 10.0.6 recorder & H6 (StepFun, SiliconFlow, DeepInfra) · 10.1 Anthropic · 10.2 OpenRouter · 10.3 contributor path | More accounts can be added and removed after the first; adapters compiled and tested on synthetic fixtures, hidden in Release until recorded |
 | 11 Hardening & release | 11.1 perf · 11.2 security · 11.3 Paper/strings/accessibility · 11.4 docs · 11.5 release (H4, H5) | 1.0.0 notarized dmg + cask |
 
 Mapping to `10 § Milestones`: M0 = 3.6/6.x gates; M1 = Phases 0–2; M2 = 3–4; M3 = 5; M4 = 1, 8; M5 = 7; M6 = 11.1–11.3; M7 = 11.5.
@@ -715,6 +716,62 @@ This stage runs its full verify with UI tests on: the soak starts only after it 
 **Stage DoD:** D1–D13. **Human gate:** H5 starts after this merges.
 - **Start:** the owner rebuilds the soak copy (`scripts/run.sh build-app && ditto build/DerivedData/Build/Products/Debug/TokenBe.app ~/Applications/TokenBe.app`), launches it without a test root, adds OpenAI, DeepSeek and xAI from the sidebar's `+` with real keys, and says "soak started <date>".
 - **During the soak:** every verify runs with `TB_SOAK=1` until the owner says the soak has ended.
+
+### Stage 10.0.2 — xAI on its Management API
+**Goal:** xAI shows spend, so its runway works (Q-062). The inference key's `GET /v1/api-key` has no balance (recorded by the soak, 2026-11-18). xAI's Management API reports spend per day and model; it needs a management key, which the owner chose (Q-062). **Depends on:** 10.0.1. **Adds:** an xAI account reads its spend; onboarding asks for a management key and an anchor. **Size:** M.
+**Steps:**
+1. **Plan and Q-062** (this commit): 01 S1/S2/S4, the stages 10.0.2–10.0.6, H6.
+2. **02 § xai rewritten** from xAI's Management API docs, every field `[expected]` until H6 records it:
+   - Base `https://management-api.x.ai`, header `Authorization: Bearer <management key>`. Key type: Management key (console.x.ai → Settings → Management Keys).
+   - **Probe:** `GET /auth/management-keys/validation` → `scope`, `scopeId` (the team when `scope == "SCOPE_TEAM"`), deprecated `teamId` as fallback; then one `POST /v1/billing/teams/{team_id}/usage` over the last day proves billing read access. A 401/403 → 02's message for a non-management key.
+   - **Cost job** (the `keys` cadence, `tb.poll.keysIntervalS`, like OpenAI's cost): `POST /v1/billing/teams/{team_id}/usage` with `analyticsRequest {timeRange {startTime, endTime, timezone: "Etc/UTC"}, timeUnit: "TIME_UNIT_DAY", values: [{name: "usd", aggregation: "AGGREGATION_SUM"}], groupBy: ["description"]}` → `timeSeries[] {group, groupLabels, dataPoints[{timestamp, values}]}`, `limitReached`. One `cost_bucket` row per (UTC day, `description`) with `group_kind = 'description'`; today's row is provisional. `limitReached == true` logs `poll.provider_rule` (`xai_usage_limit_reached`) and keeps the partial rows.
+   - **Balance:** `GET /v1/billing/teams/{team_id}/prepaid/balance` is NOT called until H6 records it (the meaning and sign of `total` are undocumented). Mode `anchored`; capabilities `cost: true`, `balance: false`.
+   - Never called (stage guard): any other management path, e.g. `prepaid/top-up`, `spending-limits`, `billing-info`, `payment-method`, `invoice`.
+3. **Adapter** (`Providers/XAI/`): `XAIClient`, `XAIProbe`, `XAIDTOs` rewritten; a JSON `POST` helper beside `BearerRequest.get`. Synthetic fixtures `Tests/Fixtures/providers/xai/{validation,usage}.*.synthetic.json` from 02 only. The old `api_key.*` fixtures go.
+4. **13 § D-xai-balance** superseded by the recorded shape and Q-062. **08** step-1 caption for xAI `Management key`; step 3 asks xAI for an anchor (anchored). **07**: `xai_usage_limit_reached`. **`check-no-secrets.sh`**: `management-api.x.ai` replaces `api.x.ai`.
+5. **`scripts/stages/10.0.2.sh`**; `STAGES` gains `10.0.2`.
+
+**Inventory** — Files: `Providers/XAI/{XAIClient,XAIProbe,XAIDTOs}.swift`, `Providers/BearerRequest.swift`, `Onboarding/Step1Provider.swift` (caption), `Tests/TokenBeCoreTests/XAITests.swift`, `Tests/Fixtures/providers/xai/*`, `scripts/check-no-secrets.sh`, `scripts/record-fixtures.sh` (xai: the management endpoints), `scripts/verify-stage.sh`, `scripts/stages/10.0.2.sh`, `docs/{01,02,07,08,13}`. Settings: none. Events: `poll.provider_rule` rule `xai_usage_limit_reached`.
+**Tests:** `XAITests` on the synthetic fixtures: probe ok (team scope; deprecated `teamId` fallback), 401, organization scope without a team, billing 403; cost rows exact (cents, day, description, provisional today); `limitReached`; unknown keys logged once; the request body sent.
+**Verify (`scripts/stages/10.0.2.sh`):** the three allowed management paths and none other (negative grep in `Sources/`); no `api.x.ai/v1/api-key`; capabilities anchored with cost; `XAITests` passed; 02/08/13 lines. Runs with `TB_UI_TESTS=0 TB_SOAK=1` (the soak runs).
+**Stage DoD:** D1–D13. **Human gate:** after merge, the owner removes the soak's xAI account with `−` BEFORE rebuilding the soak copy (it holds an inference key and anchored capabilities), rebuilds, then adds xAI again from `+` with a management key and an anchor.
+
+### Stage 10.0.3 — Migration 002: the provider list
+**Goal:** the database accepts the new providers. 001 pins `account.provider` with `CHECK (provider IN (…))`, and SQLite cannot alter a CHECK, so 002 rebuilds `account`. Nine tables reference `account(id)`, most `ON DELETE CASCADE`: dropping `account` with foreign keys on would delete their rows. **Depends on:** 10.0.2. **Adds:** nothing visible. **Size:** M.
+**Steps:**
+1. **`Migrations/002_providers.sql`**: SQLite's documented 12-step table rebuild — `account_new` with the CHECK widened to `('openai','anthropic','openrouter','deepseek','xai','moonshot','novita','stepfun','siliconflow','deepinfra')`, every column, default, constraint and index of 001's `account` (incl. `UNIQUE (provider)`), copy, drop, rename.
+2. **`Migrator`**: a migration that rebuilds a table runs with `PRAGMA foreign_keys = OFF` set OUTSIDE its transaction; before commit, `PRAGMA foreign_key_check` must return no row (else roll back, `db.migrate_failed`); foreign keys are back on afterwards, also on failure. 001 and later additive migrations keep the plain path.
+3. **Fixture DB** `Tests/Fixtures/db/v001.sqlite` (03: every migration ships one): 001 with rows in `account` and every table that references it. `MigrationTests`: 002 keeps every row count, `foreign_key_check` empty, `UNIQUE (provider)` holds, a `moonshot` insert succeeds, an unknown provider still fails, `schema_version` = 2; a failing 002 leaves the file at version 1.
+4. **03**: a `Migration 002` section (001's DDL block stays byte for byte, 2.1). 2.1.sh's launch checks expect `to=2` on a fresh root (skipped during the soak; `MigrationTests` and `StartupSequenceTests` cover it meanwhile).
+5. **`scripts/stages/10.0.3.sh`**.
+
+**Inventory** — Files: `Store/Migrations/002_providers.sql`, `Store/Migrator.swift`, `Tests/Fixtures/db/v001.sqlite`, `Tests/TokenBeCoreTests/MigrationTests.swift`, `scripts/stages/{2.1,10.0.3}.sh`, `scripts/verify-stage.sh`, `docs/03-data-model.md`. Events: none new.
+**Verify:** 001 unchanged; 002 lists the ten providers; the FK-off path and `foreign_key_check`; `MigrationTests` passed. **Stage DoD:** D1–D13. **Human gate:** before rebuilding the soak copy, the owner copies `~/Library/Application Support/TokenBe/tokenbe.sqlite*` aside (002 runs on the soak's database at its next launch).
+
+### Stage 10.0.4 — Moonshot (Kimi)
+**Goal:** a Moonshot account shows its balance (direct). **Depends on:** 10.0.3. **Size:** S.
+**Steps:**
+1. **02 § moonshot** from Moonshot's docs (`[expected]`): `GET /v1/users/me/balance`, `Authorization: Bearer <key>`, on `api.moonshot.ai` (USD) or `api.moonshot.cn` (CNY); a key works only on its own region. Response `{code, scode, status, data: {available_balance, voucher_balance, cash_balance}}`; `cash_balance` may be negative.
+2. **Probe:** `.ai` first; a 401 there tries `.cn` (that 401 is logged at `debug`, never `error`); both 401 → 02's wrong-key message. The region is the account's currency: USD → `.ai`, CNY → `.cn`; the balance poll derives its host from it (no new column, no new capability key).
+3. **Balance** (`tb.poll.balanceIntervalS`): one `balance_snapshot` — amount `available_balance`, granted `voucher_balance`, topped-up `cash_balance`, in cents (exact decimal, never `Double`, 12 § R7).
+4. `ProviderID.moonshot` (`Moonshot`, letter `K`), 08 tile caption `Balance only · apps via harness`, `check-no-secrets.sh` hosts, 07 if a rule is added, harness provider list (06).
+5. **`scripts/stages/10.0.4.sh`**.
+
+**Tests:** `MoonshotTests` (synthetic: ok USD, ok CNY via the `.cn` fallback, both 401, negative cash, schema drift, unknown keys). **Stage DoD:** D1–D13.
+
+### Stage 10.0.5 — Novita
+**Goal:** a Novita account shows its balance (direct). **Depends on:** 10.0.3. **Size:** S.
+**Steps:**
+1. **02 § novita** (`[expected]`): `GET https://api.novita.ai/openapi/v1/billing/balance/detail`, `Authorization: Bearer <key>`; `availableBalance`, `cashBalance`, `creditLimit`, `pendingCharges`, `outstandingInvoices`, strings in 1/10000 USD (`"10000"` = $1.00).
+2. **05 § Currency**: 1/10000 USD → cents rounds half away from zero; the snapshot stores amount `availableBalance`, topped-up `cashBalance`.
+3. `ProviderID.novita` (`Novita`, letter `N`), 08 caption `Balance only · apps via harness`, hosts, 06.
+4. **`scripts/stages/10.0.5.sh`**.
+
+**Tests:** `NovitaTests` (ok, rounding, 401, drift). **Stage DoD:** D1–D13.
+
+### Stage 10.0.6 — Recorder and H6: StepFun, SiliconFlow, DeepInfra
+**Goal:** record what the providers return before building on it. StepFun's currency, SiliconFlow's currency and two of its fields, and DeepInfra's auth and balance unit are not documented, so no synthetic fixture may be written for them (12 § R2). **Depends on:** 10.0.5. **Size:** S.
+**Steps:** `scripts/record-fixtures.sh` gains `stepfun` (`GET /v1/accounts`), `siliconflow` (`GET /v1/user/info`), `deepinfra` (`GET /v1/me?checklist=true`), `moonshot`, `novita`, and xAI's `prepaid/balance`; each writes a redacted `*.recorded.json` and a `RECORDED` marker. 02 gets one `[expected]` section per provider with the open questions. **Human gate H6:** the owner records in their own Terminal. **While waiting:** 10.1. When H6 closes, each recorded provider gets an adapter stage (10.0.7+) and `Verified` entries for the recorded ones.
 
 ### Stage 10.1 — Anthropic adapter
 **Depends on:** 9.5. **Steps:** synthetic fixtures per `02 § anthropic` (probe 5 steps incl. `no_org.403`/`401`, usage 1h×48, cost_report with cents-as-string, api_keys, workspaces); `Providers/Anthropic/*.swift`; normalizer rows (05); per-key `≈ $` (D-anthropic-per-key-est); `Priority Tier` note in badges; `credit_low.400` → `poll.provider_rule rule=anthropic_credit_low`. **Tests:** `AdapterTests/AnthropicTests`, `NormalizerTests` rows. **Not** in `Verified`. **Stage DoD:** D1–D3, D5, D9, D11–D12 (no UI change in Release).
