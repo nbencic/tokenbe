@@ -47,8 +47,9 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
   - **Causes:** two lines were never run.
     - The new POST helper's bad-URL `throw`: splitting the `guard` across lines left that `throw` on a line of its own, and nothing tested it.
     - `XAIUsageRequest.json()`'s unreachable encode `catch`.
-  - **Fix:** a `BearerRequestTests` case for a relative path, and the unreachable `catch` kept on one line.
-  - **Result:** 9976/10281 = 97.03 %, and a third sweep after the fix.
+  - **Fix:** a `BearerRequestTests` case for a relative path. The unreachable `catch` stays multi-line, because a one-line `catch { throw … }` fails the `tokenbe_no_silent_catch` lint rule.
+  - **Result:** 9982/10285 = 97.05 %.
+  - **The one-line attempt:** the third sweep caught that lint violation (`FAIL 0.1 swiftlint --strict`). My lint step before it had gated on `grep "Done linting"`, which also prints when violations are found. Gate on `wait.sh`'s exit code instead (PM-10.0.2-5).
   - **Margin:** under 0.1 %. Each new adapter must test every failure branch (PM-10.0.2-4).
 
 ## Deviations from the docs
@@ -64,5 +65,6 @@ D1–D13 are met; the soak runs, so the verify ran with `TB_UI_TESTS=0 TB_SOAK=1
 - PM-10.0.2-1 · agent · 11.5 (after the soak) · Run `SidebarAccountsUITests`, `OnboardingUITests` and `DirectBalanceUITests` with UI on. SidebarAccounts onboards xAI in fixture mode, which now shows step 3's anchor field. Caption and Lag-help copy changed.
 - PM-10.0.2-2 · Nikola · H6 · Record xAI with `XAI_MANAGEMENT_KEY` (`scripts/record-fixtures.sh xai`): validation, usage and prepaid balance. Then 02's `[expected]` marks are checked, and whether xAI turns direct is decided from `total`.
 - PM-10.0.2-3 · Nikola · after merge · Remove the soak's xAI account with `−`, rebuild the soak copy, then add xAI from `+` with a management key and an anchor.
-- PM-10.0.2-4 · agent · 10.0.3–10.0.5 · Core coverage is at 97.03 %. Every new adapter and migration branch gets a test, and the local coverage gate runs before the first sweep.
+- PM-10.0.2-4 · agent · 10.0.3–10.0.5 · Core coverage is at 97.05 %. Every new adapter and migration branch gets a test, and the local coverage gate runs before the first sweep.
+- PM-10.0.2-5 · agent · every stage · Gate a lint run on `scripts/wait.sh lint`'s exit code, never on its `Done linting` line.
 - Earlier actions that target this stage: none.
