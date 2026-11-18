@@ -835,3 +835,9 @@ Options and choices (the owner's):
 - **Order.** These stages run before 10.1 (Anthropic): 10.0.2 xAI, 10.0.3 migration 002 (the provider CHECK in 001 must widen), 10.0.4 Moonshot, 10.0.5 Novita, 10.0.6 recorder + H6 for the rest. All new providers stay out of `Verified` until recorded (D-verified-providers), so Release keeps hiding them; the Debug soak copy offers them.
 Blocking: no (decided by the owner)
 
+## Q-063 Importing an export made by an earlier schema            (2026-11-18)
+Context: `GRDBRepository.importDocument` (Store/Repository+Export.swift, Q-056); 03 § Migrations, migration 002 (14 § Stage 10.0.3).
+Options: A) keep refusing any document whose `schema_version` differs from the database's; B) accept a document from schema 1 up to the current one, refuse a newer one.
+Chosen for now: B — with A, migration 002 would make every export taken before it unimportable (a backup the user cannot restore), while 002 changes no exported column (it only widens `account.provider`'s CHECK), so a schema-1 document is a valid schema-2 document. A future migration that changes an exported column must narrow this range or convert old documents.
+Blocking: no
+
