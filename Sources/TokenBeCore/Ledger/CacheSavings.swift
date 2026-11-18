@@ -32,14 +32,14 @@ public enum CacheSavingsFigure: Sendable, Equatable {
 /// ```
 /// i.e. what the cached tokens would have cost as plain input, minus what they cost, with `CostEstimator`'s rates
 /// and fallbacks, in `Int128` picodollars rounded once. Anthropic counts its provider buckets and their retention
-/// roll-ups (`rollup`, 9.1; PM-8.2-4); DeepSeek, xAI and Moonshot their harness buckets (per-response cache fields), which keep
+/// roll-ups (`rollup`, 9.1; PM-8.2-4); DeepSeek, xAI, Moonshot and Novita their harness buckets (per-response cache fields), which keep
 /// `harness` when rolled up (Q-055); OpenAI and OpenRouter are not computed. Unpriced models are left out.
 public enum CacheSavings {
   /// The usage sources the provider's savings are computed from, or why there are none.
   static func sources(_ provider: ProviderID) -> Result<Set<String>, CacheSavingsGap> {
     switch provider {
     case .anthropic: .success(["provider", "rollup"])
-    case .deepseek, .xai, .moonshot: .success(["harness"])
+    case .deepseek, .xai, .moonshot, .novita: .success(["harness"])
     case .openai: .failure(.openAIAggregate)
     case .openrouter: .failure(.noCacheCounts)
     }

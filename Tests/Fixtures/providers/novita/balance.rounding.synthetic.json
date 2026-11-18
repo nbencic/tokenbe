@@ -1,0 +1,1 @@
+{"status": 200, "headers": {"Content-Type": "application/json"}, "body": {"availableBalance": "1234550", "cashBalance": "-12350", "creditLimit": "0", "pendingCharges": "0", "outstandingInvoices": "12350"}}

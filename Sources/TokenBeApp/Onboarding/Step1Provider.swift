@@ -16,12 +16,15 @@ struct Step1Provider: View {
     VStack(alignment: .leading, spacing: 16) {
       Text(Strings.whichProvider)
         .font(.title2.weight(.semibold))
-      LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-        ForEach(available, id: \.self) { provider in
-          tile(provider)
+      // Seven tiles take three rows; past the window's 440 pt they scroll, so Cancel and Continue stay in place.
+      ScrollView {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+          ForEach(available, id: \.self) { provider in
+            tile(provider)
+          }
         }
+        .padding(2)
       }
-      Spacer(minLength: 0)
       HStack {
         Button(Strings.cancel, action: cancel)
           .keyboardShortcut(.cancelAction)
@@ -69,7 +72,7 @@ struct Step1Provider: View {
     case .openai: Strings.captionOpenAI
     case .anthropic: Strings.captionAnthropic
     case .openrouter, .xai: Strings.captionOpenRouter
-    case .deepseek, .moonshot: Strings.captionBalanceOnly
+    case .deepseek, .moonshot, .novita: Strings.captionBalanceOnly
     }
   }
 }

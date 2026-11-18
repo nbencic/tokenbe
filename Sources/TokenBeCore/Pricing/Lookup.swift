@@ -58,6 +58,7 @@ public enum Lookup {
     case .deepseek: "deepseek"
     case .xai: "xai"
     case .moonshot: "moonshot"
+    case .novita: "novita"
     case .openrouter: "openrouter"
     }
   }

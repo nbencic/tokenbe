@@ -25,6 +25,7 @@ struct ProviderGlyph: View {
     case .deepseek: "D"
     case .xai: "X"
     case .moonshot: "K"
+    case .novita: "N"
     }
   }
 }

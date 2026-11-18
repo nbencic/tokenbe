@@ -48,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - xAI: accounts now use an xAI management key and read the team's daily spend from xAI's Management API, so the runway works from your anchor. The old inference-key check returned no balance. TokenBe calls only the key-validation and usage endpoints (Stage 10.0.2).
 - Database: migration 002 lets an account belong to the new providers (Moonshot, Novita, StepFun, SiliconFlow, DeepInfra) and keeps every existing row. Exports made before it still import (Stage 10.0.3).
 - Moonshot (Kimi): add a Moonshot account with its API key; TokenBe finds the key's region (international in USD, China in CNY) and shows the balance directly (Stage 10.0.4).
+- Novita: add a Novita account with its API key and see its balance directly. The provider picker scrolls once there are more tiles than fit (Stage 10.0.5).
 
 ### Changed
 - The test coverage gate for the core library is now 97 % of lines, up from 85 % (Q-035).

@@ -27,7 +27,7 @@ def report(provider: str, app: str, model: str, usage: dict, key: str,
     line = {
         "v": 1,
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()) + "Z",
-        "provider": provider,            # openai | anthropic | openrouter | deepseek | xai | moonshot
+        "provider": provider,            # openai | anthropic | openrouter | deepseek | xai | moonshot | novita
         "app": app,                      # ^[a-z0-9][a-z0-9._-]{0,63}$
         "key_hint": key[-4:],
         "request_id": request_id or str(uuid.uuid4()),
@@ -57,7 +57,7 @@ function report(provider, app, model, usage, key, { requestId, status = "ok", co
   const line = {
     v: 1,
     ts: new Date().toISOString(),
-    provider,                         // openai | anthropic | openrouter | deepseek | xai | moonshot
+    provider,                         // openai | anthropic | openrouter | deepseek | xai | moonshot | novita
     app,                              // ^[a-z0-9][a-z0-9._-]{0,63}$
     key_hint: String(key).slice(-4),
     request_id: requestId || randomUUID(),
