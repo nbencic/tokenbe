@@ -25,7 +25,7 @@ Date: 2026-11-18 · Branch: s10.0.6-recorder-h6 · PR: #50 · Planned size: S ·
 
 ## Verify and CI failures
 - **Dry run of 3.3, 10.0.2 and 10.0.6:** green.
-- **Cumulative sweep:** result below.
+- **Cumulative sweep `TB_UI_TESTS=0 TB_SOAK=1 scripts/verify-stage.sh 10.0.6`: `STAGE 10.0.6 OK` on its first run.** 1609 checks ok and 133 skipped (UI and soak); `✔ Test run with 616 tests in 91 suites passed after 4.363 seconds.`.
 
 ## Deviations from the docs
 - **The plan (14 § 10.0.6) said each H6 provider writes "a `RECORDED` marker".** The recorder writes one marker per provider folder, as for the earlier providers. For StepFun, SiliconFlow and DeepInfra, its closing message asks for a review and a commit, not a `Verified` edit, because no adapter exists yet.
