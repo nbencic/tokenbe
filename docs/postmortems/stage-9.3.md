@@ -1,5 +1,5 @@
 # Postmortem — Stage 9.3 Diagnostics bundle
-Date: 2026-11-18 · Branch: s9.3-diagnostics · PR: #41 · Planned size: S · Commits: 3
+Date: 2026-11-18 · Branch: s9.3-diagnostics · PR: #41 · Planned size: S · Commits: 7
 
 ## Outcome
 Settings → Advanced → `Export diagnostics…` sits between `Log retention` and `Open log folder` (08). It saves 07's zip, `TokenBe-diagnostics-YYYYMMDD-HHMMSS.zip` (UTC):
@@ -55,8 +55,8 @@ The files are zipped with `ditto -c -k --sequesterRsrc` (D-ditto-zip). The bundl
 - **UI, targeted:** AdvancedMaintenanceUITests passed, 3 tests in 1 min 26 s.
 - **Full verify 1** (Q-047 selected 6 suites; no shared file changed): FAIL 0.5, the coverage gate (What went wrong 2). All 8 UI tests passed in 6 min 34 s, and 574 Core tests passed.
 - **Full verify 2:** FAIL 9.2, `poll_state and ingest_file are not exported`. That check grepped `Export/*.swift`, and 9.3's `DiagnosticsBundle.swift` lives there and writes `poll_state.json` by design (07). **Fix:** the check names 9.2's three exporter files. The coverage gate passed (97.11 %), and the 8 UI tests passed again. My dry run had exercised only one line of 9.2.sh, so it missed this; the re-run dry-ran 9.1–9.3 in full (What went wrong 3).
-- **Full verify 3:** see the PR body.
-- **CI:** red on 63e7559 (the coverage gate, What went wrong 2); the head that carries this file is checked by SHA before the merge.
+- **Full verify 3:** `STAGE 9.3 OK`, with 1 479 checks passed and 23 printing `skip` (the unselected suites' checks and 3.6's H2 check). 8 UI tests passed with 0 failures in 6 min 34 s; 576 Core tests in 86 suites passed; coverage 97.11 %.
+- **CI:** red on 63e7559 (the coverage gate, What went wrong 2), green from 44cd04d; the head that carries this file is checked by SHA before the merge.
 
 ## Deviations from the docs
 - **07 § Diagnostics bundle** leaves the time zone of the file name open; it is UTC. Its `settings.json` covers the per-provider keys too (Q-057).
