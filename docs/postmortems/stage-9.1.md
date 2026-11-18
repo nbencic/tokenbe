@@ -79,7 +79,7 @@ Totals stay exact in every reader: Spend, burn, `spend_since_anchor`, By app, By
 
 ## Carry-forward actions
 - PM-9.1-1 · agent · 11.1 · LOAD-1 (5 years of data, < 250 MB, Overview < 300 ms) is the first real test of `rollupMonthly` at scale. It reads all daily rows older than 400 days on every run, and writes only the months that changed. If it shows up in the daily step's duration (`roll_ups_ms` in `sched.daily_end`), bound the read to the months not yet rolled up.
-- PM-9.1-2 · agent · 9.2 · Export and import cover `usage_bucket` with all three widths. An import must keep the `1mo` rows as they are, without re-deriving them. Round-trip row counts per width are part of `ExportImportTests`.
+- PM-9.1-2 · agent · 9.2 · **closed (Stage 9.2: `1mo` rows imported as stored; `ExportImportTests.roundTrip`)** · Export and import cover `usage_bucket` with all three widths. An import must keep the `1mo` rows as they are, without re-deriving them. Round-trip row counts per width are part of `ExportImportTests`.
 - Earlier actions that targeted 9.1:
   - PM-8.2-4: closed (5280fee, `CacheSavingsTests.rollupRows`).
   - PM-7.2-1: closed (5280fee, `AttributionTests.purgedLines`). With several apps the split of a purged day is lost; Q-055 accepts this.

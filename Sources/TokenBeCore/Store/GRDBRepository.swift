@@ -16,11 +16,7 @@ public actor GRDBRepository: Repository {
     try await database.write("insertAccount") { db in
       try Self.translatingConstraints(account.id) {
         try account.insert(db)
-        for job in Job.allCases {
-          try db.execute(
-            sql: "INSERT INTO poll_state (account_id, job) VALUES (?, ?)", arguments: [account.id, job.rawValue]
-          )
-        }
+        try Self.seedPollStates(accountID: account.id, db: db)
       }
     }
   }

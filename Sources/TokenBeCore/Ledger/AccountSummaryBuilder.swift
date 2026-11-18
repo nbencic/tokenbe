@@ -95,8 +95,11 @@ public enum AccountSummaryBuilder {
     summary.harnessLinesToday = Int(harness.filter { $0.day == DailyOnce.utcDay(context.now) }
       .reduce(Int64(0)) { $0 + $1.classes.requests })
     // Harness lines are data too (7.2): an anchored xAI account has no polled job, only harness spend (PM-6.2-2).
-    guard (summary.freshness[.usage] ?? nil) != nil || (summary.freshness[.cost] ?? nil) != nil
-      || (summary.freshness[.balance] ?? nil) != nil || summary.hasHarness else {
+    // `freshness` holds a nil entry for a job never polled; `flatMap { $0 }` flattens `Date??` explicitly, because
+    // `(x ?? nil) != nil` on a `Date??` resolved differently in Swift 6.1 and 6.4 and let a never-polled account
+    // through on 6.4 (9.2, Q-056).
+    let polled = [Job.usage, .cost, .balance].contains { summary.freshness[$0].flatMap { $0 } != nil }
+    guard polled || summary.hasHarness else {
       // Before the first poll: the anchor alone is not a runway yet (`No data yet`, 08), so the band is unknown.
       return
     }
