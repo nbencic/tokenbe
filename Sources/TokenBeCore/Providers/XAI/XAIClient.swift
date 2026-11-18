@@ -47,7 +47,7 @@ public struct XAIAdapter: ProviderAdapter {
                               now: context.window.end)
     let request = XAIUsageRequest(start: context.window.start, end: context.window.end)
     let response = try await BearerRequest.post(
-      Self.usageTarget(team: team), key: context.key, json: try request.json(), transport: context.transport
+      Self.usageTarget(team: team), key: context.key, json: request.json(), transport: context.transport
     )
     context.trace.record(response.body)
     let decoded = try LenientDecoding.decode(XAIUsage.self, from: response.body, endpoint: Self.usageEndpoint)

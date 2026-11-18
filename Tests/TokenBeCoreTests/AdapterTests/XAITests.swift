@@ -157,7 +157,7 @@ import Testing
     let data = try #require(post.body)
     let body = try #require(String(bytes: data, encoding: .utf8))
     #expect(body == #"{"analyticsRequest":{"filters":[],"groupBy":["description"],"timeRange":{"#
-      + #""endTime":"2026-11-11 00:00:00","startTime":"2026-11-03 00:00:00","timezone":"Etc\/GMT"},"#
+      + #""endTime":"2026-11-11 00:00:00","startTime":"2026-11-03 00:00:00","timezone":"Etc/GMT"},"#
       + #""timeUnit":"TIME_UNIT_DAY","values":[{"aggregation":"AGGREGATION_SUM","name":"usd"}]}}"#)
   }
 

@@ -82,45 +82,29 @@ struct XAIDataPoint: Decodable, Equatable {
   }
 }
 
-/// The request body of the usage call (02): daily USD per model over `[start, end)`, UTC.
-struct XAIUsageRequest: Encodable, Equatable {
-  struct TimeRange: Encodable, Equatable {
-    var startTime: String
-    var endTime: String
-    var timezone = "Etc/GMT"
-  }
+/// The request body of the usage call (02): daily USD per model over `[start, end)` in whole UTC days. The shape is
+/// fixed and its only variables are two `YYYY-MM-DD 00:00:00` stamps, so the JSON is written out (keys sorted, as a
+/// byte-stable body), which also leaves no encoder failure to handle.
+struct XAIUsageRequest: Equatable {
+  static let timezone = "Etc/GMT"
+  static let timeUnit = "TIME_UNIT_DAY"
+  static let value = "usd"
+  static let groupBy = "description"
 
-  struct Value: Encodable, Equatable {
-    var name = "usd"
-    var aggregation = "AGGREGATION_SUM"
-  }
+  var startTime: String
+  var endTime: String
 
-  struct Analytics: Encodable, Equatable {
-    var timeRange: TimeRange
-    var timeUnit = "TIME_UNIT_DAY"
-    var values = [Value()]
-    var groupBy = ["description"]
-    var filters: [String] = []
-  }
-
-  var analyticsRequest: Analytics
-
-  /// Whole UTC days: from `start`'s day through the day after `end` (exclusive), as `YYYY-MM-DD 00:00:00`.
+  /// From `start`'s UTC day through the day after `end` (exclusive).
   init(start: Date, end: Date) {
-    let from = DailyOnce.utcDay(start)
-    let through = DailyOnce.utcDay(end.addingTimeInterval(86400))
-    analyticsRequest = Analytics(timeRange: TimeRange(startTime: "\(from) 00:00:00", endTime: "\(through) 00:00:00"))
+    startTime = "\(DailyOnce.utcDay(start)) 00:00:00"
+    endTime = "\(DailyOnce.utcDay(end.addingTimeInterval(86400))) 00:00:00"
   }
 
-  /// The body, keys sorted so a request is byte-stable (tests compare it).
-  func json() throws(PollError) -> Data {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.sortedKeys]
-    do {
-      return try encoder.encode(self)
-    } catch {
-      // Plain strings and arrays always encode; this only satisfies the typed throw. The poller logs the failure.
-      throw .providerRule("xai_usage_request_unencodable")
-    }
+  func json() -> Data {
+    let range = #"{"endTime":"\#(endTime)","startTime":"\#(startTime)","timezone":"\#(Self.timezone)"}"#
+    let values = #"[{"aggregation":"AGGREGATION_SUM","name":"\#(Self.value)"}]"#
+    let body = #"{"analyticsRequest":{"filters":[],"groupBy":["\#(Self.groupBy)"],"timeRange":\#(range),"#
+      + #""timeUnit":"\#(Self.timeUnit)","values":\#(values)}}"#
+    return Data(body.utf8)
   }
 }

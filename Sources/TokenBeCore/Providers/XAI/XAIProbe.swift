@@ -16,7 +16,7 @@ extension XAIAdapter {
       let team = try await team(key: key, transport: transport, trace: trace, now: now)
       endpoint = Self.usageEndpoint
       let request = XAIUsageRequest(start: now.addingTimeInterval(-86400), end: now)
-      let response = try await BearerRequest.post(Self.usageTarget(team: team), key: key, json: try request.json(),
+      let response = try await BearerRequest.post(Self.usageTarget(team: team), key: key, json: request.json(),
                                                   transport: transport)
       trace.record(response.body)
       let decoded = try LenientDecoding.decode(XAIUsage.self, from: response.body, endpoint: Self.usageEndpoint)
